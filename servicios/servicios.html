@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Servicios</title>
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Barra de Navegación -->
+    <nav class="navbar">
+        <ul>
+            <li><a href="index.html">Asignación de Tareas</a></li>
+            <li><a href="servicios.html">Gestión de Servicios</a></li>
+            <!-- Agrega más enlaces según sea necesario -->
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Gestión de Servicios</h1>
+        
+        <div class="table-controls">
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Buscar servicios...">
+                
+                <select id="filterSucursal">
+                    <option value="">Todas las Sucursales</option>
+                    <option value="Sucursal A">Sucursal A</option>
+                    <option value="Sucursal B">Sucursal B</option>
+                    <option value="Sucursal C">Sucursal C</option>
+                    <!-- Agrega más opciones según tus sucursales -->
+                </select>
+
+                <select id="filterServicio">
+                    <option value="">Todos los Servicios</option>
+                    <option value="Pago de LUS">Pago de LUS</option>
+                    <option value="Renta">Renta</option>
+                    <option value="Electricidad">Electricidad</option>
+                    <option value="Agua">Agua</option>
+                    <!-- Agrega más servicios según sea necesario -->
+                </select>
+
+                <select id="filterEstadoPago">
+                    <option value="">Todos los Estados de Pago</option>
+                    <option value="Pagado">Pagado</option>
+                    <option value="Pendiente">Pendiente</option>
+                </select>
+
+                <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
+                <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
+
+                <!-- Ordenamiento por fecha de pago y fecha de creación -->
+                <select id="sortOrder">
+                    <option value="fechaPagoAsc">Pago Más Reciente</option>
+                    <option value="fechaPagoDesc">Pago Más Antiguo</option>
+                    <option value="fechaCreacionDesc">Registro Más Reciente</option>
+                    <option value="fechaCreacionAsc">Registro Más Antiguo</option>
+                </select>
+                
+                <button id="resetFilters" class="reset-filters-btn">Resetear Filtros</button>
+            </div>
+            <div class="actions-buttons">
+                <button id="editarBtn" disabled>Editar</button>
+                <button id="eliminarBtn" disabled>Eliminar</button>
+                <button class="add-task-btn" onclick="abrirModal()">Agregar Servicio</button>
+            </div>
+        </div>
+
+        <table id="servicioTable">
+            <thead>
+                <tr>
+                    <th>Sucursal</th>
+                    <th>Servicio</th>
+                    <th>Proveedor del Servicio</th>
+                    <th>Tipo de Pago</th>
+                    <th>Estado de Pago</th>
+                    <!-- Columnas para cada mes -->
+                    <th>Enero</th>
+                    <th>Febrero</th>
+                    <th>Marzo</th>
+                    <th>Abril</th>
+                    <th>Mayo</th>
+                    <th>Junio</th>
+                    <th>Julio</th>
+                    <th>Agosto</th>
+                    <th>Septiembre</th>
+                    <th>Octubre</th>
+                    <th>Noviembre</th>
+                    <th>Diciembre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Los servicios se generarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para Agregar/Editar Servicio -->
+    <div id="servicioModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal()">&times;</span>
+            <h2 id="modalTitle">Agregar Servicio</h2>
+            <form id="servicioForm">
+                <!-- Información del Servicio -->
+                <fieldset>
+                    <legend>Información del Servicio</legend>
+
+                    <label for="sucursal">Sucursal:</label>
+                    <select id="sucursal" required>
+                        <option value="">Selecciona una sucursal</option>
+                        <option value="Sucursal A">Sucursal A</option>
+                        <option value="Sucursal B">Sucursal B</option>
+                        <option value="Sucursal C">Sucursal C</option>
+                        <!-- Agrega más opciones según tus sucursales -->
+                    </select>
+
+                    <label for="servicio">Servicio:</label>
+                    <select id="servicio" required>
+                        <option value="">Selecciona un servicio</option>
+                        <option value="Pago de LUS">Pago de LUS</option>
+                        <option value="Renta">Renta</option>
+                        <option value="Electricidad">Electricidad</option>
+                        <option value="Agua">Agua</option>
+                        <!-- Agrega más servicios según sea necesario -->
+                    </select>
+
+                    <label for="tipoPago">Tipo de Pago:</label>
+                    <select id="tipoPago" required>
+                        <option value="">Selecciona el tipo de pago</option>
+                        <option value="Fijo">Fijo</option>
+                        <option value="Variable">Variable</option>
+                    </select>
+
+                    <!-- Campos que se mostrarán solo si el Tipo de Pago es "Fijo" -->
+                    <div id="tipoPagoFijoFields" style="display: none;">
+                        <label for="fechaPagoFijo">Fecha de Pago:</label>
+                        <input type="date" id="fechaPagoFijo">
+
+                        <label for="montoAPagar">Monto a Pagar:</label>
+                        <input type="number" id="montoAPagar" min="0" step="0.01">
+                    </div>
+                </fieldset>
+
+                <!-- Información del Proveedor del Servicio -->
+                <fieldset>
+                    <legend>Proveedor del Servicio</legend>
+
+                    <label for="proveedorServicio">Proveedor del Servicio:</label>
+                    <input type="text" id="proveedorServicio" required>
+                </fieldset>
+
+                <button type="submit">Guardar Servicio</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Recibo -->
+    <div id="registrarReciboModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarReciboModal()">&times;</span>
+            <h2>Registrar Recibo</h2>
+            <form id="reciboForm">
+                <!-- Información del Servicio Seleccionado -->
+                <div id="servicioSeleccionado" class="servicio-seleccionado">
+                    <label>Servicio:</label>
+                    <span id="nombreServicio">-</span>
+                </div>
+
+                <label for="mesesARegistrar">Meses a Registrar Pago:</label>
+                <div id="mesesARegistrar" class="checklist-meses">
+                    <!-- Checklist de meses se generará aquí dinámicamente -->
+                </div>
+
+                <button type="button" id="confirmarMesesBtn">Confirmar Meses</button>
+            </form>
+
+            <!-- Formulario para ingresar detalles de cada mes seleccionado -->
+            <form id="detalleReciboForm" style="display: none; margin-top: 20px;">
+                <h3>Detalles de Pagos Seleccionados</h3>
+                <div id="detallesPagosContainer">
+                    <!-- Detalles de pagos se generarán aquí dinámicamente -->
+                </div>
+                <button type="submit">Registrar Recibos</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Ver Recibos -->
+    <div id="verRecibosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarVerRecibosModal()">&times;</span>
+            <h2>Ver Recibos</h2>
+
+            <!-- Checklist de Meses -->
+            <div id="checklistMeses" class="checklist-meses">
+                <!-- Checklist se generará aquí dinámicamente -->
+            </div>
+
+            <!-- Lista de Recibos por Mes -->
+            <div id="listaRecibosPorMes" class="lista-recibos-por-mes">
+                <!-- Recibos se generarán aquí dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Enlace al archivo JS -->
+    <script type="module" src="servicios.js"></script>
+</body>
+</html>

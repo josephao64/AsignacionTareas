@@ -1,0 +1,580 @@
+/* styles.css */
+
+/* ===========================
+   Estilos Generales
+   =========================== */
+   * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e0f7fa;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    margin: auto;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #00796b;
+}
+
+/* ===========================
+   Barra de Navegación
+   =========================== */
+.navbar {
+    background-color: #00796b;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.navbar ul li {
+    
+}
+
+.navbar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    transition: color 0.3s;
+}
+
+.navbar ul li a:hover {
+    color: #004d40;
+}
+
+/* ===========================
+   Estilos de la Tabla
+   =========================== */
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filters select, .filters input {
+    padding: 10px 15px;
+    border: 2px solid #b2dfdb;
+    border-radius: 25px;
+    outline: none;
+    transition: border 0.3s;
+    min-width: 150px;
+}
+
+.filters select:focus, .filters input:focus {
+    border-color: #00796b;
+}
+
+.actions-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.actions-buttons button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.actions-buttons button:disabled {
+    background-color: #b2dfdb;
+    cursor: not-allowed;
+}
+
+.actions-buttons button:hover:not(:disabled) {
+    background-color: #004d40;  
+}
+
+.resetFiltersBtn {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.resetFiltersBtn:hover {
+    background-color: #9a0007;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #00796b;
+}
+
+th, td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #004d40;
+    color: white;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+th.sort-asc::after {
+    content: " ▲";
+    position: absolute;
+    right: 15px;
+}
+
+th.sort-desc::after {
+    content: " ▼";
+    position: absolute;
+    right: 15px;
+}
+
+tr:nth-child(even) {
+    background-color: #e0f2f1;
+}
+
+tr:hover {
+    background-color: #b2dfdb;
+}
+
+tr.selected {
+    background-color: #80cbc4 !important;
+}
+
+/* ===========================
+   Botones
+   =========================== */
+/* Botón Agregar Tarea y Agregar Servicio */
+.add-task-btn {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.add-task-btn:hover {
+    background-color: #004d40;  
+}
+
+.ver-recibos-btn {
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.ver-recibos-btn:hover {
+    background-color: #0d47a1;
+}
+
+.registrar-recibo-btn {
+    background-color: #388e3c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin-left: 5px;
+}
+
+.registrar-recibo-btn:hover {
+    background-color: #1b5e20;
+}
+
+.registrar-pago-btn {
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+.registrar-pago-btn:hover {
+    background-color: #e65100;
+}
+
+.editar-recibo-btn, .eliminar-recibo-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.editar-recibo-btn {
+    background-color: #1976d2;
+    color: white;
+    margin-right: 5px;
+}
+
+.editar-recibo-btn:hover {
+    background-color: #0d47a1;
+}
+
+.eliminar-recibo-btn {
+    background-color: #d32f2f;
+    color: white;
+}
+
+.eliminar-recibo-btn:hover {
+    background-color: #9a0007;
+}
+
+/* ===========================
+   Estilos del Modal
+   =========================== */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.5); 
+    padding: 20px;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; 
+    padding: 30px;
+    border: none;
+    width: 100%;
+    max-width: 800px; 
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.close {
+    color: #aaa;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+}
+
+.modal form {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal form fieldset {
+    border: 2px solid #b2dfdb;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.modal form legend {
+    padding: 0 10px;
+    font-weight: bold;
+    color: #00796b;
+}
+
+.modal form label {
+    margin: 10px 0 5px;
+    font-weight: bold;
+    color: #00796b;
+}
+
+.modal form input, 
+.modal form select,
+.modal form textarea {
+    padding: 10px 15px;
+    border: 2px solid #b2dfdb;
+    border-radius: 25px;
+    outline: none;
+    transition: border 0.3s;
+}
+
+.modal form input:focus, 
+.modal form select:focus,
+.modal form textarea:focus {
+    border-color: #00796b;
+}
+
+.modal form textarea {
+    resize: vertical;
+    height: 100px;
+}
+
+.modal form button {
+    margin-top: 15px;
+    padding: 12px;
+    background-color: #00796b;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.modal form button:hover {
+    background-color: #004d40;
+}
+
+/* ===========================
+   Estilos para Check List de Meses Pagados
+   =========================== */
+.checklist-meses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.checklist-meses .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.checklist-meses .checkbox-wrapper input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.servicio-seleccionado {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.servicio-seleccionado label {
+    font-weight: bold;
+    color: #00796b;
+}
+
+.servicio-seleccionado span {
+    font-size: 16px;
+    color: #004d40;
+}
+
+/* Estilos para Detalles de Pagos */
+.detalle-pago {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #b2dfdb;
+    border-radius: 8px;
+    background-color: #e0f2f1;
+}
+
+.detalle-pago h4 {
+    margin-bottom: 10px;
+    color: #00796b;
+}
+
+.detalle-pago label {
+    margin: 5px 0 3px;
+    font-weight: bold;
+    color: #00796b;
+}
+
+.detalle-pago input {
+    padding: 8px 12px;
+    border: 2px solid #b2dfdb;
+    border-radius: 20px;
+    outline: none;
+    transition: border 0.3s;
+    margin-bottom: 10px;
+}
+
+.detalle-pago input:focus {
+    border-color: #00796b;
+}
+
+/* Estilos para Meses y Recibos en el Modal de Ver Recibos */
+.mes-recibos {
+    margin-bottom: 20px;
+}
+
+.mes-recibos h3 {
+    color: #00796b;
+    margin-bottom: 10px;
+}
+
+.recibo {
+    padding: 10px;
+    border: 1px solid #b2dfdb;
+    border-radius: 8px;
+    background-color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.recibo p {
+    margin: 5px 0;
+}
+
+.estado-pagado {
+    color: #388e3c;
+    font-weight: bold;
+}
+
+.estado-pendiente {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+.botones-recibo {
+    margin-top: 10px;
+}
+
+.botones-recibo button {
+    margin-right: 5px;
+}
+
+/* Estilos para los Símbolos de Estado de Pago */
+.status-paid {
+    color: #388e3c; /* Verde */
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.status-pending {
+    color: #ff9800; /* Naranja */
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.status-none {
+    color: #d32f2f; /* Rojo */
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* ===========================
+   Responsive
+   =========================== */
+@media (max-width: 1200px) {
+    table {
+        font-size: 12px;
+    }
+
+    .detalle-pago input {
+        font-size: 14px;
+    }
+
+    .recibo p {
+        font-size: 14px;
+    }
+
+    .botones-recibo button {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 800px) {
+    .modal-content {
+        width: 90%;
+    }
+}
+
+@media (max-width: 600px) {
+    .modal-content {
+        width: 95%;
+    }
+
+    .table-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .filters {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .actions-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .filters select, .filters input {
+        min-width: 100%;
+    }
+
+    .navbar ul {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .navbar ul li {
+        margin-bottom: 10px;
+    }
+
+    .checklist-meses {
+        flex-direction: column;
+    }
+
+    table {
+        overflow-x: auto;
+    }
+}
