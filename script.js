@@ -1,10 +1,9 @@
-// script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
   // Tu configuración de Firebase
-  apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
+  apiKey: "AIzaSyCc_XN...goLunI_pk",
   authDomain: "tareasdb-193f4.firebaseapp.com",
   projectId: "tareasdb-193f4",
   storageBucket: "tareasdb-193f4.appspot.com",
@@ -21,6 +20,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let editarIndex = null;
     let filaSeleccionada = null;
 
+    let tiposTareas = [
+        "RRHH",
+        "LOGISTICA",
+        "FINANZAS",
+        "GENERAL",
+        "MANTENIMIENTO",
+        "MARKETING Y PUBLICIDAD",
+        "INVESTIGACION Y DESARROLLO",
+        "REPORTE"
+    ];
+
     const taskTable = document.getElementById("taskTable").querySelector("tbody");
     const searchInput = document.getElementById('searchInput');
     const editarBtn = document.getElementById('editarBtn');
@@ -28,11 +38,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const filterTipo = document.getElementById('filterTipo');
     const filterResponsable = document.getElementById('filterResponsable');
-    const filterEstado = document.getElementById('filterEstado');
+
+    // Referencias a los checkboxes de estado
+    const filterNoIniciado = document.getElementById('filterNoIniciado');
+    const filterEnProgreso = document.getElementById('filterEnProgreso');
+    const filterCompletado = document.getElementById('filterCompletado');
+
     const filterFechaDesde = document.getElementById('filterFechaDesde');
     const filterFechaHasta = document.getElementById('filterFechaHasta');
     const sortOrderSelect = document.getElementById('sortOrder');
     const resetFiltersBtn = document.getElementById('resetFilters');
+
+    const tipoSelect = document.getElementById('tipo');
+    const addTipoBtn = document.getElementById('addTipoBtn');
+
+    // Función para cargar los tipos de tareas en el select
+    function cargarTipos() {
+        // Limpiar opciones
+        tipoSelect.innerHTML = '<option value="">Selecciona un tipo</option>';
+        filterTipo.innerHTML = '<option value="">Todos los Tipos</option>';
+
+        tiposTareas.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo;
+            option.textContent = tipo;
+            tipoSelect.appendChild(option);
+        });
+
+        tiposTareas.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo;
+            option.textContent = tipo;
+            filterTipo.appendChild(option);
+        });
+    }
+
+    cargarTipos();
+
+    // Evento para agregar un nuevo tipo de tarea
+    addTipoBtn.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Agregar Nuevo Tipo',
+            input: 'text',
+            inputLabel: 'Nuevo Tipo de Tarea',
+            inputPlaceholder: 'Escribe el nuevo tipo',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Por favor ingresa un tipo de tarea';
+                }
+                if (tiposTareas.includes(value.toUpperCase())) {
+                    return 'Este tipo ya existe';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const nuevoTipo = result.value.toUpperCase();
+                tiposTareas.push(nuevoTipo);
+                cargarTipos();
+                tipoSelect.value = nuevoTipo;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tipo Agregado',
+                    text: `El tipo "${nuevoTipo}" ha sido agregado exitosamente.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+    });
 
     // Cargar tareas desde Firebase
     function cargarTareas() {
@@ -160,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fechaCulminacion: "",
                 estado: "No Iniciado",
                 notas,
-                fechaCreacion: new Date().toISOString() // Guardamos la fecha de creación
+                fechaCreacion: new Date().toISOString()
             };
             await addDoc(collection(db, "tareas"), nuevaTarea);
 
@@ -189,22 +263,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ordenar tareas
         const sortOrder = sortOrderSelect.value;
         if (sortOrder === 'fechaEstimadaAsc') {
-            // Ordenar por fecha estimada ascendente (fecha más próxima primero)
             tareasFiltradas.sort((a, b) => {
                 return new Date(a.fechaEstimada) - new Date(b.fechaEstimada);
             });
         } else if (sortOrder === 'fechaEstimadaDesc') {
-            // Ordenar por fecha estimada descendente (fecha más lejana primero)
             tareasFiltradas.sort((a, b) => {
                 return new Date(b.fechaEstimada) - new Date(a.fechaEstimada);
             });
         } else if (sortOrder === 'fechaCreacionDesc') {
-            // Ordenar por fecha de creación descendente (más reciente primero)
             tareasFiltradas.sort((a, b) => {
                 return new Date(b.fechaCreacion || '1970-01-01') - new Date(a.fechaCreacion || '1970-01-01');
             });
         } else if (sortOrder === 'fechaCreacionAsc') {
-            // Ordenar por fecha de creación ascendente (más antigua primero)
             tareasFiltradas.sort((a, b) => {
                 return new Date(a.fechaCreacion || '9999-12-31') - new Date(b.fechaCreacion || '9999-12-31');
             });
@@ -268,7 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function filtrarTarea(tarea) {
         const filtroTipo = filterTipo.value;
         const filtroResponsable = filterResponsable.value;
-        const filtroEstado = filterEstado.value;
         const filtroFechaDesde = filterFechaDesde.value;
         const filtroFechaHasta = filterFechaHasta.value;
         const searchTerm = searchInput.value.toLowerCase();
@@ -285,8 +354,13 @@ document.addEventListener('DOMContentLoaded', function() {
             cumple = false;
         }
 
-        // Filtro por Estado
-        if (filtroEstado && tarea.estado !== filtroEstado) {
+        // Filtro por Estado usando los checkboxes
+        const estadosSeleccionados = [];
+        if (filterNoIniciado.checked) estadosSeleccionados.push("No Iniciado");
+        if (filterEnProgreso.checked) estadosSeleccionados.push("En Progreso");
+        if (filterCompletado.checked) estadosSeleccionados.push("Completado");
+
+        if (!estadosSeleccionados.includes(tarea.estado)) {
             cumple = false;
         }
 
@@ -404,19 +478,25 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', actualizarTabla);
     filterTipo.addEventListener('change', actualizarTabla);
     filterResponsable.addEventListener('change', actualizarTabla);
-    filterEstado.addEventListener('change', actualizarTabla);
     filterFechaDesde.addEventListener('change', actualizarTabla);
     filterFechaHasta.addEventListener('change', actualizarTabla);
+
+    // Listeners para los checkboxes de estado
+    filterNoIniciado.addEventListener('change', actualizarTabla);
+    filterEnProgreso.addEventListener('change', actualizarTabla);
+    filterCompletado.addEventListener('change', actualizarTabla);
 
     // Resetear filtros
     resetFiltersBtn.addEventListener('click', function() {
         filterTipo.value = "";
         filterResponsable.value = "";
-        filterEstado.value = "";
+        searchInput.value = "";
         filterFechaDesde.value = "";
         filterFechaHasta.value = "";
-        searchInput.value = "";
         sortOrderSelect.value = "fechaEstimadaAsc";
+        filterNoIniciado.checked = true;
+        filterEnProgreso.checked = true;
+        filterCompletado.checked = true;
         actualizarTabla();
         Swal.fire({
             icon: 'info',

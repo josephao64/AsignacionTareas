@@ -10,24 +10,19 @@
 </head>
 <body>
     <div class="container">
-        <h1></h1>
+        <h1>Asignación de Tareas</h1>
         
         <div class="table-controls">
             <div class="filters">
                 <input type="text" id="searchInput" placeholder="Buscar tareas...">
                 
+                <!-- Select para filtrar por tipo -->
                 <select id="filterTipo">
                     <option value="">Todos los Tipos</option>
-                    <option value="RRHH">RRHH</option>
-                    <option value="LOGISTICA">LOGISTICA</option>
-                    <option value="FINANZAS">FINANZAS</option>
-                    <option value="GENERAL">GENERAL</option>
-                    <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-                    <option value="MARKETING Y PUBLICIDAD">MARKETING Y PUBLICIDAD</option>
-                    <option value="INVESTIGACION Y DESARROLLO">INVESTIGACION Y DESARROLLO</option>
-                    <option value="REPORTE">REPORTE</option>
+                    <!-- Opciones de tipos dinámicas -->
                 </select>
 
+                <!-- Select para filtrar por responsable -->
                 <select id="filterResponsable">
                     <option value="">Todos los Responsables</option>
                     <option value="JOSE">JOSE</option>
@@ -35,17 +30,10 @@
                     <option value="JOSEPH">JOSEPH</option>
                 </select>
 
-                <select id="filterEstado">
-                    <option value="">Todos los Estados</option>
-                    <option value="No Iniciado">No Iniciado</option>
-                    <option value="En Progreso">En Progreso</option>
-                    <option value="Completado">Completado</option>
-                </select>
-
                 <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
                 <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
 
-                <!-- Ordenamiento por fecha estimada y fecha de creación -->
+                <!-- Ordenamiento -->
                 <select id="sortOrder">
                     <option value="fechaEstimadaAsc">Culminación Más Reciente</option>
                     <option value="fechaEstimadaDesc">Culminación Más Antigua</option>
@@ -59,6 +47,16 @@
                 <button id="editarBtn" disabled>Editar</button>
                 <button id="eliminarBtn" disabled>Eliminar</button>
                 <button class="add-task-btn" onclick="abrirModal()">Agregar Tarea</button>
+
+                <!-- Apartado de vistas -->
+                <div id="viewSection">
+                    <h3>Vista</h3>
+                    <div id="filterEstadoCheckboxes">
+                        <label><input type="checkbox" id="filterNoIniciado" checked> No Iniciado</label>
+                        <label><input type="checkbox" id="filterEnProgreso" checked> En Progreso</label>
+                        <label><input type="checkbox" id="filterCompletado" checked> Completado</label>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -87,16 +85,13 @@
             <h2 id="modalTitle">Agregar Tarea</h2>
             <form id="taskForm">
                 <label for="tipo">Tipo:</label>
-                <select id="tipo" required>
-                    <option value="">Selecciona un tipo</option>
-                    <option value="RRHH">RRHH</option>
-                    <option value="LOGISTICA">LOGISTICA</option>
-                    <option value="FINANZAS">FINANZAS</option>
-                    <option value="GENERAL">GENERAL</option>
-                    <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-                    <option value="MARKETING Y PUBLICIDAD">MARKETING Y PUBLICIDAD</option>
-                    <option value="INVESTIGACION Y DESARROLLO">INVESTIGACION Y DESARROLLO</option>
-                </select>
+                <div class="tipo-container">
+                    <select id="tipo" required>
+                        <option value="">Selecciona un tipo</option>
+                        <!-- Los tipos se cargarán dinámicamente -->
+                    </select>
+                    <button type="button" id="addTipoBtn">Agregar Tipo</button>
+                </div>
 
                 <label for="descripcion">Descripción de la Tarea:</label>
                 <textarea id="descripcion" required></textarea>
@@ -124,7 +119,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Firebase SDK -->
-    <!-- Importa los módulos de Firebase -->
     <script type="module">
         // Importa Firebase y sus módulos
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
@@ -132,12 +126,12 @@
 
         // Tu configuración de Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
-          authDomain: "tareasdb-193f4.firebaseapp.com",
-          projectId: "tareasdb-193f4",
-          storageBucket: "tareasdb-193f4.appspot.com",
-          messagingSenderId: "654977996103",
-          appId: "1:654977996103:web:9c246d4d16c1d3c943e862"
+            apiKey: "AIzaSyCc_XN...goLunI_pk",
+  authDomain: "tareasdb-193f4.firebaseapp.com",
+  projectId: "tareasdb-193f4",
+  storageBucket: "tareasdb-193f4.appspot.com",
+  messagingSenderId: "654977996103",
+  appId: "1:654977996103:web:9c246d4d16c1d3c943e862"
         };
 
         // Inicializa Firebase
