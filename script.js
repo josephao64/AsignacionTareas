@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
   // Tu configuración de Firebase
-  apiKey: "AIzaSyCc_XN...goLunI_pk",
+  apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
   authDomain: "tareasdb-193f4.firebaseapp.com",
   projectId: "tareasdb-193f4",
   storageBucket: "tareasdb-193f4.appspot.com",
@@ -20,16 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let editarIndex = null;
     let filaSeleccionada = null;
 
-    let tiposTareas = [
-        "RRHH",
-        "LOGISTICA",
-        "FINANZAS",
-        "GENERAL",
-        "MANTENIMIENTO",
-        "MARKETING Y PUBLICIDAD",
-        "INVESTIGACION Y DESARROLLO",
-        "REPORTE"
-    ];
+    let tiposTareas = []; // Ahora se cargará desde la base de datos
 
     const taskTable = document.getElementById("taskTable").querySelector("tbody");
     const searchInput = document.getElementById('searchInput');
@@ -42,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Referencias a los checkboxes de estado
     const filterNoIniciado = document.getElementById('filterNoIniciado');
     const filterEnProgreso = document.getElementById('filterEnProgreso');
+    const filterRevision = document.getElementById('filterRevision');
     const filterCompletado = document.getElementById('filterCompletado');
 
     const filterFechaDesde = document.getElementById('filterFechaDesde');
@@ -52,11 +44,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipoSelect = document.getElementById('tipo');
     const addTipoBtn = document.getElementById('addTipoBtn');
 
-    // Función para cargar los tipos de tareas en el select
-    function cargarTipos() {
+    // Función para cargar los tipos de tareas desde la base de datos
+    async function cargarTipos() {
         // Limpiar opciones
         tipoSelect.innerHTML = '<option value="">Selecciona un tipo</option>';
         filterTipo.innerHTML = '<option value="">Todos los Tipos</option>';
+
+        tiposTareas = []; // Reiniciar el array local
+
+        const tiposRef = collection(db, "tiposTareas");
+        const tiposSnapshot = await getDocs(tiposRef);
+        tiposSnapshot.forEach((doc) => {
+            const tipo = doc.data().nombre;
+            tiposTareas.push(tipo);
+        });
 
         tiposTareas.forEach(tipo => {
             const option = document.createElement('option');
@@ -91,11 +92,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     return 'Este tipo ya existe';
                 }
             }
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
                 const nuevoTipo = result.value.toUpperCase();
-                tiposTareas.push(nuevoTipo);
-                cargarTipos();
+                // Guardar el nuevo tipo en la base de datos
+                await addDoc(collection(db, "tiposTareas"), { nombre: nuevoTipo });
+                // Recargar los tipos
+                await cargarTipos();
                 tipoSelect.value = nuevoTipo;
                 Swal.fire({
                     icon: 'success',
@@ -193,17 +196,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Validar que la fecha estimada no sea en el pasado
-        const fechaActual = new Date().toISOString().split('T')[0];
-        if (fechaEstimada < fechaActual) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Fecha inválida',
-                text: 'La fecha estimada de culminación no puede ser en el pasado.',
-            });
-            return;
-        }
-
         if (editarIndex !== null) {
             // Actualizar tarea existente
             const tarea = {
@@ -290,6 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 claseEstado = 'estado-no-iniciado';
             } else if (tarea.estado === "En Progreso") {
                 claseEstado = 'estado-en-progreso';
+            } else if (tarea.estado === "Revisión") {
+                claseEstado = 'estado-revision';
             } else if (tarea.estado === "Completado") {
                 claseEstado = 'estado-completado';
             }
@@ -307,6 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <select onchange="cambiarEstado(${tareas.indexOf(tarea)}, this.value)">
                         <option value="No Iniciado" ${tarea.estado === 'No Iniciado' ? 'selected' : ''}>No Iniciado</option>
                         <option value="En Progreso" ${tarea.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
+                        <option value="Revisión" ${tarea.estado === 'Revisión' ? 'selected' : ''}>Revisión</option>
                         <option value="Completado" ${tarea.estado === 'Completado' ? 'selected' : ''}>Completado</option>
                     </select>
                 </td>
@@ -358,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const estadosSeleccionados = [];
         if (filterNoIniciado.checked) estadosSeleccionados.push("No Iniciado");
         if (filterEnProgreso.checked) estadosSeleccionados.push("En Progreso");
+        if (filterRevision.checked) estadosSeleccionados.push("Revisión");
         if (filterCompletado.checked) estadosSeleccionados.push("Completado");
 
         if (!estadosSeleccionados.includes(tarea.estado)) {
@@ -484,6 +480,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listeners para los checkboxes de estado
     filterNoIniciado.addEventListener('change', actualizarTabla);
     filterEnProgreso.addEventListener('change', actualizarTabla);
+    filterRevision.addEventListener('change', actualizarTabla);
     filterCompletado.addEventListener('change', actualizarTabla);
 
     // Resetear filtros
@@ -496,6 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sortOrderSelect.value = "fechaEstimadaAsc";
         filterNoIniciado.checked = true;
         filterEnProgreso.checked = true;
+        filterRevision.checked = true;
         filterCompletado.checked = true;
         actualizarTabla();
         Swal.fire({

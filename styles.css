@@ -283,8 +283,26 @@ select[multiple] {
     background-color: #fff59d; /* Amarillo claro */
 }
 
+.estado-revision {
+    background-color: #ffcc80; /* Naranja claro */
+}
+
 .estado-completado {
     background-color: #a5d6a7; /* Verde claro */
+}
+
+/* Estilos para el botón "Editar Notas" */
+button {
+    padding: 5px 10px;
+    background-color: #00796b;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #004d40;
 }
 
 /* Responsive */
