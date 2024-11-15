@@ -1,21 +1,134 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  // Tu configuración de Firebase
-  apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
-  authDomain: "tareasdb-193f4.firebaseapp.com",
-  projectId: "tareasdb-193f4",
-  storageBucket: "tareasdb-193f4.appspot.com",
-  messagingSenderId: "654977996103",
-  appId: "1:654977996103:web:9c246d4d16c1d3c943e862"
-};
-
-// Inicializa Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// script.js
+import { db } from './firebase-config.js';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', function() {
+    // **Variables y Funciones de Inicio de Sesión**
+    const loginModal = document.getElementById('loginModal');
+    const openLoginBtn = document.getElementById('openLoginBtn');
+    const closeLoginBtn = document.getElementById('closeLoginBtn');
+    const loginForm = document.getElementById('loginForm');
+    const usernameSelect = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Definir el único usuario admin
+    const usuarios = [
+        { username: 'admin', password: '1', isAdmin: true }
+    ];
+
+    let usuarioActual = null; // Variable para rastrear el usuario actual
+
+    // Función para cargar usuarios al select
+    function cargarUsuarios() {
+        usuarios.forEach(usuario => {
+            const option = document.createElement('option');
+            option.value = usuario.username;
+            option.textContent = usuario.username;
+            usernameSelect.appendChild(option);
+        });
+    }
+
+    cargarUsuarios();
+
+    // Verificar si hay un usuario guardado en localStorage
+    const usuarioGuardado = localStorage.getItem('usuarioActual');
+    if (usuarioGuardado) {
+        usuarioActual = JSON.parse(usuarioGuardado);
+        Swal.fire({
+            icon: 'success',
+            title: 'Bienvenido de Nuevo',
+            text: `Has iniciado sesión como ${usuarioActual.username}.`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+        // Ocultar el botón de "Iniciar Sesión" y mostrar "Cerrar Sesión"
+        openLoginBtn.style.display = 'none';
+        logoutBtn.style.display = 'inline-block';
+    }
+
+    // Manejar la apertura del modal de inicio de sesión
+    openLoginBtn.addEventListener('click', function() {
+        loginModal.style.display = 'block';
+    });
+
+    // Manejar el cierre del modal de inicio de sesión
+    closeLoginBtn.addEventListener('click', function() {
+        loginModal.style.display = 'none';
+    });
+
+    // Cerrar el modal al hacer clic fuera de él
+    window.addEventListener('click', function(event) {
+        if (event.target == loginModal) {
+            loginModal.style.display = 'none';
+        }
+    });
+
+    // Manejar el envío del formulario de inicio de sesión
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const selectedUsername = usernameSelect.value;
+        const enteredPassword = passwordInput.value.trim();
+
+        if (!selectedUsername) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Por favor, selecciona un usuario.',
+            });
+            return;
+        }
+
+        // Verificar las credenciales del usuario
+        const usuario = usuarios.find(u => u.username === selectedUsername && u.password === enteredPassword);
+        if (usuario) {
+            usuarioActual = usuario;
+            // Guardar el usuario en localStorage para persistencia
+            localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Bienvenido',
+                text: `Has iniciado sesión como ${usuarioActual.username}.`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+            // Ocultar el botón de "Iniciar Sesión" y mostrar "Cerrar Sesión"
+            openLoginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            // Cerrar el modal de inicio de sesión
+            loginModal.style.display = 'none';
+            // Actualizar la tabla para reflejar permisos (si aplica)
+            actualizarTabla();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Credenciales incorrectas.',
+            });
+        }
+    });
+
+    // Manejar el cierre de sesión
+    logoutBtn.addEventListener('click', function() {
+        usuarioActual = null;
+        localStorage.removeItem('usuarioActual'); // Eliminar el usuario guardado
+
+        Swal.fire({
+            icon: 'info',
+            title: 'Sesión Cerrada',
+            text: 'Has cerrado sesión exitosamente.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        // Mostrar el botón de "Iniciar Sesión" y ocultar "Cerrar Sesión"
+        openLoginBtn.style.display = 'inline-block';
+        logoutBtn.style.display = 'none';
+        // Actualizar la tabla para reflejar permisos (si aplica)
+        actualizarTabla();
+    });
+
+    // **Variables y Funciones de la Aplicación Principal**
     let tareas = [];
     let editarIndex = null;
     let filaSeleccionada = null;
@@ -54,8 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tiposRef = collection(db, "tiposTareas");
         const tiposSnapshot = await getDocs(tiposRef);
-        tiposSnapshot.forEach((doc) => {
-            const tipo = doc.data().nombre;
+        tiposSnapshot.forEach((docu) => {
+            const tipo = docu.data().nombre;
             tiposTareas.push(tipo);
         });
 
@@ -78,6 +191,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Evento para agregar un nuevo tipo de tarea
     addTipoBtn.addEventListener('click', function() {
+        // Solo permitir agregar tipos si el usuario ha iniciado sesión
+        if (!usuarioActual) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Acceso Denegado',
+                text: 'Debes iniciar sesión para agregar nuevos tipos de tareas.',
+            });
+            return;
+        }
+
         Swal.fire({
             title: 'Agregar Nuevo Tipo',
             input: 'text',
@@ -116,9 +239,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const tareasRef = collection(db, "tareas");
         onSnapshot(tareasRef, (snapshot) => {
             tareas = [];
-            snapshot.forEach((doc) => {
-                const tarea = doc.data();
-                tarea.id = doc.id;
+            snapshot.forEach((docu) => {
+                const tarea = docu.data();
+                tarea.id = docu.id;
                 tareas.push(tarea);
             });
             actualizarTabla();
@@ -129,6 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Abrir el modal
     window.abrirModal = function(index = null) {
+        // Permitir agregar o editar tareas sin necesidad de iniciar sesión
         editarIndex = index;
         const modal = document.getElementById('taskModal');
         const form = document.getElementById('taskForm');
@@ -165,7 +289,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cerrar el modal
     window.cerrarModal = function() {
-        document.getElementById('taskModal').style.display = 'none';
+        const modal = document.getElementById('taskModal');
+        modal.style.display = 'none';
+        editarIndex = null;
+        filaSeleccionada = null;
+        editarBtn.disabled = true;
+        eliminarBtn.disabled = true;
     }
 
     // Agregar o Editar Tarea
@@ -291,6 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Convertir array de responsables a cadena
             const responsablesStr = tarea.responsable.join(', ');
 
+            // Crear el contenido de la fila
             fila.innerHTML = `
                 <td>${tarea.tipo}</td>
                 <td>${tarea.descripcion}</td>
@@ -307,6 +437,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td>${tarea.notas || '-'}</td>
             `;
+
+            // Ajustar el <select> de Estado según el rol del usuario
+            const selectEstado = fila.querySelector('select');
+            if (usuarioActual && usuarioActual.isAdmin) {
+                // Administradores pueden seleccionar cualquier estado
+                selectEstado.disabled = false;
+            } else {
+                // Usuarios no administradores y no autenticados: deshabilitar la opción "Completado"
+                const optionCompletado = selectEstado.querySelector('option[value="Completado"]');
+                if (optionCompletado) {
+                    optionCompletado.disabled = true;
+                    if (tarea.estado === 'Completado') {
+                        // Si la tarea está "Completada" y el usuario no es admin, deshabilitar el select completamente
+                        selectEstado.disabled = true;
+                    }
+                }
+            }
 
             // Evento de selección de fila
             fila.addEventListener('click', function(e) {
@@ -379,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
                              tarea.fechaEstimada.includes(searchTerm) ||
                              (tarea.fechaCulminacion && tarea.fechaCulminacion.includes(searchTerm)) ||
                              tarea.estado.toLowerCase().includes(searchTerm) ||
-                             tarea.notas.toLowerCase().includes(searchTerm);
+                             (tarea.notas && tarea.notas.toLowerCase().includes(searchTerm));
             if (!contiene) {
                 cumple = false;
             }
@@ -397,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fila.classList.add('selected');
         filaSeleccionada = fila;
 
+        // Habilitar botones de editar y eliminar
         editarBtn.disabled = false;
         eliminarBtn.disabled = false;
 
@@ -447,6 +595,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cambiar el estado de una tarea
     window.cambiarEstado = async function(index, nuevoEstado) {
         const tarea = tareas[index];
+
+        // Verificar si el nuevo estado es "Completado"
+        if (nuevoEstado === "Completado") {
+            if (usuarioActual && usuarioActual.isAdmin) {
+                // Permitir el cambio a "Completado" si el usuario es admin
+            } else {
+                // Bloquear el cambio a "Completado" para usuarios no admin o no autenticados
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Acceso Denegado',
+                    text: 'Solo el administrador puede marcar las tareas como "Completado".',
+                });
+                actualizarTabla(); // Revertir cualquier cambio visual
+                return;
+            }
+        }
+
+        // Actualizar el estado
         tarea.estado = nuevoEstado;
         if (nuevoEstado === "Completado" && tarea.fechaCulminacion === "") {
             tarea.fechaCulminacion = new Date().toISOString().split('T')[0];
@@ -511,5 +677,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target == modal) {
             cerrarModal();
         }
+    }
+
+    // **Función para Habilitar Funcionalidades Adicionales (Opcional)**
+    function habilitarFuncionesAdicionales() {
+        // Puedes agregar funcionalidades adicionales aquí si lo deseas
     }
 });
