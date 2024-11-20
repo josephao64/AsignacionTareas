@@ -1,8 +1,8 @@
 // servicios.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
-// Tu configuración de Firebase
+// Tu configuración de Firebase (asegúrate de reemplazar con tus propias credenciales)
 const firebaseConfig = {
     apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
     authDomain: "tareasdb-193f4.firebaseapp.com",
@@ -18,6 +18,7 @@ const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', function() {
     let servicios = [];
+    let tiposServicios = [];
     let editarIndex = null;
     let filaSeleccionada = null;
 
@@ -37,6 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipoPagoSelect = document.getElementById('tipoPago');
     const tipoPagoFijoFields = document.getElementById('tipoPagoFijoFields');
 
+    // Selector de Año
+    const yearSelector = document.getElementById('yearSelector');
+    let yearSelected = new Date().getFullYear(); // Año actual por defecto
+
+    // Establecer el año actual en el selector de año
+    yearSelector.value = yearSelected;
+
     // Modales
     const registrarReciboModal = document.getElementById('registrarReciboModal');
     const reciboForm = document.getElementById('reciboForm');
@@ -50,6 +58,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const checklistMeses = document.getElementById('checklistMeses');
     const listaRecibosPorMes = document.getElementById('listaRecibosPorMes');
 
+    const gestionarTiposServicioBtn = document.getElementById('gestionarTiposServicioBtn');
+    const tiposServiciosModal = document.getElementById('tiposServiciosModal');
+    const tipoServicioForm = document.getElementById('tipoServicioForm');
+    const tiposServiciosTableBody = document.getElementById('tiposServiciosTable').querySelector('tbody');
+    const agregarTipoServicioBtn = document.getElementById('agregarTipoServicioBtn');
+
     // Array de meses en español
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -60,6 +74,220 @@ document.addEventListener('DOMContentLoaded', function() {
     const fechaActual = new Date();
     const mesActualIndex = fechaActual.getMonth(); // 0 - 11
     const mesActualNombre = meses[mesActualIndex];
+
+    // Cargar tipos de servicio desde Firestore
+    function cargarTiposServicios() {
+        const tiposServiciosRef = collection(db, "tiposServicios");
+        const q = query(tiposServiciosRef, orderBy("nombre", "asc"));
+        onSnapshot(q, (snapshot) => {
+            tiposServicios = [];
+            snapshot.forEach((doc) => {
+                const tipo = doc.data();
+                tipo.id = doc.id;
+                tiposServicios.push(tipo);
+            });
+            actualizarSelectServicios();
+            cargarTiposServiciosTabla();
+        });
+    }
+
+    cargarTiposServicios();
+
+    // Actualizar el select de servicios con tipos de servicio
+    function actualizarSelectServicios() {
+        const servicioSelect = document.getElementById('servicio');
+        servicioSelect.innerHTML = '<option value="">Selecciona un servicio</option>';
+        tiposServicios.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo.nombre;
+            option.textContent = tipo.nombre;
+            servicioSelect.appendChild(option);
+        });
+
+        // Actualizar el filtro de servicios
+        const filterServicioSelect = document.getElementById('filterServicio');
+        filterServicioSelect.innerHTML = '<option value="">Todos los Servicios</option>';
+        tiposServicios.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo.nombre;
+            option.textContent = tipo.nombre;
+            filterServicioSelect.appendChild(option);
+        });
+    }
+
+    // Cargar tipos de servicio en la tabla del modal de gestionar
+    function cargarTiposServiciosTabla() {
+        tiposServiciosTableBody.innerHTML = "";
+        tiposServicios.forEach((tipo, index) => {
+            const fila = document.createElement('tr');
+            fila.dataset.id = tipo.id;
+
+            const nombreTd = document.createElement('td');
+            nombreTd.textContent = tipo.nombre;
+
+            const accionesTd = document.createElement('td');
+            const editarBtn = document.createElement('button');
+            editarBtn.textContent = 'Editar';
+            editarBtn.classList.add('editar-tipo-btn');
+            editarBtn.onclick = () => editarTipoServicio(tipo.id, tipo.nombre);
+
+            const eliminarBtn = document.createElement('button');
+            eliminarBtn.textContent = 'Eliminar';
+            eliminarBtn.classList.add('eliminar-tipo-btn');
+            eliminarBtn.onclick = () => eliminarTipoServicio(tipo.id, tipo.nombre);
+
+            accionesTd.appendChild(editarBtn);
+            accionesTd.appendChild(eliminarBtn);
+
+            fila.appendChild(nombreTd);
+            fila.appendChild(accionesTd);
+
+            tiposServiciosTableBody.appendChild(fila);
+        });
+    }
+
+    // Abrir el modal para Gestionar Tipos de Servicio
+    gestionarTiposServicioBtn.addEventListener('click', function() {
+        tiposServiciosModal.style.display = 'block';
+    });
+
+    // Cerrar el modal de Gestionar Tipos de Servicio
+    window.cerrarTiposServiciosModal = function() {
+        tiposServiciosModal.style.display = 'none';
+        tipoServicioForm.reset();
+    };
+
+    // Agregar un nuevo tipo de servicio
+    tipoServicioForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const nuevoTipo = document.getElementById('nuevoTipoServicio').value.trim();
+
+        if (!nuevoTipo) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Por favor, ingresa un nombre para el tipo de servicio.',
+            });
+            return;
+        }
+
+        // Verificar si el tipo ya existe
+        const existe = tiposServicios.some(tipo => tipo.nombre.toLowerCase() === nuevoTipo.toLowerCase());
+        if (existe) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Este tipo de servicio ya existe.',
+            });
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "tiposServicios"), { nombre: nuevoTipo });
+            Swal.fire({
+                icon: 'success',
+                title: 'Añadido',
+                text: 'El tipo de servicio ha sido agregado exitosamente.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            tipoServicioForm.reset();
+        } catch (error) {
+            console.error("Error al agregar tipo de servicio: ", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Hubo un problema al agregar el tipo de servicio.',
+            });
+        }
+    });
+
+    // Editar un tipo de servicio
+    async function editarTipoServicio(id, nombreActual) {
+        const { value: nuevoNombre } = await Swal.fire({
+            title: `Editar Tipo de Servicio`,
+            input: 'text',
+            inputLabel: 'Nuevo Nombre',
+            inputValue: nombreActual,
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value.trim()) {
+                    return 'El nombre no puede estar vacío!';
+                }
+                if (tiposServicios.some(tipo => tipo.nombre.toLowerCase() === value.trim().toLowerCase() && tipo.id !== id)) {
+                    return 'Este tipo de servicio ya existe.';
+                }
+                return null;
+            }
+        });
+
+        if (nuevoNombre) {
+            try {
+                const tipoRef = doc(db, "tiposServicios", id);
+                await updateDoc(tipoRef, { nombre: nuevoNombre.trim() });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Actualizado',
+                    text: 'El tipo de servicio ha sido actualizado exitosamente.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error("Error al editar tipo de servicio: ", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Hubo un problema al editar el tipo de servicio.',
+                });
+            }
+        }
+    }
+
+    // Eliminar un tipo de servicio
+    async function eliminarTipoServicio(id, nombre) {
+        // Verificar si hay servicios asociados a este tipo
+        const serviciosAsociados = servicios.some(servicio => servicio.servicio === nombre);
+        if (serviciosAsociados) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se puede eliminar este tipo de servicio porque está asociado a uno o más servicios.',
+            });
+            return;
+        }
+
+        const { isConfirmed } = await Swal.fire({
+            title: `Eliminar Tipo de Servicio`,
+            text: `¿Estás seguro de eliminar el tipo de servicio "${nombre}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (isConfirmed) {
+            try {
+                const tipoRef = doc(db, "tiposServicios", id);
+                await deleteDoc(tipoRef);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Eliminado',
+                    text: 'El tipo de servicio ha sido eliminado exitosamente.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error("Error al eliminar tipo de servicio: ", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Hubo un problema al eliminar el tipo de servicio.',
+                });
+            }
+        }
+    }
 
     // Cargar servicios desde Firebase
     function cargarServicios() {
@@ -77,6 +305,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarServicios();
 
+    // Evento para actualizar la tabla al cambiar el año
+    yearSelector.addEventListener('change', function() {
+        yearSelected = parseInt(this.value, 10);
+        if (isNaN(yearSelected) || yearSelected < 2000 || yearSelected > 2100) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Año inválido',
+                text: 'Por favor, ingresa un año válido entre 2000 y 2100.',
+            });
+            this.value = new Date().getFullYear();
+            yearSelected = parseInt(this.value, 10);
+        }
+        actualizarTabla();
+    });
+
     // Abrir el modal para Agregar/Editar Servicio
     window.abrirModal = function(index = null) {
         editarIndex = index;
@@ -93,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalTitle').innerText = 'Editar Servicio';
             document.getElementById('sucursal').value = servicio.sucursal;
             document.getElementById('servicio').value = servicio.servicio;
+            document.getElementById('ubicacion').value = servicio.ubicacion || '';
             document.getElementById('tipoPago').value = servicio.tipoPago;
             document.getElementById('proveedorServicio').value = servicio.proveedorServicio || '';
 
@@ -135,14 +379,15 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
 
         const sucursal = document.getElementById('sucursal').value.trim();
-        const servicio = document.getElementById('servicio').value.trim();
+        const servicioNombre = document.getElementById('servicio').value.trim();
+        const ubicacion = document.getElementById('ubicacion').value.trim();
         const tipoPago = document.getElementById('tipoPago').value;
         const fechaPagoFijo = document.getElementById('fechaPagoFijo').value;
         const montoAPagar = parseFloat(document.getElementById('montoAPagar').value);
         const proveedorServicio = document.getElementById('proveedorServicio').value.trim();
 
         // Validaciones
-        if (!sucursal || !servicio || !tipoPago || !proveedorServicio ||
+        if (!sucursal || !servicioNombre || !ubicacion || !tipoPago || !proveedorServicio ||
             (tipoPago === 'Fijo' && (!fechaPagoFijo || isNaN(montoAPagar) || montoAPagar < 0))) {
             Swal.fire({
                 icon: 'error',
@@ -170,7 +415,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const servicioActualizado = {
                 ...servicios[editarIndex],
                 sucursal,
-                servicio,
+                servicio: servicioNombre,
+                ubicacion,
                 tipoPago,
                 fechaPago: tipoPago === 'Fijo' ? fechaPagoFijo : '',
                 montoAPagar: tipoPago === 'Fijo' ? montoAPagar : 0,
@@ -191,7 +437,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Agregar nuevo servicio
             const nuevoServicio = {
                 sucursal,
-                servicio,
+                servicio: servicioNombre,
+                ubicacion,
                 tipoPago,
                 fechaPago: tipoPago === 'Fijo' ? fechaPagoFijo : '',
                 montoAPagar: tipoPago === 'Fijo' ? montoAPagar : 0,
@@ -250,9 +497,9 @@ document.addEventListener('DOMContentLoaded', function() {
             fila.dataset.index = index;
             fila.dataset.id = servicio.id;
 
-            // Estado de Pago para el mes actual
+            // Estado de Pago para el mes actual y año seleccionado
             let estadoPagoActual = 'Pendiente';
-            const recibosMesActual = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mesActualNombre) : [];
+            const recibosMesActual = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mesActualNombre && pago.anio === yearSelected) : [];
             if (recibosMesActual.length > 0) {
                 const todosPagados = recibosMesActual.every(pago => pago.estadoPago === 'Pagado');
                 estadoPagoActual = todosPagados ? 'Pagado' : 'Pendiente';
@@ -268,15 +515,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const proveedorTd = document.createElement('td');
             proveedorTd.textContent = servicio.proveedorServicio;
 
+            const ubicacionTd = document.createElement('td');
+            ubicacionTd.textContent = servicio.ubicacion;
+
             const tipoPagoTd = document.createElement('td');
             tipoPagoTd.textContent = servicio.tipoPago;
 
             const estadoPagoTd = document.createElement('td');
             estadoPagoTd.textContent = estadoPagoActual;
 
-            // Crear celdas para cada mes
+            // Crear celdas para cada mes del año seleccionado
             const mesesTd = meses.map(mes => {
-                const recibosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mes) : [];
+                const recibosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mes && pago.anio === yearSelected) : [];
                 let simbolo = '×';
 
                 if (recibosDelMes.length > 0) {
@@ -313,6 +563,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fila.appendChild(sucursalTd);
             fila.appendChild(servicioTd);
             fila.appendChild(proveedorTd);
+            fila.appendChild(ubicacionTd);
             fila.appendChild(tipoPagoTd);
             fila.appendChild(estadoPagoTd);
             mesesTd.forEach(td => fila.appendChild(td));
@@ -362,8 +613,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Filtro por Estado de Pago
-        if (filtroEstadoPago && servicio.estadoPago !== filtroEstadoPago) {
-            cumple = false;
+        if (filtroEstadoPago) {
+            // Calcular el estado de pago actual para el servicio y año seleccionado
+            let estadoPagoActual = 'Pendiente';
+            const recibosAnio = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.anio === yearSelected) : [];
+            if (recibosAnio.length > 0) {
+                const todosPagados = recibosAnio.every(pago => pago.estadoPago === 'Pagado');
+                estadoPagoActual = todosPagados ? 'Pagado' : 'Pendiente';
+            }
+            if (estadoPagoActual !== filtroEstadoPago) {
+                cumple = false;
+            }
         }
 
         // Filtro por Fecha de Pago Desde
@@ -380,6 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (searchTerm) {
             const contiene = servicio.sucursal.toLowerCase().includes(searchTerm) ||
                              servicio.servicio.toLowerCase().includes(searchTerm) ||
+                             servicio.ubicacion.toLowerCase().includes(searchTerm) ||
                              servicio.tipoPago.toLowerCase().includes(searchTerm) ||
                              servicio.proveedorServicio.toLowerCase().includes(searchTerm) ||
                              (servicio.fechaPago || '').toLowerCase().includes(searchTerm) ||
@@ -486,8 +747,8 @@ document.addEventListener('DOMContentLoaded', function() {
             checkbox.id = checkboxId;
             checkbox.value = mes;
 
-            // Deshabilitar el checkbox si ya hay un recibo registrado para ese mes
-            const yaRegistrado = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes);
+            // Deshabilitar el checkbox si ya hay un recibo registrado para ese mes y año
+            const yaRegistrado = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes && pago.anio === yearSelected);
             if (yaRegistrado) {
                 checkbox.disabled = true;
             }
@@ -531,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
             detalleDiv.classList.add('detalle-pago');
 
             detalleDiv.innerHTML = `
-                <h4>${mes}</h4>
+                <h4>${mes} ${yearSelected}</h4>
                 <label for="numeroRecibo${idx}">Número de Recibo:</label>
                 <input type="text" id="numeroRecibo${idx}" required>
 
@@ -611,18 +872,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Verificar si ya existe un recibo para este mes y número de recibo
-            const existeRecibo = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes && pago.numeroRecibo === numeroRecibo);
+            const existeRecibo = servicio.historialPagos && servicio.historialPagos.some(pago => pago.numeroRecibo === numeroRecibo && pago.anio === yearSelected);
             if (existeRecibo) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Recibo Duplicado',
-                    text: `Ya existe un recibo con el número "${numeroRecibo}" para el mes de ${mes}.`,
+                    text: `Ya existe un recibo con el número "${numeroRecibo}" para el mes de ${mes} en el año ${yearSelected}.`,
                 });
                 return;
             }
 
+            // Incluir el año seleccionado en el recibo
             nuevosPagos.push({
                 mes,
+                anio: yearSelected,
                 numeroRecibo,
                 fechaPago,
                 cantidadAPagar,
@@ -649,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const mesesPagadosActualizados = servicio.mesesPagados ? [...new Set([...servicio.mesesPagados, ...mesesSeleccionados])] : [...mesesSeleccionados];
 
                 // Determinar el estado de pago
-                const estadoPagoActualizado = historialPagosActualizado.length > 0 ? "Pagado" : "Pendiente";
+                const estadoPagoActualizado = historialPagosActualizado.length > 0 ? "Pendiente" : "Pendiente";
 
                 // Actualizar el servicio en Firestore
                 const servicioRef = doc(db, "servicios", servicioId);
@@ -676,7 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function generarHTMLConfirmacionRecibos(mesesSeleccionados, nuevosPagos) {
         let html = '<ul>';
         nuevosPagos.forEach(pago => {
-            html += `<li><strong>${pago.mes}:</strong> Recibo ${pago.numeroRecibo}, Fecha de Pago: ${new Date(pago.fechaPago).toLocaleDateString('es-ES')}, Cantidad: Q. ${pago.cantidadAPagar.toFixed(2)}</li>`;
+            html += `<li><strong>${pago.mes} ${pago.anio}:</strong> Recibo ${pago.numeroRecibo}, Fecha de Pago: ${new Date(pago.fechaPago).toLocaleDateString('es-ES')}, Cantidad: Q. ${pago.cantidadAPagar.toFixed(2)}</li>`;
         });
         html += '</ul>';
         return html;
@@ -737,11 +1000,11 @@ document.addEventListener('DOMContentLoaded', function() {
             checkbox.id = checkboxId;
             checkbox.value = mes;
             checkbox.disabled = true;
-            checkbox.checked = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes && pago.estadoPago === 'Pagado');
+            checkbox.checked = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes && pago.anio === yearSelected && pago.estadoPago === 'Pagado');
 
             const label = document.createElement('label');
             label.htmlFor = checkboxId;
-            label.innerText = mes;
+            label.innerText = `${mes} ${yearSelected}`;
 
             const wrapper = document.createElement('div');
             wrapper.classList.add('checkbox-wrapper');
@@ -756,14 +1019,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function generarListaRecibosPorMes(servicio) {
         listaRecibosPorMes.innerHTML = "";
         meses.forEach(mes => {
-            const recibosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mes) : [];
+            const recibosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mes && pago.anio === yearSelected) : [];
 
             if (recibosDelMes.length > 0) {
                 const mesDiv = document.createElement('div');
                 mesDiv.classList.add('mes-recibos');
 
                 const mesTitle = document.createElement('h3');
-                mesTitle.innerText = mes;
+                mesTitle.innerText = `${mes} ${yearSelected}`;
                 mesDiv.appendChild(mesTitle);
 
                 recibosDelMes.forEach((recibo, idx) => {
@@ -798,30 +1061,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${boletaInfo}
                     `;
 
-                    if (recibo.estadoPago === 'Pendiente') {
-                        const registrarPagoBtn = document.createElement('button');
-                        registrarPagoBtn.classList.add('registrar-pago-btn');
-                        registrarPagoBtn.innerText = 'Registrar Pago';
-                        registrarPagoBtn.onclick = () => registrarPagoRecibo(servicio.id, recibo.numeroRecibo);
-                        reciboDiv.appendChild(registrarPagoBtn);
-                    }
-
                     // Botones para Editar y Eliminar Recibo
                     const botonesRecibo = document.createElement('div');
                     botonesRecibo.classList.add('botones-recibo');
 
                     const editarReciboBtn = document.createElement('button');
                     editarReciboBtn.classList.add('editar-recibo-btn');
-                    editarReciboBtn.innerText = 'Editar';
+                    editarReciboBtn.innerText = 'Editar Recibo';
                     editarReciboBtn.onclick = () => editarRecibo(servicio.id, recibo.numeroRecibo);
 
                     const eliminarReciboBtn = document.createElement('button');
                     eliminarReciboBtn.classList.add('eliminar-recibo-btn');
-                    eliminarReciboBtn.innerText = 'Eliminar';
+                    eliminarReciboBtn.innerText = 'Eliminar Recibo';
                     eliminarReciboBtn.onclick = () => eliminarRecibo(servicio.id, recibo.numeroRecibo);
 
                     botonesRecibo.appendChild(editarReciboBtn);
                     botonesRecibo.appendChild(eliminarReciboBtn);
+
+                    // Botón para Registrar Pago si el recibo está pendiente
+                    if (recibo.estadoPago === 'Pendiente') {
+                        const registrarPagoBtn = document.createElement('button');
+                        registrarPagoBtn.classList.add('registrar-pago-btn');
+                        registrarPagoBtn.innerText = 'Registrar Pago';
+                        registrarPagoBtn.onclick = () => registrarPagoRecibo(servicio.id, recibo.numeroRecibo);
+                        botonesRecibo.appendChild(registrarPagoBtn);
+                    }
 
                     reciboDiv.appendChild(botonesRecibo);
 
@@ -833,116 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para registrar el pago de un recibo pendiente
-    window.registrarPagoRecibo = async function(servicioId, numeroRecibo) {
-        const servicio = servicios.find(s => s.id === servicioId);
-        if (!servicio) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Servicio no encontrado.',
-            });
-            return;
-        }
-
-        const reciboIndex = servicio.historialPagos.findIndex(pago => pago.numeroRecibo === numeroRecibo);
-        if (reciboIndex === -1) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Recibo no encontrado.',
-            });
-            return;
-        }
-
-        // Validar que el recibo aún esté pendiente
-        if (servicio.historialPagos[reciboIndex].estadoPago === 'Pagado') {
-            Swal.fire({
-                icon: 'info',
-                title: 'Recibo ya Pagado',
-                text: 'Este recibo ya ha sido marcado como pagado.',
-            });
-            return;
-        }
-
-        // Mostrar formulario para ingresar información de Boleta de Pago y Cantidad Pagada
-        const { value: formValues } = await Swal.fire({
-            title: `Registrar Pago - Recibo ${numeroRecibo}`,
-            html:
-                `<input id="swal-input1" class="swal2-input" placeholder="Banco">` +
-                `<input id="swal-input2" class="swal2-input" placeholder="Número de Boleta">` +
-                `<input id="swal-input3" type="date" class="swal2-input" placeholder="Fecha">` +
-                `<select id="swal-input4" class="swal2-input">
-                    <option value="" disabled selected>Selecciona Tipo de Pago</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Depósito">Depósito</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Efectivo">Efectivo</option>
-                </select>` +
-                `<input id="swal-input5" type="number" class="swal2-input" placeholder="Cantidad Pagada (Q.)" min="0" step="0.01">`,
-            focusConfirm: false,
-            preConfirm: () => {
-                const banco = document.getElementById('swal-input1').value.trim();
-                const numeroBoleta = document.getElementById('swal-input2').value.trim();
-                const fecha = document.getElementById('swal-input3').value;
-                const tipoPago = document.getElementById('swal-input4').value;
-                const cantidadPagada = parseFloat(document.getElementById('swal-input5').value);
-
-                if (!banco || !numeroBoleta || !fecha || !tipoPago || isNaN(cantidadPagada) || cantidadPagada <= 0) {
-                    Swal.showValidationMessage(`Por favor, completa todos los campos correctamente.`);
-                }
-
-                return { banco, numeroBoleta, fecha, tipoPago, cantidadPagada };
-            }
-        });
-
-        if (formValues) {
-            const { banco, numeroBoleta, fecha, tipoPago, cantidadPagada } = formValues;
-
-            // Confirmar registro del pago
-            const { isConfirmed } = await Swal.fire({
-                title: `Confirmar Pago - Recibo ${numeroRecibo}`,
-                html: `<p><strong>Cantidad Pagada:</strong> Q. ${cantidadPagada.toFixed(2)}</p>`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#388e3c',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, registrar',
-                cancelButtonText: 'Cancelar'
-            });
-
-            if (isConfirmed) {
-                // Actualizar el recibo en Firestore
-                servicio.historialPagos[reciboIndex].estadoPago = 'Pagado';
-                servicio.historialPagos[reciboIndex].boletaPago = { banco, numeroBoleta, fecha, tipoPago, cantidadPagada };
-                servicio.historialPagos[reciboIndex].cantidadPagada = cantidadPagada;
-
-                // Actualizar el estado de pago del servicio si todos los recibos están pagados
-                const todosPagados = servicio.historialPagos.every(pago => pago.estadoPago === 'Pagado');
-                servicio.estadoPago = todosPagados ? 'Pagado' : 'Pendiente';
-
-                const servicioRef = doc(db, "servicios", servicioId);
-                await updateDoc(servicioRef, {
-                    historialPagos: servicio.historialPagos,
-                    estadoPago: servicio.estadoPago
-                });
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Pago Registrado',
-                    text: `El recibo ${numeroRecibo} ha sido marcado como Pagado.`,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-                // Actualizar la vista de recibos
-                cargarServicios();
-                abrirVerRecibosModal(servicioId);
-            }
-        }
-    };
-
-    // Modificar la función editarRecibo para permitir editar la cantidad pagada
+    // Función para editar un recibo (no solo el pago)
     window.editarRecibo = async function(servicioId, numeroRecibo) {
         const servicio = servicios.find(s => s.id === servicioId);
         if (!servicio) {
@@ -966,72 +1121,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const recibo = servicio.historialPagos[reciboIndex];
 
-        // Mostrar formulario con la información existente
-        const { value: boletaPagoActualizada } = await Swal.fire({
-            title: `Editar Boleta de Pago - Recibo ${numeroRecibo}`,
+        // Mostrar formulario con la información existente para editar el recibo
+        const { value: reciboActualizado } = await Swal.fire({
+            title: `Editar Recibo - ${numeroRecibo}`,
             html:
-                `<input id="swal-input1" class="swal2-input" placeholder="Banco" value="${recibo.boletaPago ? recibo.boletaPago.banco : ''}">` +
-                `<input id="swal-input2" class="swal2-input" placeholder="Número de Boleta" value="${recibo.boletaPago ? recibo.boletaPago.numeroBoleta : ''}">` +
-                `<input id="swal-input3" type="date" class="swal2-input" placeholder="Fecha" value="${recibo.boletaPago ? recibo.boletaPago.fecha : ''}">` +
-                `<select id="swal-input4" class="swal2-input">
-                    <option value="" disabled ${!recibo.boletaPago ? 'selected' : ''}>Selecciona Tipo de Pago</option>
-                    <option value="Transferencia" ${recibo.boletaPago && recibo.boletaPago.tipoPago === 'Transferencia' ? 'selected' : ''}>Transferencia</option>
-                    <option value="Depósito" ${recibo.boletaPago && recibo.boletaPago.tipoPago === 'Depósito' ? 'selected' : ''}>Depósito</option>
-                    <option value="Cheque" ${recibo.boletaPago && recibo.boletaPago.tipoPago === 'Cheque' ? 'selected' : ''}>Cheque</option>
-                    <option value="Efectivo" ${recibo.boletaPago && recibo.boletaPago.tipoPago === 'Efectivo' ? 'selected' : ''}>Efectivo</option>
-                </select>` +
-                `<input id="swal-input5" type="number" class="swal2-input" placeholder="Cantidad Pagada (Q.)" min="0" step="0.01" value="${recibo.boletaPago && recibo.boletaPago.cantidadPagada !== undefined ? recibo.boletaPago.cantidadPagada : ''}">`,
+                `<input id="swal-input1" class="swal2-input" placeholder="Número de Recibo" value="${recibo.numeroRecibo}">` +
+                `<input id="swal-input2" type="date" class="swal2-input" placeholder="Fecha de Pago" value="${recibo.fechaPago}">` +
+                `<input id="swal-input3" type="number" class="swal2-input" placeholder="Cantidad a Pagar (Q.)" min="0" step="0.01" value="${recibo.cantidadAPagar}">` +
+                `<input id="swal-input4" type="number" class="swal2-input" placeholder="Año" min="2000" max="2100" step="1" value="${recibo.anio}">`,
             focusConfirm: false,
             preConfirm: () => {
-                const banco = document.getElementById('swal-input1').value.trim();
-                const numeroBoleta = document.getElementById('swal-input2').value.trim();
-                const fecha = document.getElementById('swal-input3').value;
-                const tipoPago = document.getElementById('swal-input4').value;
-                const cantidadPagada = parseFloat(document.getElementById('swal-input5').value);
+                const numeroReciboNuevo = document.getElementById('swal-input1').value.trim();
+                const fechaPago = document.getElementById('swal-input2').value;
+                const cantidadAPagar = parseFloat(document.getElementById('swal-input3').value);
+                const anioRecibo = parseInt(document.getElementById('swal-input4').value, 10);
 
-                if (!banco || !numeroBoleta || !fecha || !tipoPago || isNaN(cantidadPagada) || cantidadPagada <= 0) {
+                if (!numeroReciboNuevo || !fechaPago || isNaN(cantidadAPagar) || cantidadAPagar < 0 || isNaN(anioRecibo) || anioRecibo < 2000 || anioRecibo > 2100) {
                     Swal.showValidationMessage(`Por favor, completa todos los campos correctamente.`);
                 }
 
-                return { banco, numeroBoleta, fecha, tipoPago, cantidadPagada };
+                // Verificar si el número de recibo ya existe en otro recibo
+                const existeRecibo = servicio.historialPagos.some((pago, idx) => pago.numeroRecibo === numeroReciboNuevo && pago.anio === anioRecibo && idx !== reciboIndex);
+                if (existeRecibo) {
+                    Swal.showValidationMessage(`El número de recibo "${numeroReciboNuevo}" ya existe en otro recibo en el año ${anioRecibo}.`);
+                }
+
+                return { numeroReciboNuevo, fechaPago, cantidadAPagar, anioRecibo };
             }
         });
 
-        if (boletaPagoActualizada) {
-            // Confirmar edición del recibo
-            const { isConfirmed } = await Swal.fire({
-                title: `Confirmar Edición - Recibo ${numeroRecibo}`,
-                text: `¿Estás seguro de actualizar la boleta de pago de este recibo?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#388e3c',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, actualizar',
-                cancelButtonText: 'Cancelar'
+        if (reciboActualizado) {
+            const { numeroReciboNuevo, fechaPago, cantidadAPagar, anioRecibo } = reciboActualizado;
+
+            // Actualizar los datos del recibo
+            servicio.historialPagos[reciboIndex].numeroRecibo = numeroReciboNuevo;
+            servicio.historialPagos[reciboIndex].fechaPago = fechaPago;
+            servicio.historialPagos[reciboIndex].cantidadAPagar = cantidadAPagar;
+            servicio.historialPagos[reciboIndex].anio = anioRecibo;
+
+            // Actualizar en Firestore
+            const servicioRef = doc(db, "servicios", servicioId);
+            await updateDoc(servicioRef, {
+                historialPagos: servicio.historialPagos
             });
 
-            if (isConfirmed) {
-                // Actualizar el recibo en Firestore
-                servicio.historialPagos[reciboIndex].boletaPago = boletaPagoActualizada;
-                servicio.historialPagos[reciboIndex].cantidadPagada = boletaPagoActualizada.cantidadPagada;
+            Swal.fire({
+                icon: 'success',
+                title: 'Recibo Actualizado',
+                text: `El recibo ha sido actualizado exitosamente.`,
+                timer: 1500,
+                showConfirmButton: false
+            });
 
-                const servicioRef = doc(db, "servicios", servicioId);
-                await updateDoc(servicioRef, {
-                    historialPagos: servicio.historialPagos
-                });
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Boleta Actualizada',
-                    text: `La boleta de pago del recibo ${numeroRecibo} ha sido actualizada exitosamente.`,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-                // Actualizar la vista de recibos
-                cargarServicios();
-                abrirVerRecibosModal(servicioId);
-            }
+            // Actualizar la vista de recibos
+            cargarServicios();
+            abrirVerRecibosModal(servicioId);
         }
     };
 
@@ -1090,7 +1234,89 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'success',
                 title: 'Recibo Eliminado',
-                text: `El recibo ${numeroRecibo} ha sido eliminado exitosamente.`,
+                text: `El recibo ha sido eliminado exitosamente.`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // Actualizar la vista de recibos
+            cargarServicios();
+            abrirVerRecibosModal(servicioId);
+        }
+    };
+
+    // Función para registrar el pago de un recibo pendiente
+    window.registrarPagoRecibo = async function(servicioId, numeroRecibo) {
+        const servicio = servicios.find(s => s.id === servicioId);
+        if (!servicio) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Servicio no encontrado.',
+            });
+            return;
+        }
+
+        const reciboIndex = servicio.historialPagos.findIndex(pago => pago.numeroRecibo === numeroRecibo);
+        if (reciboIndex === -1) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Recibo no encontrado.',
+            });
+            return;
+        }
+
+        const recibo = servicio.historialPagos[reciboIndex];
+
+        // Mostrar formulario para registrar el pago
+        const { value: pagoInfo } = await Swal.fire({
+            title: `Registrar Pago - Recibo ${numeroRecibo}`,
+            html:
+                `<input id="swal-input1" class="swal2-input" placeholder="Banco">` +
+                `<input id="swal-input2" class="swal2-input" placeholder="Número de Boleta">` +
+                `<input id="swal-input3" type="date" class="swal2-input" placeholder="Fecha de Pago">` +
+                `<input id="swal-input4" class="swal2-input" placeholder="Tipo de Pago">` +
+                `<input id="swal-input5" type="number" class="swal2-input" placeholder="Cantidad Pagada (Q.)" min="0" step="0.01">`,
+            focusConfirm: false,
+            preConfirm: () => {
+                const banco = document.getElementById('swal-input1').value.trim();
+                const numeroBoleta = document.getElementById('swal-input2').value.trim();
+                const fecha = document.getElementById('swal-input3').value;
+                const tipoPago = document.getElementById('swal-input4').value.trim();
+                const cantidadPagada = parseFloat(document.getElementById('swal-input5').value);
+
+                if (!banco || !numeroBoleta || !fecha || !tipoPago || isNaN(cantidadPagada) || cantidadPagada < 0) {
+                    Swal.showValidationMessage(`Por favor, completa todos los campos correctamente.`);
+                }
+
+                return { banco, numeroBoleta, fecha, tipoPago, cantidadPagada };
+            }
+        });
+
+        if (pagoInfo) {
+            const { banco, numeroBoleta, fecha, tipoPago, cantidadPagada } = pagoInfo;
+
+            // Actualizar el recibo con la información del pago
+            servicio.historialPagos[reciboIndex].boletaPago = {
+                banco,
+                numeroBoleta,
+                fecha,
+                tipoPago,
+                cantidadPagada
+            };
+            servicio.historialPagos[reciboIndex].estadoPago = 'Pagado';
+
+            // Actualizar en Firestore
+            const servicioRef = doc(db, "servicios", servicioId);
+            await updateDoc(servicioRef, {
+                historialPagos: servicio.historialPagos
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Pago Registrado',
+                text: `El pago ha sido registrado exitosamente.`,
                 timer: 1500,
                 showConfirmButton: false
             });
@@ -1119,6 +1345,8 @@ document.addEventListener('DOMContentLoaded', function() {
         filterFechaHasta.value = "";
         searchInput.value = "";
         sortOrderSelect.value = "fechaPagoAsc";
+        yearSelector.value = new Date().getFullYear();
+        yearSelected = parseInt(yearSelector.value, 10);
         actualizarTabla();
         Swal.fire({
             icon: 'info',
@@ -1144,6 +1372,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const verRecibosModalTarget = document.getElementById('verRecibosModal');
         if (event.target == verRecibosModalTarget) {
             cerrarVerRecibosModal();
+        }
+
+        const tiposServiciosModalTarget = document.getElementById('tiposServiciosModal');
+        if (event.target == tiposServiciosModalTarget) {
+            cerrarTiposServiciosModal();
         }
     };
 });

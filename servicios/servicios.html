@@ -7,6 +7,259 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <!-- Enlace al archivo CSS -->
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos básicos para los nuevos elementos */
+        .manage-types-btn,
+        .add-type-btn {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .manage-types-btn:hover,
+        .add-type-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Estilos para la tabla de tipos de servicio */
+        #tiposServiciosTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #tiposServiciosTable th,
+        #tiposServiciosTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #tiposServiciosTable th {
+            background-color: #f2f2f2;
+            text-align: left;
+        }
+
+        /* Estilos para los botones de editar y eliminar en tipos de servicio */
+        .editar-tipo-btn,
+        .eliminar-tipo-btn {
+            margin-right: 5px;
+            padding: 5px 8px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .editar-tipo-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .editar-tipo-btn:hover {
+            background-color: #218838;
+        }
+
+        .eliminar-tipo-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .eliminar-tipo-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* Estilos para el modal de tipos de servicio */
+        #tiposServiciosModal .modal-content {
+            max-width: 600px;
+        }
+
+        /* Estilos adicionales para una mejor presentación */
+        .servicio-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .servicio-container select {
+            flex: 1;
+        }
+
+        .servicio-container button {
+            margin-left: 10px;
+        }
+
+        /* Estilos para botones de acción en la tabla */
+        .ver-recibos-btn,
+        .registrar-recibo-btn {
+            margin-right: 5px;
+            padding: 5px 8px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .ver-recibos-btn:hover,
+        .registrar-recibo-btn:hover {
+            background-color: #138496;
+        }
+
+        /* Estilos para filas seleccionadas */
+        .selected {
+            background-color: #d1ecf1;
+        }
+
+        /* Estilos para estados de pago */
+        .status-paid {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .status-none {
+            color: red;
+            font-weight: bold;
+        }
+
+        .estado-pagado {
+            color: green;
+            font-weight: bold;
+        }
+
+        .estado-pendiente {
+            color: orange;
+            font-weight: bold;
+        }
+
+        /* Estilos para los modales */
+        .modal {
+            display: none; /* Oculto por defecto */
+            position: fixed; /* Fijo */
+            z-index: 1; /* Por encima de todo */
+            left: 0;
+            top: 0;
+            width: 100%; /* Ancho completo */
+            height: 100%; /* Alto completo */
+            overflow: auto; /* Habilitar scroll si es necesario */
+            background-color: rgba(0,0,0,0.4); /* Fondo semitransparente */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 5% desde arriba y centrado */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Ancho */
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        /* Estilos para formularios y tablas dentro de modales */
+        #tipoServicioForm {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #tipoServicioForm input {
+            flex: 1;
+            padding: 5px;
+        }
+
+        #tipoServicioForm button {
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        #tipoServicioForm button:hover {
+            background-color: #218838;
+        }
+
+        /* Estilos para la lista de recibos */
+        .mes-recibos {
+            margin-bottom: 20px;
+        }
+
+        .recibo {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .botones-recibo {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .editar-recibo-btn,
+        .eliminar-recibo-btn,
+        .registrar-pago-btn {
+            padding: 5px 8px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            color: white;
+        }
+
+        .editar-recibo-btn {
+            background-color: #007bff;
+        }
+
+        .editar-recibo-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .eliminar-recibo-btn {
+            background-color: #dc3545;
+        }
+
+        .eliminar-recibo-btn:hover {
+            background-color: #c82333;
+        }
+
+        .registrar-pago-btn {
+            background-color: #28a745;
+        }
+
+        .registrar-pago-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Estilos para el selector de año */
+        #yearSelector {
+            width: 100px;
+            margin-right: 10px;
+        }
+
+        /* Otros estilos existentes... */
+    </style>
 </head>
 <body>
     <!-- Barra de Navegación -->
@@ -23,24 +276,29 @@
         
         <div class="table-controls">
             <div class="filters">
+                <!-- Selector de Año -->
+                <label for="yearSelector">Año:</label>
+                <input type="number" id="yearSelector" min="2000" max="2100" step="1">
+
                 <input type="text" id="searchInput" placeholder="Buscar servicios...">
                 
                 <select id="filterSucursal">
                     <option value="">Todas las Sucursales</option>
-                    <option value="Sucursal A">Sucursal A</option>
-                    <option value="Sucursal B">Sucursal B</option>
-                    <option value="Sucursal C">Sucursal C</option>
-                    <!-- Agrega más opciones según tus sucursales -->
+                    <option value="Jalapa">Jalapa</option>
+                    <option value="Pinula">Pinula</option>
+                    <option value="Zacapa">Zacapa</option>
+                    <option value="Eskala">Eskala</option>
+                    <option value="Poptun">Poptun</option>
+                    <option value="Santa Elena">Santa Elena</option>
                 </select>
 
-                <select id="filterServicio">
-                    <option value="">Todos los Servicios</option>
-                    <option value="Pago de LUS">Pago de LUS</option>
-                    <option value="Renta">Renta</option>
-                    <option value="Electricidad">Electricidad</option>
-                    <option value="Agua">Agua</option>
-                    <!-- Agrega más servicios según sea necesario -->
-                </select>
+                <div class="servicio-container">
+                    <select id="filterServicio">
+                        <option value="">Todos los Servicios</option>
+                        <!-- Las opciones se cargarán dinámicamente desde Firestore -->
+                    </select>
+                    <button id="gestionarTiposServicioBtn" class="manage-types-btn">Gestionar Tipos de Servicio</button>
+                </div>
 
                 <select id="filterEstadoPago">
                     <option value="">Todos los Estados de Pago</option>
@@ -74,6 +332,7 @@
                     <th>Sucursal</th>
                     <th>Servicio</th>
                     <th>Proveedor del Servicio</th>
+                    <th>Ubicación</th>
                     <th>Tipo de Pago</th>
                     <th>Estado de Pago</th>
                     <!-- Columnas para cada mes -->
@@ -111,21 +370,25 @@
                     <label for="sucursal">Sucursal:</label>
                     <select id="sucursal" required>
                         <option value="">Selecciona una sucursal</option>
-                        <option value="Sucursal A">Sucursal A</option>
-                        <option value="Sucursal B">Sucursal B</option>
-                        <option value="Sucursal C">Sucursal C</option>
-                        <!-- Agrega más opciones según tus sucursales -->
+                        <option value="Jalapa">Jalapa</option>
+                        <option value="Pinula">Pinula</option>
+                        <option value="Zacapa">Zacapa</option>
+                        <option value="Eskala">Eskala</option>
+                        <option value="Poptun">Poptun</option>
+                        <option value="Santa Elena">Santa Elena</option>
                     </select>
 
                     <label for="servicio">Servicio:</label>
-                    <select id="servicio" required>
-                        <option value="">Selecciona un servicio</option>
-                        <option value="Pago de LUS">Pago de LUS</option>
-                        <option value="Renta">Renta</option>
-                        <option value="Electricidad">Electricidad</option>
-                        <option value="Agua">Agua</option>
-                        <!-- Agrega más servicios según sea necesario -->
-                    </select>
+                    <div class="servicio-container">
+                        <select id="servicio" required>
+                            <option value="">Selecciona un servicio</option>
+                            <!-- Las opciones se cargarán dinámicamente desde Firestore -->
+                        </select>
+                        <button type="button" id="agregarTipoServicioBtn" class="add-type-btn">Agregar Tipo</button>
+                    </div>
+
+                    <label for="ubicacion">Ubicación:</label>
+                    <input type="text" id="ubicacion" required placeholder="Ubicación del Servicio">
 
                     <label for="tipoPago">Tipo de Pago:</label>
                     <select id="tipoPago" required>
@@ -203,6 +466,29 @@
             <div id="listaRecibosPorMes" class="lista-recibos-por-mes">
                 <!-- Recibos se generarán aquí dinámicamente -->
             </div>
+        </div>
+    </div>
+
+    <!-- Modal para Gestionar Tipos de Servicio -->
+    <div id="tiposServiciosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarTiposServiciosModal()">&times;</span>
+            <h2>Gestionar Tipos de Servicio</h2>
+            <form id="tipoServicioForm">
+                <input type="text" id="nuevoTipoServicio" placeholder="Nuevo Tipo de Servicio" required>
+                <button type="submit">Agregar Tipo</button>
+            </form>
+            <table id="tiposServiciosTable">
+                <thead>
+                    <tr>
+                        <th>Tipo de Servicio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Tipos de servicio se cargarán aquí dinámicamente -->
+                </tbody>
+            </table>
         </div>
     </div>
 
