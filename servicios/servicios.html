@@ -25,6 +25,28 @@
             background-color: #0056b3;
         }
 
+        /* Estilos para el Botón de Inicio y Navegación */
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 10px 20px;
+            background-color: #f4f4f4;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            background-color: #008CBA;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .nav-btn:hover {
+            background-color: #006f98;
+        }
+
         /* Estilos para la tabla de tipos de servicio */
         #tiposServiciosTable {
             width: 100%;
@@ -262,14 +284,13 @@
     </style>
 </head>
 <body>
-    <!-- Barra de Navegación -->
-    <nav class="navbar">
-        <ul>
-            <li><a href="index.html">Asignación de Tareas</a></li>
-            <li><a href="servicios.html">Gestión de Servicios</a></li>
-            <!-- Agrega más enlaces según sea necesario -->
-        </ul>
-    </nav>
+    <!-- Cabecera con Botones de Navegación -->
+    <div class="header">
+        <!-- Botón de Tareas -->
+        <button id="tareasBtn" class="nav-btn" onclick="location.href='../index.html'">Tareas</button>
+        <!-- Botón de Servicios -->
+        <button id="serviciosBtn" class="nav-btn" onclick="location.href='servicios.html'">Servicios</button>
+    </div>
 
     <div class="container">
         <h1>Gestión de Servicios</h1>
