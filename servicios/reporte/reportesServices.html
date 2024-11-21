@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes de Servicios</title>
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Generar Reportes de Servicios</h1>
+
+        <!-- Botón para Regresar a Servicios -->
+        <div style="text-align: right; margin-bottom: 20px;">
+            <a href="../servicios.html">
+                <button class="add-task-btn">Regresar a Servicios</button>
+            </a>
+        </div>
+
+        <form id="filterForm" class="filter-form">
+            <!-- Filtros de Servicios -->
+            <div class="filters-group">
+                <div>
+                    <label for="filterSucursal">Sucursal:</label>
+                    <select id="filterSucursal">
+                        <option value="">Todas las Sucursales</option>
+                        <option value="Jalapa">Jalapa</option>
+                        <option value="Pinula">Pinula</option>
+                        <option value="Zacapa">Zacapa</option>
+                        <option value="Eskala">Eskala</option>
+                        <option value="Poptun">Poptun</option>
+                        <option value="Santa Elena">Santa Elena</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterServicio">Servicio:</label>
+                    <select id="filterServicio">
+                        <option value="">Todos los Servicios</option>
+                        <!-- Las opciones se cargarán dinámicamente desde Firestore -->
+                    </select>
+                </div>
+                <div>
+                    <label for="filterEstadoPago">Estado de Pago:</label>
+                    <select id="filterEstadoPago">
+                        <option value="">Todos los Estados de Pago</option>
+                        <option value="Pagado">Pagado</option>
+                        <option value="Pendiente">Pendiente</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Opciones de Reporte -->
+            <div>
+                <label>Seleccione los tipos de reporte:</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="tipoReporte" value="detallado"> Detallado por Mes</label>
+                    <label><input type="checkbox" name="tipoReporte" value="pagado"> Pagado</label>
+                    <label><input type="checkbox" name="tipoReporte" value="pendiente"> Pendiente</label>
+                    <label><input type="checkbox" name="tipoReporte" value="noPagado"> No Pagado</label>
+                    <label><input type="checkbox" name="tipoReporte" value="recibos"> Recibos y Pagos</label>
+                    <label><input type="checkbox" name="tipoReporte" value="estadisticas"> Estadísticas</label>
+                    <label><input type="checkbox" name="tipoReporte" value="todos"> Todos</label>
+                </div>
+            </div>
+
+            <!-- Fecha de Inicio y Fin -->
+            <div class="date-fields">
+                <div>
+                    <label for="fechaInicio">Fecha de Inicio:</label>
+                    <input type="datetime-local" id="fechaInicio" required>
+                </div>
+                <div>
+                    <label for="fechaFin">Fecha de Fin:</label>
+                    <input type="datetime-local" id="fechaFin" required>
+                </div>
+            </div>
+
+            <!-- Botón para Generar Reporte -->
+            <button type="submit">Generar Reporte</button>
+        </form>
+    </div>
+
+    <!-- Modal para Mostrar el Reporte -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <!-- Contenedor para mostrar los reportes -->
+            <div id="reportContainer">
+                <!-- Los reportes se mostrarán aquí -->
+            </div>
+            <!-- Botones de Exportación -->
+            <div class="export-buttons">
+                <button id="exportBtn">Exportar Reporte</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- jsPDF (para exportar a PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas (para exportar a imagen) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- SheetJS (para exportar a Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Enlace al archivo JS -->
+    <script type="module" src="reportesServices.js"></script>
+</body>
+</html>

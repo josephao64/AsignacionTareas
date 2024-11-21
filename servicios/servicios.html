@@ -280,6 +280,25 @@
             margin-right: 10px;
         }
 
+        /* ===========================
+           Estilos para el Nuevo Botón "Reportes"
+           =========================== */
+        .report-btn {
+            background-color: #17a2b8; /* Color Azul Información */
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-left: 10px;
+        }
+
+        .report-btn:hover {
+            background-color: #117a8b;
+        }
+
         /* Otros estilos existentes... */
     </style>
 </head>
@@ -344,6 +363,8 @@
                 <button id="editarBtn" disabled>Editar</button>
                 <button id="eliminarBtn" disabled>Eliminar</button>
                 <button class="add-task-btn" onclick="abrirModal()">Agregar Servicio</button>
+                <!-- Nuevo Botón de Reportes -->
+                <button class="report-btn" onclick="location.href='reporte/reportesServices.html'">Reportes</button>
             </div>
         </div>
 
