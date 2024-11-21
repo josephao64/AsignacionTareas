@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const tiposServiciosTableBody = document.getElementById('tiposServiciosTable').querySelector('tbody');
     const agregarTipoServicioBtn = document.getElementById('agregarTipoServicioBtn');
 
+    // Variable para almacenar el ID del servicio seleccionado
+    let servicioSeleccionadoId = null;
+
     // Array de meses en español
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -725,6 +728,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Almacenar el ID del servicio seleccionado
+        servicioSeleccionadoId = servicioId;
+
         // Mostrar el nombre del servicio seleccionado
         nombreServicioSpan.innerText = `${servicio.servicio} - ${servicio.sucursal}`;
 
@@ -813,18 +819,17 @@ document.addEventListener('DOMContentLoaded', function() {
     detalleReciboForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const servicioId = servicios.find(s => `${s.servicio} - ${s.sucursal}` === nombreServicioSpan.innerText)?.id;
-        if (!servicioId) {
+        if (!servicioSeleccionadoId) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Servicio no encontrado.',
+                text: 'Servicio no seleccionado.',
             });
             return;
         }
 
         // Obtener el servicio correspondiente
-        const servicio = servicios.find(s => s.id === servicioId);
+        const servicio = servicios.find(s => s.id === servicioSeleccionadoId);
         if (!servicio) {
             Swal.fire({
                 icon: 'error',
@@ -915,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const estadoPagoActualizado = historialPagosActualizado.length > 0 ? "Pendiente" : "Pendiente";
 
                 // Actualizar el servicio en Firestore
-                const servicioRef = doc(db, "servicios", servicioId);
+                const servicioRef = doc(db, "servicios", servicioSeleccionadoId);
                 await updateDoc(servicioRef, {
                     historialPagos: historialPagosActualizado,
                     mesesPagados: mesesPagadosActualizados,
@@ -952,11 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detalleReciboForm.style.display = 'none';
         detallesPagosContainer.innerHTML = "";
         nombreServicioSpan.innerText = '-';
-        // Rehabilitar los botones de registrar recibo
-        const registrarReciboBtns = document.querySelectorAll('.registrar-recibo-btn');
-        registrarReciboBtns.forEach(btn => {
-            btn.disabled = false;
-        });
+        servicioSeleccionadoId = null;
     };
 
     // Abrir el modal para Ver Recibos
@@ -974,8 +975,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Generar el checklist de meses
-        generarChecklistMesesVerRecibos(servicio);
+        // Almacenar el ID del servicio seleccionado
+        servicioSeleccionadoId = servicioId;
 
         // Generar la lista de recibos por mes
         generarListaRecibosPorMes(servicio);
@@ -988,32 +989,8 @@ document.addEventListener('DOMContentLoaded', function() {
         verRecibosModal.style.display = 'none';
         checklistMeses.innerHTML = "";
         listaRecibosPorMes.innerHTML = "";
+        servicioSeleccionadoId = null;
     };
-
-    // Generar checklist de meses para ver recibos
-    function generarChecklistMesesVerRecibos(servicio) {
-        checklistMeses.innerHTML = "";
-        meses.forEach((mes, idx) => {
-            const checkboxId = `verReciboMes${idx}`;
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = checkboxId;
-            checkbox.value = mes;
-            checkbox.disabled = true;
-            checkbox.checked = servicio.historialPagos && servicio.historialPagos.some(pago => pago.mes === mes && pago.anio === yearSelected && pago.estadoPago === 'Pagado');
-
-            const label = document.createElement('label');
-            label.htmlFor = checkboxId;
-            label.innerText = `${mes} ${yearSelected}`;
-
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('checkbox-wrapper');
-            wrapper.appendChild(checkbox);
-            wrapper.appendChild(label);
-
-            checklistMeses.appendChild(wrapper);
-        });
-    }
 
     // Generar la lista de recibos por mes
     function generarListaRecibosPorMes(servicio) {
