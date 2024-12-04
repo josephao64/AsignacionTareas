@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (filterNoIniciado) filterNoIniciado.checked = true;
             if (filterEnProgreso) filterEnProgreso.checked = true;
             if (filterRevision) filterRevision.checked = true;
-            if (filterCompletado) filterCompletado.checked = true;
+            if (filterCompletado) filterCompletado.checked = false; // Desmarcar "Completado"
             actualizarTabla();
             Swal.fire({
                 icon: 'info',

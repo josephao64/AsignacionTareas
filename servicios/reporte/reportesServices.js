@@ -1,9 +1,11 @@
 // reportesServices.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
-// Tu configuración de Firebase (reemplazada con tus credenciales)
+// Configuración de Firebase
 const firebaseConfig = {
+    // Reemplaza estos valores con tu configuración real de Firebase
     apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
     authDomain: "tareasdb-193f4.firebaseapp.com",
     projectId: "tareasdb-193f4",
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterEstadoPago = document.getElementById('filterEstadoPago');
     const reportModal = document.getElementById('reportModal');
     const exportBtn = document.getElementById('exportBtn');
+    const backToServicesBtn = document.getElementById('backToServicesBtn');
     const closeModalBtn = document.querySelector('.close');
 
     // Variables para almacenar los filtros seleccionados
@@ -38,9 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let fechaInicioSeleccionada = '';
     let fechaFinSeleccionada = '';
 
-    // Establecer fechas por defecto (fecha y hora actual)
+    // Establecer fechas por defecto (fecha actual)
     const now = new Date();
-    const fechaActualISO = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+    const fechaActualISO = now.toISOString().slice(0, 10); // YYYY-MM-DD
     fechaInicioInput.value = fechaActualISO;
     fechaFinInput.value = fechaActualISO;
 
@@ -70,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Actualizar el select de servicios con tipos de servicio
     function actualizarSelectServicios() {
         const servicioSelect = document.getElementById('filterServicio');
-        servicioSelect.innerHTML = '<option value="">Todos los Servicios</option>';
+        // Nota: La opción "Todos los Servicios" ya está presente en el HTML, no es necesario agregarla aquí
         tiposServicios.forEach(tipo => {
             const option = document.createElement('option');
             option.value = tipo.nombre;
@@ -99,26 +102,114 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
 
         // Obtener valores de filtros
-        const fechaInicio = new Date(fechaInicioInput.value);
-        const fechaFin = new Date(fechaFinInput.value);
+        const fechaInicio = fechaInicioInput.value;
+        const fechaFin = fechaFinInput.value;
         fechaInicioSeleccionada = fechaInicioInput.value;
         fechaFinSeleccionada = fechaFinInput.value;
         sucursalSeleccionada = filterSucursal.value || 'Todas las Sucursales';
-        servicioSeleccionado = filterServicio.value || 'Todos los Servicios';
+        servicioSeleccionado = filterServicio.value;
         const estadoPago = filterEstadoPago.value;
 
         // Obtener tipos de reporte seleccionados
         const tiposReporteCheckboxes = document.querySelectorAll('input[name="tipoReporte"]:checked');
         tiposReporteSeleccionados = Array.from(tiposReporteCheckboxes).map(cb => cb.value);
 
+        // Validaciones
         if (tiposReporteSeleccionados.length === 0) {
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
+                icon: 'warning',
+                title: 'Tipo de Reporte Requerido',
                 text: 'Por favor, selecciona al menos un tipo de reporte.',
             });
             return;
         }
+
+        if (tiposReporteSeleccionados.includes('estadisticas') && (!servicioSeleccionado || servicioSeleccionado === 'todos')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Servicio Requerido para Estadísticas',
+                text: 'Por favor, selecciona un servicio específico para generar las estadísticas.',
+            });
+            return;
+        }
+
+        // Validar fechas solo si no se seleccionó "estadisticas"
+        if (!tiposReporteSeleccionados.includes('estadisticas')) {
+            if (!fechaInicio || !fechaFin) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fechas Requeridas',
+                    text: 'Por favor, selecciona la fecha de inicio y fin.',
+                });
+                return;
+            }
+
+            if (new Date(fechaInicio) > new Date(fechaFin)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fechas Inválidas',
+                    text: 'La fecha de inicio no puede ser posterior a la fecha de fin.',
+                });
+                return;
+            }
+        }
+
+        // Filtrar servicios
+        let serviciosFiltrados = servicios.filter(servicio => {
+            // Filtrar por sucursal
+            if (filterSucursal.value && servicio.sucursal !== filterSucursal.value) {
+                return false;
+            }
+
+            // Filtrar por servicio
+            if (servicioSeleccionado && servicioSeleccionado !== 'todos' && servicio.servicio !== servicioSeleccionado) {
+                return false;
+            }
+
+            // Filtrar por estado de pago
+            if (estadoPago) {
+                const estadoPagoServicio = calcularEstadoPagoServicio(servicio);
+                if (estadoPagoServicio !== estadoPago) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // Generar reportes según los tipos seleccionados
+        generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin);
+
+        // Mostrar el modal con el reporte
+        reportModal.style.display = 'block';
+    });
+
+    // Cerrar el modal
+    closeModalBtn.addEventListener('click', () => {
+        reportModal.style.display = 'none';
+        reportContainer.innerHTML = ''; // Limpiar el contenedor del reporte
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === reportModal) {
+            reportModal.style.display = 'none';
+            reportContainer.innerHTML = ''; // Limpiar el contenedor del reporte
+        }
+    });
+
+    // Función para calcular el estado de pago del servicio
+    function calcularEstadoPagoServicio(servicio) {
+        if (servicio.historialPagos && servicio.historialPagos.length > 0) {
+            const todosPagados = servicio.historialPagos.every(pago => pago.estadoPago === 'Pagado');
+            return todosPagados ? 'Pagado' : 'Pendiente';
+        } else {
+            return 'Pendiente';
+        }
+    }
+
+    // Función para generar los reportes
+    function generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin) {
+        reportContainer.innerHTML = "";
 
         // Convertir los tipos de reporte seleccionados a texto para mostrar en el encabezado
         const tiposReporteTextos = tiposReporteSeleccionados.map(tipo => {
@@ -142,72 +233,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).join(', ');
 
-        // Filtrar servicios
-        let serviciosFiltrados = servicios.filter(servicio => {
-            // Filtrar por sucursal
-            if (filterSucursal.value && servicio.sucursal !== filterSucursal.value) {
-                return false;
-            }
-
-            // Filtrar por servicio
-            if (filterServicio.value && servicio.servicio !== filterServicio.value) {
-                return false;
-            }
-
-            // Filtrar por estado de pago
-            if (estadoPago) {
-                const estadoPagoServicio = calcularEstadoPagoServicio(servicio);
-                if (estadoPagoServicio !== estadoPago) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-
-        // Generar reportes según los tipos seleccionados
-        generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin, tiposReporteTextos);
-
-        // Mostrar el modal con el reporte
-        reportModal.style.display = 'block';
-    });
-
-    // Cerrar el modal
-    closeModalBtn.addEventListener('click', () => {
-        reportModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === reportModal) {
-            reportModal.style.display = 'none';
-        }
-    });
-
-    // Función para calcular el estado de pago del servicio
-    function calcularEstadoPagoServicio(servicio) {
-        if (servicio.historialPagos && servicio.historialPagos.length > 0) {
-            const todosPagados = servicio.historialPagos.every(pago => pago.estadoPago === 'Pagado');
-            return todosPagados ? 'Pagado' : 'Pendiente';
-        } else {
-            return 'Pendiente';
-        }
-    }
-
-    // Función para generar los reportes
-    function generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin, tiposReporteTextos) {
-        reportContainer.innerHTML = "";
-
         // Crear encabezado del reporte
         const encabezado = document.createElement('div');
-        encabezado.style.textAlign = 'center';
-        encabezado.style.marginBottom = '20px';
+        encabezado.classList.add('report-header');
         encabezado.innerHTML = `
             <h1>Reporte de Servicios</h1>
             <p><strong>Tipo de Reporte:</strong> ${tiposReporteTextos}</p>
-            <p><strong>Sucursal:</strong> ${sucursalSeleccionada}</p>
-            <p><strong>Servicio:</strong> ${servicioSeleccionado}</p>
-            <p><strong>Fecha Inicio:</strong> ${new Date(fechaInicioSeleccionada).toLocaleString('es-ES')}</p>
-            <p><strong>Fecha Fin:</strong> ${new Date(fechaFinSeleccionada).toLocaleString('es-ES')}</p>
+            <p><strong>Sucursal:</strong> ${sucursalSeleccionada || 'Todas las Sucursales'}</p>
+            <p><strong>Servicio:</strong> ${servicioSeleccionado !== 'todos' ? servicioSeleccionado : 'Todos los Servicios'}</p>
+            ${!tiposReporteSeleccionados.includes('estadisticas') ? `
+            <p><strong>Fecha Inicio:</strong> ${new Date(fechaInicioSeleccionada).toLocaleDateString('es-ES')}</p>
+            <p><strong>Fecha Fin:</strong> ${new Date(fechaFinSeleccionada).toLocaleDateString('es-ES')}</p>
+            ` : ''}
             <hr>
         `;
         reportContainer.appendChild(encabezado);
@@ -231,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     generarReporteRecibos(serviciosFiltrados, fechaInicio, fechaFin);
                     break;
                 case 'estadisticas':
-                    generarReporteEstadisticas(serviciosFiltrados, fechaInicio, fechaFin);
+                    generarReporteEstadisticas(serviciosFiltrados);
                     break;
                 case 'todos':
                     generarReporteTodos(serviciosFiltrados, fechaInicio, fechaFin);
@@ -254,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Incluir ubicación y proveedor en el título
             const servicioHeader = document.createElement('h3');
-            servicioHeader.innerText = `${servicio.servicio} - ${servicio.sucursal} - Ubicación: ${servicio.ubicacion} - Proveedor: ${servicio.proveedorServicio}`;
+            servicioHeader.innerText = `${servicio.servicio} - ${servicio.sucursal} - Ubicación: ${servicio.ubicacion || 'Sin Ubicación'} - Proveedor: ${servicio.proveedorServicio}`;
             servicioDiv.appendChild(servicioHeader);
 
             const table = document.createElement('table');
@@ -275,7 +312,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const tbody = document.createElement('tbody');
 
             meses.forEach(mes => {
-                const pagosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => pago.mes === mes) : [];
+                const pagosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => {
+                    const fechaPago = new Date(pago.fechaPago);
+                    return pago.mes === mes && fechaPago >= new Date(fechaInicio) && fechaPago <= new Date(fechaFin);
+                }) : [];
+
                 if (pagosDelMes.length > 0) {
                     pagosDelMes.forEach(pago => {
                         const tr = document.createElement('tr');
@@ -350,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (servicio.historialPagos && servicio.historialPagos.length > 0) {
                 servicio.historialPagos.forEach(pago => {
                     const fechaPago = new Date(pago.fechaPago);
-                    if (fechaPago >= fechaInicio && fechaPago <= fechaFin) {
+                    if (fechaPago >= new Date(fechaInicio) && fechaPago <= new Date(fechaFin)) {
                         recibos.push({
                             servicio: servicio.servicio,
                             sucursal: servicio.sucursal,
@@ -370,23 +411,126 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Función para generar reporte de estadísticas
-    function generarReporteEstadisticas(servicios, fechaInicio, fechaFin) {
-        // Calcular estadísticas
-        const totalServicios = servicios.length;
-        const totalPagados = servicios.filter(s => calcularEstadoPagoServicio(s) === 'Pagado').length;
-        const totalPendientes = servicios.filter(s => calcularEstadoPagoServicio(s) === 'Pendiente').length;
-        const totalNoPagados = servicios.filter(s => !s.historialPagos || s.historialPagos.length === 0).length;
+    function generarReporteEstadisticas(servicios) {
+        // Filtrar los servicios que coinciden con el servicio seleccionado y sucursal (si aplica)
+        const serviciosSeleccionados = servicios.filter(s => s.servicio === servicioSeleccionado && (!filterSucursal.value || s.sucursal === filterSucursal.value));
 
-        const estadisticasDiv = document.createElement('div');
-        estadisticasDiv.innerHTML = `
-            <h2>Estadísticas</h2>
-            <p><strong>Total de Servicios:</strong> ${totalServicios}</p>
-            <p><strong>Servicios Pagados:</strong> ${totalPagados}</p>
-            <p><strong>Servicios Pendientes:</strong> ${totalPendientes}</p>
-            <p><strong>Servicios No Pagados:</strong> ${totalNoPagados}</p>
-        `;
+        if (serviciosSeleccionados.length === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Servicio No Encontrado',
+                text: 'No se encontraron registros para el servicio seleccionado.',
+            });
+            return;
+        }
 
-        reportContainer.appendChild(estadisticasDiv);
+        // Agrupar los servicios por "Ubicación"
+        const serviciosPorUbicacion = {};
+        serviciosSeleccionados.forEach(servicio => {
+            const ubicacion = servicio.ubicacion || 'Sin Ubicación';
+            if (!serviciosPorUbicacion[ubicacion]) {
+                serviciosPorUbicacion[ubicacion] = [];
+            }
+            serviciosPorUbicacion[ubicacion].push(servicio);
+        });
+
+        // Array de meses en español
+        const meses = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        // Para cada ubicación, generar las estadísticas
+        Object.keys(serviciosPorUbicacion).forEach(ubicacion => {
+            const serviciosEnUbicacion = serviciosPorUbicacion[ubicacion];
+
+            // Combinar los pagos de todos los servicios en esta ubicación
+            let historialPagos = [];
+            serviciosEnUbicacion.forEach(servicio => {
+                if (servicio.historialPagos && servicio.historialPagos.length > 0) {
+                    historialPagos = historialPagos.concat(servicio.historialPagos);
+                }
+            });
+
+            // Obtener el consumo de los 12 meses
+            const consumosPorMes = meses.map(mes => {
+                const pagosDelMes = historialPagos.filter(pago => {
+                    return pago.mes === mes && pago.estadoPago === 'Pagado' && pago.boletaPago && !isNaN(pago.boletaPago.cantidadPagada);
+                });
+
+                // Sumar los consumos del mes
+                const totalMes = pagosDelMes.reduce((total, pago) => total + parseFloat(pago.boletaPago.cantidadPagada), 0);
+
+                return totalMes;
+            });
+
+            // Verificar si hay datos para mostrar
+            if (consumosPorMes.every(consumo => consumo === 0)) {
+                // No mostrar nada para esta ubicación si no hay datos
+                return;
+            }
+
+            // Determinar si el consumo aumentó o disminuyó
+            const consumoInicial = consumosPorMes[0];
+            const consumoFinal = consumosPorMes[consumosPorMes.length - 1];
+            const tendencia = consumoFinal > consumoInicial ? 'aumentado' : 'disminuido';
+
+            // Crear el contenedor para el reporte de esta ubicación
+            const estadisticasDiv = document.createElement('div');
+            estadisticasDiv.innerHTML = `
+                <h2>Estadísticas de Consumo Anual para ${servicioSeleccionado} - ${filterSucursal.value || 'Todas las Sucursales'} - Ubicación: ${ubicacion}</h2>
+                <p>El consumo ha <strong>${tendencia}</strong> a lo largo del año.</p>
+                <canvas id="consumoChart_${ubicacion.replace(/\s+/g, '_')}"></canvas>
+            `;
+
+            reportContainer.appendChild(estadisticasDiv);
+
+            // Crear la gráfica
+            const ctx = document.getElementById(`consumoChart_${ubicacion.replace(/\s+/g, '_')}`).getContext('2d');
+            const consumoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Consumo Mensual (Q)',
+                        data: consumosPorMes,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Consumo Mensual (12 meses)'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Consumo: Q${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Consumo (Q)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Meses'
+                            }
+                        }
+                    }
+                }
+            });
+        });
     }
 
     // Función para generar reporte de todos los servicios
@@ -420,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${servicio.sucursal}</td>
                 <td>${servicio.servicio}</td>
                 <td>${servicio.proveedorServicio}</td>
-                <td>${servicio.ubicacion}</td>
+                <td>${servicio.ubicacion || 'Sin Ubicación'}</td>
                 <td>${servicio.tipoPago}</td>
                 <td>${estadoPago}</td>
             `;
@@ -600,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let sheetName = `Sheet${index + 1}`;
 
-            if (titleElement && titleElement.tagName === 'H2') {
+            if (titleElement && (titleElement.tagName === 'H2' || titleElement.tagName === 'H3')) {
                 sheetName = titleElement.innerText.substring(0, 31); // Máximo 31 caracteres
             }
 
@@ -611,4 +755,10 @@ document.addEventListener('DOMContentLoaded', function() {
         /* Exportar el libro de Excel */
         XLSX.writeFile(workbook, 'reporte.xlsx');
     }
+
+    // Función para manejar el botón "Volver a Servicios"
+    backToServicesBtn.addEventListener('click', () => {
+        // Redirigir al usuario a la página servicios.html dentro de la carpeta servicios
+        window.location.href = 'servicios/servicios.html';
+    });
 });

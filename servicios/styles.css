@@ -1,5 +1,3 @@
-/* styles.css */
-
 /* ===========================
    Estilos Generales
    =========================== */
@@ -18,7 +16,7 @@ body {
 .container {
     width: 100%;
     margin: auto;
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.90); /* Aumentada la transparencia */
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
@@ -34,7 +32,7 @@ h1 {
    Barra de Navegación
    =========================== */
 .navbar {
-    background-color: #00796b;
+    background-color: rgba(0, 121, 107, 0.75); /* Aumentada la transparencia */
     padding: 10px 20px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -48,7 +46,7 @@ h1 {
 }
 
 .navbar ul li {
-    
+    /* Puedes añadir estilos adicionales aquí si es necesario */
 }
 
 .navbar ul li a {
@@ -148,7 +146,7 @@ th, td {
 }
 
 th {
-    background-color: #004d40;
+    background-color: rgba(0, 77, 64, 0.70); /* Aumentada la transparencia */
     color: white;
     cursor: pointer;
     position: relative;
@@ -168,15 +166,15 @@ th.sort-desc::after {
 }
 
 tr:nth-child(even) {
-    background-color: #e0f2f1;
+    background-color: rgba(224, 242, 241, 0.4); /* Mayor transparencia */
 }
 
 tr:hover {
-    background-color: #b2dfdb;
+    background-color: rgba(178, 223, 219, 0.4); /* Mayor transparencia */
 }
 
 tr.selected {
-    background-color: #80cbc4 !important;
+    background-color: rgba(128, 204, 196, 0.4) !important; /* Mayor transparencia */
 }
 
 /* ===========================
@@ -242,7 +240,7 @@ tr.selected {
 }
 
 .registrar-pago-btn:hover {
-    background-color: #e65100;
+    background-color: #ff5900;
 }
 
 .editar-recibo-btn, .eliminar-recibo-btn {
@@ -290,7 +288,7 @@ tr.selected {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: rgba(254, 254, 254, 0.75); /* Aumentada la transparencia */
     margin: 5% auto; 
     padding: 30px;
     border: none;
@@ -421,7 +419,7 @@ tr.selected {
     padding: 15px;
     border: 1px solid #b2dfdb;
     border-radius: 8px;
-    background-color: #e0f2f1;
+    background-color: rgba(224, 242, 241, 0.4); /* Mayor transparencia */
 }
 
 .detalle-pago h4 {
@@ -462,7 +460,7 @@ tr.selected {
     padding: 10px;
     border: 1px solid #b2dfdb;
     border-radius: 8px;
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.75); /* Mayor transparencia */
     margin-bottom: 10px;
 }
 
@@ -488,23 +486,84 @@ tr.selected {
     margin-right: 5px;
 }
 
-/* Estilos para los Símbolos de Estado de Pago */
+/* ===========================
+   Estilos para los Símbolos de Estado de Pago
+   =========================== */
 .status-paid {
-    color: #388e3c; /* Verde */
-    font-weight: bold;
-    font-size: 18px;
+    /* Estilos para Checkboxes Pagados */
+    background-color: rgba(76, 175, 80, 0.5); /* Verde con mayor transparencia */
+    border-color: rgba(76, 175, 80, 0.5);
+}
+
+.status-paid:checked::after {
+    content: "✔";
+    position: absolute;
+    top: 0;
+    left: 4px;
+    color: white;
+    font-size: 14px;
 }
 
 .status-pending {
-    color: #ff9800; /* Naranja */
-    font-weight: bold;
-    font-size: 18px;
+    /* Estilos para Checkboxes Pendientes */
+    background-color: rgba(255, 152, 0, 0.5); /* Naranja con mayor transparencia */
+    border-color: rgba(255, 152, 0, 0.5);
+}
+
+.status-pending:checked::after {
+    content: "⚠";
+    position: absolute;
+    top: 0;
+    left: 4px;
+    color: white;
+    font-size: 14px;
 }
 
 .status-none {
-    color: #d32f2f; /* Rojo */
-    font-weight: bold;
-    font-size: 18px;
+    /* Estilos para Checkboxes No Pagados */
+    background-color: rgba(244, 67, 54, 0.5); /* Rojo con mayor transparencia */
+    border-color: rgba(244, 67, 54, 0.5);
+}
+
+.status-none:checked::after {
+    content: "✖";
+    position: absolute;
+    top: 0;
+    left: 4px;
+    color: white;
+    font-size: 14px;
+}
+
+input[type="checkbox"] {
+    /* Ocultar el checkbox estándar */
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin: auto;
+}
+
+input[type="checkbox"]:hover:not(:disabled) {
+    border-color: #00796b;
+}
+
+input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ===========================
+   Estilos para las Columnas de Meses con Ancho Reducido
+   =========================== */
+.month-column {
+    width: 30px; /* Ajusta este valor según tus necesidades */
 }
 
 /* ===========================
