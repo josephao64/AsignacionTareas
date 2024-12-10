@@ -288,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tarea.id = docu.id;
                 tareas.push(tarea);
             });
+            console.log("Tareas actualizadas:", tareas);
             actualizarTabla();
         }, (error) => {
             console.error("Error al cargar tareas:", error);
@@ -398,6 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     await updateDoc(tareaRef, tarea);
 
+                    console.log(`Tarea ${tarea.id} actualizada a:`, tarea);
+
                     Swal.fire({
                         icon: 'success',
                         title: 'Actualizado',
@@ -428,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 try {
                     await addDoc(collection(db, "tareas"), nuevaTarea);
+
+                    console.log("Nueva tarea agregada:", nuevaTarea);
 
                     Swal.fire({
                         icon: 'success',
@@ -487,6 +492,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        console.log("Tareas filtradas y ordenadas:", tareasFiltradas);
+
         tareasFiltradas.forEach((tarea, index) => {
             const fila = document.createElement("tr");
             fila.dataset.index = index;
@@ -514,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${tarea.fechaEstimada}</td>
                 <td>${tarea.fechaCulminacion || '-'}</td>
                 <td class="${claseEstado}">
-                    <select onchange="cambiarEstado(${tareas.indexOf(tarea)}, this.value)">
+                    <select onchange="cambiarEstado(${index}, this.value)">
                         <option value="No Iniciado" ${tarea.estado === 'No Iniciado' ? 'selected' : ''}>No Iniciado</option>
                         <option value="En Progreso" ${tarea.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
                         <option value="Revisión" ${tarea.estado === 'Revisión' ? 'selected' : ''}>Revisión</option>
@@ -696,6 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cambiar el estado de una tarea
     window.cambiarEstado = async function(index, nuevoEstado) {
         const tarea = tareas[index];
+        console.log(`Cambiando estado de tarea ID: ${tarea.id} a: ${nuevoEstado}`);
 
         // Verificar si el nuevo estado es "Completado"
         if (nuevoEstado === "Completado") {
