@@ -6,7 +6,7 @@
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <!-- Enlace al archivo CSS principal -->
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="styles.css">
     <style>
         /* Estilos específicos para Checklist */
         .modal {
@@ -230,13 +230,36 @@
             font-size: 14px;
             color: #333;
         }
+
+        /* Estilos para la Cabecera */
+        .header {
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .login-btn {
+            padding: 8px 16px;
+            background-color: #6c757d;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .login-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
     <!-- Cabecera con Botón de Volver -->
     <div class="header">
         <!-- Cambiado el onclick para redirigir directamente al index.html -->
-        <button onclick="window.location.href='../index.html'" class="login-btn">Volver</button>
+        <button onclick="window.location.href='index.html'" class="login-btn">Volver</button>
     </div>
 
     <!-- Contenedor Principal de la Checklist -->
@@ -316,7 +339,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Firebase Config JS -->
-    <script type="module" src="../firebase-config.js"></script>
+    <script type="module" src="firebase-config.js"></script>
 
     <!-- Enlace al archivo JS -->
     <script type="module" src="checklist.js"></script>
