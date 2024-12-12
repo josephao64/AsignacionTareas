@@ -1,7 +1,7 @@
-// checklist.js
+// checklist.js 
 import { db } from '../firebase-config.js';
 import { 
-    collection, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, doc, query, where 
+    collection, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, doc, query, where, arrayUnion, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,10 +19,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewChecklistTitulo = document.getElementById('viewChecklistTitulo');
     const viewChecklistFecha = document.getElementById('viewChecklistFecha');
     const viewChecklistResponsables = document.getElementById('viewChecklistResponsables');
-    const viewChecklistForm = document.getElementById('viewChecklistForm');
     const viewChecklistTareasList = document.getElementById('viewChecklistTareas');
     const viewProgressBar = document.getElementById('viewProgressBar');
     const viewProgressText = document.getElementById('viewProgressText');
+    const addManualTaskViewBtn = document.getElementById('addManualTaskViewBtn'); // Botón en el modal de visualización
+    const saveManualTasksViewBtn = document.getElementById('saveManualTasksViewBtn'); // Botón para guardar tareas manuales
+
+    // **Botón para Agregar Tarea Manual en el Modal de Creación/Edición**
+    const addManualTaskBtn = document.getElementById('addManualTaskBtn');
 
     let checklists = [];
     let tareasDisponibles = [];
@@ -30,6 +34,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let isEditMode = false;
     let currentEditChecklistId = null;
+
+    // **Variables para el Modal de Visualización**
+    let currentViewChecklistId = null;
 
     // **Funciones para Manejar el Modal de Crear/Editar Checklist**
     openChecklistModalBtn.addEventListener('click', function() {
@@ -56,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     closeViewChecklistModalBtn.addEventListener('click', function() {
         viewChecklistModal.style.display = 'none';
+        currentViewChecklistId = null;
     });
 
     // Cerrar los modales al hacer clic fuera de ellos
@@ -71,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (event.target == viewChecklistModal) {
             viewChecklistModal.style.display = 'none';
+            currentViewChecklistId = null;
         }
     });
 
@@ -217,7 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
             titulo,
             fecha,
             responsables: responsablesSeleccionados,
-            tareas: tareasSeleccionadas.map(tareaId => ({ id: tareaId, completado: false }))
+            tareas: tareasSeleccionadas.map(tareaId => ({ id: tareaId, completado: false })),
+            manualTareas: [] // Inicializar manualTareas como vacío
         };
 
         if (isEditMode && currentEditChecklistId) {
@@ -351,8 +361,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         checklists.forEach(checklist => {
             // Calcular el progreso
-            const totalTareas = checklist.tareas.length;
-            const tareasCompletadas = checklist.tareas.filter(t => t.completado).length;
+            const totalTareas = checklist.tareas.length + (checklist.manualTareas ? checklist.manualTareas.length : 0);
+            const tareasCompletadas = checklist.tareas.filter(t => t.completado).length + 
+                                        (checklist.manualTareas ? checklist.manualTareas.filter(t => t.completado).length : 0);
             const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
 
             const fila = document.createElement('tr');
@@ -380,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // **Función para Ver un Checklist**
     window.verChecklist = async function(checklistId) {
+        currentViewChecklistId = checklistId; // Guardar el ID actual
         try {
             const checklistRef = doc(db, "checklists", checklistId);
             const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", checklistId))).then(snapshot => {
@@ -403,8 +415,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Calcular el progreso
-            const totalTareas = checklistSnap.tareas.length;
-            const tareasCompletadas = checklistSnap.tareas.filter(t => t.completado).length;
+            const totalTareas = checklistSnap.tareas.length + (checklistSnap.manualTareas ? checklistSnap.manualTareas.length : 0);
+            const tareasCompletadas = checklistSnap.tareas.filter(t => t.completado).length + 
+                                        (checklistSnap.manualTareas ? checklistSnap.manualTareas.filter(t => t.completado).length : 0);
             const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
 
             // Actualizar la barra de progreso en el modal
@@ -416,41 +429,58 @@ document.addEventListener('DOMContentLoaded', function() {
             viewChecklistResponsables.textContent = `Responsables: ${checklistSnap.responsables.join(', ')}`;
             viewChecklistTareasList.innerHTML = '';
 
-            if (checklistSnap.tareas.length === 0) {
+            if (checklistSnap.tareas.length === 0 && (!checklistSnap.manualTareas || checklistSnap.manualTareas.length === 0)) {
                 viewChecklistTareasList.innerHTML = '<li class="info-message">Este checklist no tiene tareas asignadas.</li>';
             } else {
-                // Optimización: Crear una única consulta para todas las tareas
-                const tareaIds = checklistSnap.tareas.map(t => t.id);
-                let tareasMap = {};
+                // Manejar tareas globales
+                if (checklistSnap.tareas.length > 0) {
+                    // Optimización: Crear una única consulta para todas las tareas
+                    const tareaIds = checklistSnap.tareas.map(t => t.id);
+                    let tareasMap = {};
 
-                // Firestore permite un máximo de 10 elementos en 'in', así que si hay más, dividimos en múltiples consultas
-                const chunks = [];
-                const size = 10;
-                for (let i = 0; i < tareaIds.length; i += size) {
-                    chunks.push(tareaIds.slice(i, i + size));
-                }
+                    // Firestore permite un máximo de 10 elementos en 'in', así que si hay más, dividimos en múltiples consultas
+                    const chunks = [];
+                    const size = 10;
+                    for (let i = 0; i < tareaIds.length; i += size) {
+                        chunks.push(tareaIds.slice(i, i + size));
+                    }
 
-                for (const chunk of chunks) {
-                    const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
-                    const tareasSnapshot = await getDocs(tareasQuery);
-                    tareasSnapshot.forEach(docu => {
-                        tareasMap[docu.id] = docu.data();
+                    for (const chunk of chunks) {
+                        const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
+                        const tareasSnapshot = await getDocs(tareasQuery);
+                        tareasSnapshot.forEach(docu => {
+                            tareasMap[docu.id] = docu.data();
+                        });
+                    }
+
+                    checklistSnap.tareas.forEach(tareaItem => {
+                        const tarea = tareasMap[tareaItem.id];
+                        const tareaDescripcion = tarea ? `${tarea.tipo}: ${tarea.descripcion}` : 'Descripción no disponible';
+
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <label>
+                                <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" data-manual="false" ${tareaItem.completado ? 'checked' : ''}>
+                                ${tareaDescripcion}
+                            </label>
+                        `;
+                        viewChecklistTareasList.appendChild(li);
                     });
                 }
 
-                checklistSnap.tareas.forEach(tareaItem => {
-                    const tarea = tareasMap[tareaItem.id];
-                    const tareaDescripcion = tarea ? tarea.descripcion : 'Descripción no disponible';
-
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <label>
-                            <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" ${tareaItem.completado ? 'checked' : ''}>
-                            ${tareaDescripcion}
-                        </label>
-                    `;
-                    viewChecklistTareasList.appendChild(li);
-                });
+                // Manejar tareas manuales
+                if (checklistSnap.manualTareas && checklistSnap.manualTareas.length > 0) {
+                    checklistSnap.manualTareas.forEach((manualTarea, index) => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <label>
+                                <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${index}" data-manual="true" ${manualTarea.completado ? 'checked' : ''}>
+                                ${manualTarea.descripcion}
+                            </label>
+                        `;
+                        viewChecklistTareasList.appendChild(li);
+                    });
+                }
             }
 
             // Escuchar cambios en las tareas del checklist en tiempo real
@@ -458,8 +488,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const updatedChecklist = docu.data();
                 if (updatedChecklist) {
                     // Calcular el progreso actualizado
-                    const totalTareas = updatedChecklist.tareas.length;
-                    const tareasCompletadas = updatedChecklist.tareas.filter(t => t.completado).length;
+                    const totalTareas = updatedChecklist.tareas.length + (updatedChecklist.manualTareas ? updatedChecklist.manualTareas.length : 0);
+                    const tareasCompletadas = updatedChecklist.tareas.filter(t => t.completado).length + 
+                                                (updatedChecklist.manualTareas ? updatedChecklist.manualTareas.filter(t => t.completado).length : 0);
                     const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
 
                     // Actualizar la barra de progreso en el modal
@@ -472,46 +503,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     viewChecklistResponsables.textContent = `Responsables: ${updatedChecklist.responsables.join(', ')}`;
                     viewChecklistTareasList.innerHTML = '';
 
-                    if (updatedChecklist.tareas.length === 0) {
+                    if (updatedChecklist.tareas.length === 0 && (!updatedChecklist.manualTareas || updatedChecklist.manualTareas.length === 0)) {
                         viewChecklistTareasList.innerHTML = '<li class="info-message">Este checklist no tiene tareas asignadas.</li>';
                     } else {
-                        // Optimización: Crear una única consulta para todas las tareas
-                        const tareaIds = updatedChecklist.tareas.map(t => t.id);
-                        let tareasMap = {};
+                        // Manejar tareas globales
+                        if (updatedChecklist.tareas.length > 0) {
+                            const tareaIds = updatedChecklist.tareas.map(t => t.id);
+                            let tareasMap = {};
 
-                        // Firestore permite un máximo de 10 elementos en 'in', así que si hay más, dividimos en múltiples consultas
-                        const chunks = [];
-                        const size = 10;
-                        for (let i = 0; i < tareaIds.length; i += size) {
-                            chunks.push(tareaIds.slice(i, i + size));
-                        }
-
-                        // Función asíncrona para manejar múltiples consultas
-                        (async () => {
-                            for (const chunk of chunks) {
-                                const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
-                                const tareasSnapshot = await getDocs(tareasQuery);
-                                tareasSnapshot.forEach(docu => {
-                                    tareasMap[docu.id] = docu.data();
-                                });
+                            const chunks = [];
+                            const size = 10;
+                            for (let i = 0; i < tareaIds.length; i += size) {
+                                chunks.push(tareaIds.slice(i, i + size));
                             }
 
-                            updatedChecklist.tareas.forEach(tareaItem => {
-                                const tarea = tareasMap[tareaItem.id];
-                                const tareaDescripcion = tarea ? tarea.descripcion : 'Descripción no disponible';
+                            (async () => {
+                                for (const chunk of chunks) {
+                                    const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
+                                    const tareasSnapshot = await getDocs(tareasQuery);
+                                    tareasSnapshot.forEach(docu => {
+                                        tareasMap[docu.id] = docu.data();
+                                    });
+                                }
 
+                                updatedChecklist.tareas.forEach(tareaItem => {
+                                    const tarea = tareasMap[tareaItem.id];
+                                    const tareaDescripcion = tarea ? `${tarea.tipo}: ${tarea.descripcion}` : 'Descripción no disponible';
+
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `
+                                        <label>
+                                            <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" data-manual="false" ${tareaItem.completado ? 'checked' : ''}>
+                                            ${tareaDescripcion}
+                                        </label>
+                                    `;
+                                    viewChecklistTareasList.appendChild(li);
+                                });
+                            })().catch(error => {
+                                console.error("Error al cargar tareas actualizadas:", error);
+                            });
+                        }
+
+                        // Manejar tareas manuales
+                        if (updatedChecklist.manualTareas && updatedChecklist.manualTareas.length > 0) {
+                            updatedChecklist.manualTareas.forEach((manualTarea, index) => {
                                 const li = document.createElement('li');
                                 li.innerHTML = `
                                     <label>
-                                        <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" ${tareaItem.completado ? 'checked' : ''}>
-                                        ${tareaDescripcion}
+                                        <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${index}" data-manual="true" ${manualTarea.completado ? 'checked' : ''}>
+                                        ${manualTarea.descripcion}
                                     </label>
                                 `;
                                 viewChecklistTareasList.appendChild(li);
                             });
-                        })().catch(error => {
-                            console.error("Error al cargar tareas actualizadas:", error);
-                        });
+                        }
                     }
 
                     // Actualizar la barra de progreso en la tabla
@@ -632,620 +677,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-
-    // **Manejar el Guardado de Cambios en el Checklist**
-    checklistForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const titulo = document.getElementById('checklistTitulo').value.trim();
-        const fecha = document.getElementById('checklistFecha').value;
-        const responsablesSeleccionados = Array.from(checklistResponsablesSelect.selectedOptions).map(option => option.value);
-        const tareasSeleccionadas = Array.from(document.querySelectorAll('input[name="tareas"]:checked')).map(checkbox => checkbox.value);
-
-        // Validaciones
-        if (!titulo) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'El título del checklist no puede estar vacío.',
-            });
-            return;
-        }
-
-        if (!fecha) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona una fecha.',
-            });
-            return;
-        }
-
-        if (responsablesSeleccionados.length === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona al menos un responsable.',
-            });
-            return;
-        }
-
-        if (tareasSeleccionadas.length === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona al menos una tarea.',
-            });
-            return;
-        }
-
-        // Crear el objeto del checklist
-        const checklistData = {
-            titulo,
-            fecha,
-            responsables: responsablesSeleccionados,
-            tareas: tareasSeleccionadas.map(tareaId => ({ id: tareaId, completado: false }))
-        };
-
-        if (isEditMode && currentEditChecklistId) {
-            // Modo Edición: Actualizar el checklist existente
-            try {
-                const checklistRef = doc(db, "checklists", currentEditChecklistId);
-                const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", currentEditChecklistId))).then(snapshot => {
-                    let found = null;
-                    snapshot.forEach(docu => {
-                        if (docu.id === currentEditChecklistId) {
-                            found = docu.data();
-                            found.id = docu.id;
-                        }
-                    });
-                    return found;
-                });
-
-                if (!checklistSnap) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Checklist no encontrado.',
-                    });
-                    return;
-                }
-
-                const tareasActuales = checklistSnap.tareas.map(t => t.id);
-                const tareasNuevas = tareasSeleccionadas;
-                const tareasAgregadas = tareasNuevas.filter(t => !tareasActuales.includes(t));
-                const tareasEliminadas = tareasActuales.filter(t => !tareasNuevas.includes(t));
-
-                // Actualizar el checklist en Firestore
-                await updateDoc(checklistRef, {
-                    titulo: checklistData.titulo,
-                    fecha: checklistData.fecha,
-                    responsables: checklistData.responsables,
-                    tareas: checklistData.tareas
-                });
-
-                // Actualizar el estado de las tareas agregadas
-                for (const tareaId of tareasAgregadas) {
-                    const tareaRef = doc(db, "tareas", tareaId);
-                    await updateDoc(tareaRef, { estado: "En Progreso" });
-                }
-
-                // Opcional: Si deseas revertir el estado de las tareas eliminadas
-                for (const tareaId of tareasEliminadas) {
-                    const tareaRef = doc(db, "tareas", tareaId);
-                    await updateDoc(tareaRef, { estado: "Pendiente" }); // O el estado que corresponda
-                }
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'El checklist ha sido actualizado exitosamente.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                checklistForm.reset();
-                checklistModal.style.display = 'none';
-                checklistTareasDiv.innerHTML = '<p class="info-message">Selecciona uno o más responsables primero</p>';
-                isEditMode = false;
-                currentEditChecklistId = null;
-                document.getElementById('modalTitle').textContent = 'Crear Nuevo Checklist';
-            } catch (error) {
-                console.error("Error al actualizar checklist:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al actualizar el checklist.',
-                });
-            }
-        } else {
-            // Modo Creación: Crear un nuevo checklist
-            try {
-                await addDoc(collection(db, "checklists"), checklistData);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'El checklist ha sido creado exitosamente.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                checklistForm.reset();
-                checklistModal.style.display = 'none';
-                checklistTareasDiv.innerHTML = '<p class="info-message">Selecciona uno o más responsables primero</p>';
-            } catch (error) {
-                console.error("Error al crear checklist:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al crear el checklist.',
-                });
-            }
-        }
-    });
-
-    // **Cargar Checklists Existentes**
-    function cargarChecklists() {
-        const checklistsRef = collection(db, "checklists");
-        onSnapshot(checklistsRef, (snapshot) => {
-            checklists = [];
-            snapshot.forEach(docu => {
-                const checklist = docu.data();
-                checklist.id = docu.id;
-                checklists.push(checklist);
-            });
-            actualizarTablaChecklists();
-        }, (error) => {
-            console.error("Error al cargar checklists:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Hubo un problema al cargar los checklists.',
-            });
-        });
-    }
-
-    cargarChecklists();
-
-    // **Actualizar la Tabla de Checklists**
-    function actualizarTablaChecklists() {
-        checklistTableBody.innerHTML = '';
-
-        if (checklists.length === 0) {
-            const fila = document.createElement('tr');
-            fila.innerHTML = `<td colspan="5" class="info-message">No hay checklists disponibles. Crea uno nuevo.</td>`;
-            checklistTableBody.appendChild(fila);
-            return;
-        }
-
-        checklists.forEach(checklist => {
-            // Calcular el progreso
-            const totalTareas = checklist.tareas.length;
-            const tareasCompletadas = checklist.tareas.filter(t => t.completado).length;
-            const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
-
-            const fila = document.createElement('tr');
-
-            fila.innerHTML = `
-                <td>${checklist.titulo}</td>
-                <td>${checklist.fecha}</td>
-                <td>${checklist.responsables.join(', ')}</td>
-                <td>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progreso}%;"></div>
-                    </div>
-                    <small>${progreso}% Completado</small>
-                </td>
-                <td>
-                    <button class="action-btn" onclick="verChecklist('${checklist.id}')">Ver</button>
-                    <button class="edit-btn action-btn" onclick="editarChecklist('${checklist.id}')">Editar</button>
-                    <button class="delete-btn" onclick="eliminarChecklist('${checklist.id}')">Eliminar</button>
-                </td>
-            `;
-
-            checklistTableBody.appendChild(fila);
-        });
-    }
-
-    // **Función para Ver un Checklist**
-    window.verChecklist = async function(checklistId) {
-        try {
-            const checklistRef = doc(db, "checklists", checklistId);
-            const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", checklistId))).then(snapshot => {
-                let found = null;
-                snapshot.forEach(docu => {
-                    if (docu.id === checklistId) {
-                        found = docu.data();
-                        found.id = docu.id;
-                    }
-                });
-                return found;
-            });
-
-            if (!checklistSnap) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Checklist no encontrado.',
-                });
-                return;
-            }
-
-            // Calcular el progreso
-            const totalTareas = checklistSnap.tareas.length;
-            const tareasCompletadas = checklistSnap.tareas.filter(t => t.completado).length;
-            const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
-
-            // Actualizar la barra de progreso en el modal
-            viewProgressBar.style.width = `${progreso}%`;
-            viewProgressText.textContent = `${progreso}% Completado`;
-
-            viewChecklistTitulo.textContent = checklistSnap.titulo;
-            viewChecklistFecha.textContent = `Fecha: ${checklistSnap.fecha}`;
-            viewChecklistResponsables.textContent = `Responsables: ${checklistSnap.responsables.join(', ')}`;
-            viewChecklistTareasList.innerHTML = '';
-
-            if (checklistSnap.tareas.length === 0) {
-                viewChecklistTareasList.innerHTML = '<li class="info-message">Este checklist no tiene tareas asignadas.</li>';
-            } else {
-                // Optimización: Crear una única consulta para todas las tareas
-                const tareaIds = checklistSnap.tareas.map(t => t.id);
-                let tareasMap = {};
-
-                // Firestore permite un máximo de 10 elementos en 'in', así que si hay más, dividimos en múltiples consultas
-                const chunks = [];
-                const size = 10;
-                for (let i = 0; i < tareaIds.length; i += size) {
-                    chunks.push(tareaIds.slice(i, i + size));
-                }
-
-                for (const chunk of chunks) {
-                    const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
-                    const tareasSnapshot = await getDocs(tareasQuery);
-                    tareasSnapshot.forEach(docu => {
-                        tareasMap[docu.id] = docu.data();
-                    });
-                }
-
-                checklistSnap.tareas.forEach(tareaItem => {
-                    const tarea = tareasMap[tareaItem.id];
-                    const tareaDescripcion = tarea ? tarea.descripcion : 'Descripción no disponible';
-
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <label>
-                            <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" ${tareaItem.completado ? 'checked' : ''}>
-                            ${tareaDescripcion}
-                        </label>
-                    `;
-                    viewChecklistTareasList.appendChild(li);
-                });
-            }
-
-            // Escuchar cambios en las tareas del checklist en tiempo real
-            onSnapshot(doc(db, "checklists", checklistId), (docu) => {
-                const updatedChecklist = docu.data();
-                if (updatedChecklist) {
-                    // Calcular el progreso actualizado
-                    const totalTareas = updatedChecklist.tareas.length;
-                    const tareasCompletadas = updatedChecklist.tareas.filter(t => t.completado).length;
-                    const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
-
-                    // Actualizar la barra de progreso en el modal
-                    viewProgressBar.style.width = `${progreso}%`;
-                    viewProgressText.textContent = `${progreso}% Completado`;
-
-                    // Actualizar la información del checklist
-                    viewChecklistTitulo.textContent = updatedChecklist.titulo;
-                    viewChecklistFecha.textContent = `Fecha: ${updatedChecklist.fecha}`;
-                    viewChecklistResponsables.textContent = `Responsables: ${updatedChecklist.responsables.join(', ')}`;
-                    viewChecklistTareasList.innerHTML = '';
-
-                    if (updatedChecklist.tareas.length === 0) {
-                        viewChecklistTareasList.innerHTML = '<li class="info-message">Este checklist no tiene tareas asignadas.</li>';
-                    } else {
-                        // Optimización: Crear una única consulta para todas las tareas
-                        const tareaIds = updatedChecklist.tareas.map(t => t.id);
-                        let tareasMap = {};
-
-                        // Firestore permite un máximo de 10 elementos en 'in', así que si hay más, dividimos en múltiples consultas
-                        const chunks = [];
-                        const size = 10;
-                        for (let i = 0; i < tareaIds.length; i += size) {
-                            chunks.push(tareaIds.slice(i, i + size));
-                        }
-
-                        // Función asíncrona para manejar múltiples consultas
-                        (async () => {
-                            for (const chunk of chunks) {
-                                const tareasQuery = query(collection(db, "tareas"), where("__name__", "in", chunk));
-                                const tareasSnapshot = await getDocs(tareasQuery);
-                                tareasSnapshot.forEach(docu => {
-                                    tareasMap[docu.id] = docu.data();
-                                });
-                            }
-
-                            updatedChecklist.tareas.forEach(tareaItem => {
-                                const tarea = tareasMap[tareaItem.id];
-                                const tareaDescripcion = tarea ? tarea.descripcion : 'Descripción no disponible';
-
-                                const li = document.createElement('li');
-                                li.innerHTML = `
-                                    <label>
-                                        <input type="checkbox" data-checklist-id="${checklistId}" data-tarea-id="${tareaItem.id}" ${tareaItem.completado ? 'checked' : ''}>
-                                        ${tareaDescripcion}
-                                    </label>
-                                `;
-                                viewChecklistTareasList.appendChild(li);
-                            });
-                        })().catch(error => {
-                            console.error("Error al cargar tareas actualizadas:", error);
-                        });
-                    }
-
-                    // Actualizar la barra de progreso en la tabla
-                    actualizarTablaChecklists();
-                }
-            });
-
-            viewChecklistModal.style.display = 'block';
-        } catch (error) {
-            console.error("Error al ver checklist:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Hubo un problema al cargar el checklist.',
-            });
-        }
-    }
-
-    // **Función para Editar un Checklist**
-    window.editarChecklist = async function(checklistId) {
-        try {
-            const checklistRef = doc(db, "checklists", checklistId);
-            const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", checklistId))).then(snapshot => {
-                let found = null;
-                snapshot.forEach(docu => {
-                    if (docu.id === checklistId) {
-                        found = docu.data();
-                        found.id = docu.id;
-                    }
-                });
-                return found;
-            });
-
-            if (!checklistSnap) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Checklist no encontrado.',
-                });
-                return;
-            }
-
-            // Configurar el modal en modo edición
-            isEditMode = true;
-            currentEditChecklistId = checklistId;
-
-            // Llenar el formulario con los datos existentes
-            document.getElementById('checklistTitulo').value = checklistSnap.titulo;
-            document.getElementById('checklistFecha').value = checklistSnap.fecha;
-
-            // Seleccionar los responsables existentes
-            Array.from(checklistResponsablesSelect.options).forEach(option => {
-                option.selected = checklistSnap.responsables.includes(option.value);
-            });
-
-            // Cargar tareas disponibles basadas en los responsables seleccionados
-            cargarTareasDisponibles(checklistSnap.responsables);
-
-            // Esperar a que las tareas se carguen y luego marcar las que ya están en el checklist
-            setTimeout(() => {
-                checklistSnap.tareas.forEach(tareaItem => {
-                    const checkbox = document.querySelector(`input[name="tareas"][value="${tareaItem.id}"]`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                });
-            }, 500); // Ajusta el tiempo según la carga de tareas
-
-            // Cambiar el título del modal
-            document.getElementById('modalTitle').textContent = 'Editar Checklist';
-
-            // Abrir el modal
-            checklistModal.style.display = 'block';
-        } catch (error) {
-            console.error("Error al editar checklist:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Hubo un problema al cargar el checklist para editar.',
-            });
-        }
-    }
-
-    // **Función para Eliminar un Checklist**
-    window.eliminarChecklist = function(checklistId) {
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: "Esta acción eliminará el checklist de forma permanente.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                eliminarChecklistConfirm(checklistId);
-            }
-        });
-    }
-
-    async function eliminarChecklistConfirm(checklistId) {
-        try {
-            await deleteDoc(doc(db, "checklists", checklistId));
-            Swal.fire({
-                icon: 'success',
-                title: 'Eliminado',
-                text: 'El checklist ha sido eliminado exitosamente.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        } catch (error) {
-            console.error("Error al eliminar checklist:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Hubo un problema al eliminar el checklist.',
-            });
-        }
-    }
-
-    // **Manejar el Guardado de Cambios en el Checklist**
-    checklistForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const titulo = document.getElementById('checklistTitulo').value.trim();
-        const fecha = document.getElementById('checklistFecha').value;
-        const responsablesSeleccionados = Array.from(checklistResponsablesSelect.selectedOptions).map(option => option.value);
-        const tareasSeleccionadas = Array.from(document.querySelectorAll('input[name="tareas"]:checked')).map(checkbox => checkbox.value);
-
-        // Validaciones
-        if (!titulo) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'El título del checklist no puede estar vacío.',
-            });
-            return;
-        }
-
-        if (!fecha) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona una fecha.',
-            });
-            return;
-        }
-
-        if (responsablesSeleccionados.length === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona al menos un responsable.',
-            });
-            return;
-        }
-
-        if (tareasSeleccionadas.length === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Por favor, selecciona al menos una tarea.',
-            });
-            return;
-        }
-
-        // Crear el objeto del checklist
-        const checklistData = {
-            titulo,
-            fecha,
-            responsables: responsablesSeleccionados,
-            tareas: tareasSeleccionadas.map(tareaId => ({ id: tareaId, completado: false }))
-        };
-
-        if (isEditMode && currentEditChecklistId) {
-            // Modo Edición: Actualizar el checklist existente
-            try {
-                const checklistRef = doc(db, "checklists", currentEditChecklistId);
-                const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", currentEditChecklistId))).then(snapshot => {
-                    let found = null;
-                    snapshot.forEach(docu => {
-                        if (docu.id === currentEditChecklistId) {
-                            found = docu.data();
-                            found.id = docu.id;
-                        }
-                    });
-                    return found;
-                });
-
-                if (!checklistSnap) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Checklist no encontrado.',
-                    });
-                    return;
-                }
-
-                const tareasActuales = checklistSnap.tareas.map(t => t.id);
-                const tareasNuevas = tareasSeleccionadas;
-                const tareasAgregadas = tareasNuevas.filter(t => !tareasActuales.includes(t));
-                const tareasEliminadas = tareasActuales.filter(t => !tareasNuevas.includes(t));
-
-                // Actualizar el checklist en Firestore
-                await updateDoc(checklistRef, {
-                    titulo: checklistData.titulo,
-                    fecha: checklistData.fecha,
-                    responsables: checklistData.responsables,
-                    tareas: checklistData.tareas
-                });
-
-                // Actualizar el estado de las tareas agregadas
-                for (const tareaId of tareasAgregadas) {
-                    const tareaRef = doc(db, "tareas", tareaId);
-                    await updateDoc(tareaRef, { estado: "En Progreso" });
-                }
-
-                // Opcional: Si deseas revertir el estado de las tareas eliminadas
-                for (const tareaId of tareasEliminadas) {
-                    const tareaRef = doc(db, "tareas", tareaId);
-                    await updateDoc(tareaRef, { estado: "Pendiente" }); // O el estado que corresponda
-                }
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'El checklist ha sido actualizado exitosamente.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                checklistForm.reset();
-                checklistModal.style.display = 'none';
-                checklistTareasDiv.innerHTML = '<p class="info-message">Selecciona uno o más responsables primero</p>';
-                isEditMode = false;
-                currentEditChecklistId = null;
-                document.getElementById('modalTitle').textContent = 'Crear Nuevo Checklist';
-            } catch (error) {
-                console.error("Error al actualizar checklist:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al actualizar el checklist.',
-                });
-            }
-        } else {
-            // Modo Creación: Crear un nuevo checklist
-            try {
-                await addDoc(collection(db, "checklists"), checklistData);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'El checklist ha sido creado exitosamente.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                checklistForm.reset();
-                checklistModal.style.display = 'none';
-                checklistTareasDiv.innerHTML = '<p class="info-message">Selecciona uno o más responsables primero</p>';
-            } catch (error) {
-                console.error("Error al crear checklist:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al crear el checklist.',
-                });
-            }
-        }
-    });
 
     // **Escuchar Cambios en las Tareas Disponibles en Tiempo Real**
     async function escucharCambiosTareas(responsablesSeleccionados) {
@@ -1271,6 +702,177 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error("Error al configurar escucha de tareas disponibles:", error);
         }
+    }
+
+    // **Agregar Tarea Manual en el Modal de Creación/Edición**
+    addManualTaskBtn.addEventListener('click', async function() {
+        const { value: descripcion } = await Swal.fire({
+            title: 'Agregar Tarea Manual',
+            input: 'text',
+            inputLabel: 'Descripción de la tarea',
+            inputPlaceholder: 'Escribe la descripción de la tarea',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'La descripción no puede estar vacía!';
+                }
+            }
+        });
+
+        if (descripcion) {
+            const manualTasksContainer = document.getElementById('manualTasksContainer');
+            const div = document.createElement('div');
+            div.classList.add('manual-task-input');
+            div.innerHTML = `
+                <input type="text" value="${descripcion}" readonly>
+                <button type="button" class="remove-manual-task-btn"><i class="fas fa-trash"></i></button>
+            `;
+            manualTasksContainer.appendChild(div);
+
+            // Agregar evento para eliminar la tarea manual
+            div.querySelector('.remove-manual-task-btn').addEventListener('click', function() {
+                manualTasksContainer.removeChild(div);
+            });
+        }
+    });
+
+    // **Agregar Tarea Manual en el Modal de Visualización**
+    addManualTaskViewBtn.addEventListener('click', async function() {
+        if (!currentViewChecklistId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo determinar el checklist actual.',
+            });
+            return;
+        }
+
+        const { value: descripcion } = await Swal.fire({
+            title: 'Agregar Tarea Manual',
+            input: 'text',
+            inputLabel: 'Descripción de la tarea',
+            inputPlaceholder: 'Escribe la descripción de la tarea',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'La descripción no puede estar vacía!';
+                }
+            }
+        });
+
+        if (descripcion) {
+            try {
+                const checklistRef = doc(db, "checklists", currentViewChecklistId);
+                await updateDoc(checklistRef, {
+                    manualTareas: arrayUnion({
+                        descripcion: descripcion,
+                        completado: false
+                    })
+                });
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: 'La tarea manual ha sido agregada.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error("Error al agregar tarea manual:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Hubo un problema al agregar la tarea manual.',
+                });
+            }
+        }
+    });
+
+    // **Guardar Tareas Manuales desde el Modal de Visualización**
+    saveManualTasksViewBtn.addEventListener('click', async function() {
+        if (!currentViewChecklistId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo determinar el checklist actual.',
+            });
+            return;
+        }
+
+        try {
+            const checklistRef = doc(db, "checklists", currentViewChecklistId);
+            const checklistSnap = await getDocs(query(collection(db, "checklists"), where("__name__", "==", currentViewChecklistId))).then(snapshot => {
+                let found = null;
+                snapshot.forEach(docu => {
+                    if (docu.id === currentViewChecklistId) {
+                        found = docu.data();
+                        found.id = docu.id;
+                    }
+                });
+                return found;
+            });
+
+            if (!checklistSnap) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Checklist no encontrado.',
+                });
+                return;
+            }
+
+            // Manejar cambios en tareas globales
+            const tareasGlobales = checklistSnap.tareas;
+            const tareasGlobalesActualizadas = [...tareasGlobales];
+
+            document.querySelectorAll('input[data-manual="false"]').forEach(checkbox => {
+                const tareaId = checkbox.getAttribute('data-tarea-id');
+                const completado = checkbox.checked;
+                const tareaIndex = tareasGlobalesActualizadas.findIndex(t => t.id === tareaId);
+                if (tareaIndex !== -1) {
+                    tareasGlobalesActualizadas[tareaIndex].completado = completado;
+                }
+            });
+
+            // Manejar cambios en tareas manuales
+            const tareasManuales = checklistSnap.manualTareas || [];
+            const tareasManualesActualizadas = [...tareasManuales];
+
+            document.querySelectorAll('input[data-manual="true"]').forEach(checkbox => {
+                const tareaIndex = parseInt(checkbox.getAttribute('data-tarea-id'));
+                const completado = checkbox.checked;
+                if (!isNaN(tareaIndex) && tareasManualesActualizadas[tareaIndex]) {
+                    tareasManualesActualizadas[tareaIndex].completado = completado;
+                }
+            });
+
+            // Actualizar el checklist en Firestore
+            await updateDoc(checklistRef, {
+                tareas: tareasGlobalesActualizadas,
+                manualTareas: tareasManualesActualizadas
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: 'Los cambios han sido guardados exitosamente.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        } catch (error) {
+            console.error("Error al guardar cambios en el checklist:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Hubo un problema al guardar los cambios.',
+            });
+        }
+    });
+
+    // **Función para Obtener el ID del Checklist Actual**
+    function getCurrentChecklistId() {
+        return currentViewChecklistId;
     }
 
 });

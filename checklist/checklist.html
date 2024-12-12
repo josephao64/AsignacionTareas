@@ -1,77 +1,127 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Checklist de Tareas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Checklists</title>
+    <!-- Enlace a tu archivo CSS -->
+    <link rel="stylesheet" href="styles.css">
     <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <!-- Enlace al archivo CSS principal -->
-    <link rel="stylesheet" href="../styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Opcional: Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Estilos específicos para Checklist */
-        .modal {
-            display: none; /* Oculto por defecto */
-            position: fixed;
-            z-index: 1000; /* Por encima de otros elementos */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5); /* Fondo semi-transparente */
+        /* Estilos básicos. Es recomendable trasladar estos estilos a tu archivo CSS */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
         }
 
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto; /* 5% desde la parte superior y centrado */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 500px; /* Ancho del modal */
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .modal-content h2 {
+        h1 {
             text-align: center;
             margin-bottom: 20px;
         }
 
-        .modal-content label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .modal-content input[type="text"],
-        .modal-content input[type="date"],
-        .modal-content select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .modal-content button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            border: none;
+        /* Botón principal */
+        #openChecklistModal {
+            padding: 10px 20px;
+            background-color: #28a745;
             color: white;
-            font-size: 16px;
+            border: none;
             border-radius: 4px;
             cursor: pointer;
         }
 
-        .modal-content button:hover {
-            background-color: #45a049;
+        #openChecklistModal:hover {
+            background-color: #218838;
         }
 
+        /* Tabla de checklists */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        th {
+            background-color: #343a40;
+            color: white;
+        }
+
+        /* Mensajes informativos */
+        .info-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px 0;
+        }
+
+        /* Botones de acción */
+        .action-btn {
+            padding: 6px 12px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+
+        .view-btn {
+            background-color: #17a2b8;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 50px auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px; /* Could be more or less, depending on screen size */
+            border-radius: 8px;
+            position: relative;
+        }
+
+        /* Close Button */
         .close {
             color: #aaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
+            position: absolute;
+            right: 20px;
+            top: 10px;
             cursor: pointer;
         }
 
@@ -81,66 +131,89 @@
             text-decoration: none;
         }
 
-        /* Estilos para la Lista de Checklists */
-        .container {
-            padding: 20px;
+        /* Formulario del modal */
+        .modal-form label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
 
-        .add-checklist-btn {
-            padding: 10px 20px;
-            background-color: #008CBA;
-            border: none;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-
-        .add-checklist-btn:hover {
-            background-color: #006f98;
-        }
-
-        table {
+        .modal-form input[type="text"],
+        .modal-form input[type="date"],
+        .modal-form select {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+            padding: 8px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
         }
 
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            vertical-align: middle;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr.selected {
-            background-color: #d1e7dd;
-        }
-
-        /* Botones de Acción en la Tabla */
-        .action-btn {
-            padding: 6px 12px;
-            background-color: #28a745;
+        .modal-form button[type="submit"] {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #007bff;
             border: none;
             color: white;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 5px;
         }
 
-        .action-btn:hover {
-            background-color: #218838;
+        .modal-form button[type="submit"]:hover {
+            background-color: #0069d9;
         }
 
-        .delete-btn {
-            padding: 6px 12px;
+        /* Progress Bar */
+        .progress-container {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 20px;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #28a745;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Tareas Manuales */
+        .add-manual-task-btn {
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .add-manual-task-btn:hover {
+            background-color: #138496;
+        }
+
+        .manual-tasks-container {
+            margin-top: 10px;
+        }
+
+        .manual-task-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .manual-task-input input {
+            flex: 1;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .manual-task-input button {
+            padding: 8px 12px;
             background-color: #dc3545;
             border: none;
             color: white;
@@ -148,139 +221,59 @@
             cursor: pointer;
         }
 
-        .delete-btn:hover {
+        .manual-task-input button:hover {
             background-color: #c82333;
-        }
-
-        /* Nuevo Botón de Editar */
-        .edit-btn {
-            background-color: #ffc107;
-            color: #212529;
-        }
-
-        .edit-btn:hover {
-            background-color: #e0a800;
-        }
-
-        /* Estilos para la Barra de Progreso */
-        .progress-container {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 13px;
-            overflow: hidden;
-            height: 20px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.5s ease-in-out;
-        }
-
-        /* Responsividad */
-        @media (max-width: 600px) {
-            .modal-content {
-                width: 90%;
-            }
-        }
-
-        /* Estilos para lista de checkboxes */
-        .checkbox-group {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-
-        .checkbox-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        /* Mensajes Informativos */
-        .info-message {
-            font-style: italic;
-            color: #666;
-        }
-
-        /* Barra de Progreso en el Modal de Visualización */
-        .view-progress-container {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 13px;
-            overflow: hidden;
-            height: 20px;
-            margin-bottom: 15px;
-        }
-
-        .view-progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.5s ease-in-out;
-        }
-
-        .view-progress-text {
-            display: block;
-            text-align: center;
-            margin-top: 5px;
-            font-size: 14px;
-            color: #333;
         }
     </style>
 </head>
 <body>
-    <!-- Cabecera con Botón de Volver -->
-    <div class="header">
-        <!-- Cambiado el onclick para redirigir directamente al index.html -->
-        <button onclick="window.location.href='../index.html'" class="login-btn">Volver</button>
-    </div>
 
-    <!-- Contenedor Principal de la Checklist -->
-    <div class="container">
-        <h1>Checklist de Tareas</h1>
-        <button id="openChecklistModal" class="add-checklist-btn">Crear Nuevo Checklist</button>
+    <h1>Gestión de Checklists</h1>
 
-        <!-- Tabla de Checklists Existentes -->
-        <table id="checklistTable">
-            <thead>
-                <tr>
-                    <th>Título</th>
-                    <th>Fecha</th>
-                    <th>Responsables</th>
-                    <th>Progreso</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Checklists se generarán aquí dinámicamente -->
-            </tbody>
-        </table>
-    </div>
+    <!-- Botón para abrir el modal de crear checklist -->
+    <button id="openChecklistModal">Crear Nuevo Checklist</button>
+
+    <!-- Tabla para listar los checklists existentes -->
+    <table id="checklistTable">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Fecha</th>
+                <th>Responsables</th>
+                <th>Progreso</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Filas de checklists serán insertadas dinámicamente aquí -->
+        </tbody>
+    </table>
 
     <!-- Modal para Crear/Editar Checklist -->
     <div id="checklistModal" class="modal">
         <div class="modal-content">
-            <!-- Asegurarse de que el botón de cerrar tiene el ID correcto -->
-            <span class="close" id="closeChecklistModal">&times;</span>
+            <span id="closeChecklistModal" class="close">&times;</span>
             <h2 id="modalTitle">Crear Nuevo Checklist</h2>
-            <form id="checklistForm">
-                <label for="checklistTitulo">Título del Checklist:</label>
-                <input type="text" id="checklistTitulo" required>
+            <form id="checklistForm" class="modal-form">
+                <label for="checklistTitulo">Título:</label>
+                <input type="text" id="checklistTitulo" name="checklistTitulo" required>
 
                 <label for="checklistFecha">Fecha:</label>
-                <input type="date" id="checklistFecha" required>
+                <input type="date" id="checklistFecha" name="checklistFecha" required>
 
-                <label for="checklistResponsables">Seleccionar Responsables:</label>
-                <select id="checklistResponsables" multiple required>
-                    <!-- Responsables se cargarán dinámicamente -->
+                <label for="checklistResponsables">Responsables:</label>
+                <select id="checklistResponsables" name="checklistResponsables" multiple required>
+                    <!-- Opciones de responsables serán cargadas dinámicamente -->
                 </select>
 
-                <label for="checklistTareas">Seleccionar Tareas:</label>
-                <div id="checklistTareas" class="checkbox-group">
+                <!-- Botón y Contenedor para Agregar Tareas Manuales -->
+                <button type="button" id="addManualTaskBtn" class="add-manual-task-btn">Agregar Tarea Manual</button>
+                <div id="manualTasksContainer" class="manual-tasks-container" style="margin-top: 10px;">
+                    <!-- Campos para tareas manuales serán agregados aquí -->
+                </div>
+
+                <label for="checklistTareas">Tareas Disponibles:</label>
+                <div id="checklistTareas">
                     <p class="info-message">Selecciona uno o más responsables primero</p>
                 </div>
 
@@ -289,36 +282,33 @@
         </div>
     </div>
 
-    <!-- Modal para Ver y Completar Checklist -->
+    <!-- Modal para Ver Checklist -->
     <div id="viewChecklistModal" class="modal">
         <div class="modal-content">
-            <!-- Asegurarse de que el botón de cerrar tiene el ID correcto -->
-            <span class="close" id="closeViewChecklistModal">&times;</span>
-            <!-- Barra de Progreso en el Modal -->
-            <div class="view-progress-container">
-                <div class="view-progress-bar" id="viewProgressBar"></div>
-            </div>
-            <span class="view-progress-text" id="viewProgressText">0% Completado</span>
-
+            <span id="closeViewChecklistModal" class="close">&times;</span>
             <h2 id="viewChecklistTitulo">Título del Checklist</h2>
             <p id="viewChecklistFecha">Fecha: </p>
             <p id="viewChecklistResponsables">Responsables: </p>
-            <form id="viewChecklistForm">
-                <ul id="viewChecklistTareas">
-                    <!-- Tareas del checklist se generarán aquí -->
-                </ul>
-                <button type="submit">Guardar Cambios</button>
-            </form>
+            <div class="progress-container">
+                <div id="viewProgressBar" class="progress-bar"></div>
+            </div>
+            <p id="viewProgressText">0% Completado</p>
+            <ul id="viewChecklistTareas">
+                <!-- Lista de tareas será insertada dinámicamente aquí -->
+            </ul>
+            <!-- Botón para agregar tareas manuales en la vista del checklist -->
+            <button type="button" id="addManualTaskViewBtn" class="add-manual-task-btn">Agregar Tarea Manual</button>
+            <div id="manualTasksViewContainer" class="manual-tasks-container" style="margin-top: 10px;">
+                <!-- Campos para tareas manuales serán agregados aquí -->
+            </div>
+            <!-- Botón para guardar las nuevas tareas manuales añadidas desde la vista -->
+            <button type="button" id="saveManualTasksViewBtn" class="add-manual-task-btn" style="background-color: #28a745; margin-top: 10px;">Guardar Tareas Manuales</button>
         </div>
     </div>
 
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <!-- Firebase Config JS -->
-    <script type="module" src="../firebase-config.js"></script>
-
-    <!-- Enlace al archivo JS -->
+    <!-- Enlace a Firebase SDK (Asegúrate de que firebase-config.js está correctamente configurado) -->
     <script type="module" src="checklist.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
 </body>
 </html>

@@ -1,0 +1,405 @@
+/* styles.css */
+
+/* Estilos Generales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    margin: auto;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333333;
+}
+
+/* Tabla de Checklists */
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.filters select,
+.filters input {
+    padding: 10px 15px;
+    border: 2px solid #cccccc;
+    border-radius: 20px;
+    outline: none;
+    transition: border 0.3s;
+    min-width: 150px;
+    background-color: #fafafa;
+}
+
+.filters select:focus,
+.filters input:focus {
+    border-color: #00796b;
+}
+
+.actions-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.actions-buttons button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.actions-buttons button:disabled {
+    background-color: #b2dfdb;
+    cursor: not-allowed;
+}
+
+.actions-buttons button:hover:not(:disabled) {
+    background-color: #005a4d;
+}
+
+.reset-filters-btn {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.reset-filters-btn:hover {
+    background-color: #9a0007;
+}
+
+/* Tabla */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #dddddd;
+    background-color: #ffffff;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #dddddd;
+}
+
+th {
+    background-color: #00796b;
+    color: white;
+    position: relative;
+    user-select: none;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+tr.selected {
+    background-color: #e0f2f1 !important;
+}
+
+/* Botones de Acción en la Tabla */
+.action-btn {
+    padding: 6px 12px;
+    margin-right: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+    font-size: 12px;
+    transition: opacity 0.3s;
+}
+
+.view-btn {
+    background-color: #17a2b8;
+}
+
+.view-btn:hover {
+    opacity: 0.8;
+}
+
+.edit-btn {
+    background-color: #ffc107;
+}
+
+.edit-btn:hover {
+    opacity: 0.8;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+}
+
+.delete-btn:hover {
+    opacity: 0.8;
+}
+
+/* Botón Agregar Tarea */
+.add-task-btn {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.add-task-btn:hover {
+    background-color: #005a4d;
+}
+
+/* Modal */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+    padding: 20px;
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: 5% auto; 
+    padding: 20px 30px;
+    border: none;
+    width: 100%;
+    max-width: 500px; 
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+}
+
+.close {
+    color: #888;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover,
+.close:focus {
+    color: #555;
+}
+
+.modal-content h2 {
+    font-size: 24px;
+    color: #333333;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.modal-content p {
+    font-size: 14px;
+    color: #666666;
+    margin-bottom: 10px;
+}
+
+.progress-container {
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 10px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #00796b;
+    width: 0%;
+    transition: width 0.3s ease-in-out;
+}
+
+#viewProgressText {
+    font-size: 14px;
+    color: #666666;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+#viewChecklistTareas {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+#viewChecklistTareas li {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#viewChecklistTareas li:last-child {
+    border-bottom: none;
+}
+
+#viewChecklistTareas label {
+    font-size: 14px;
+    color: #333333;
+    display: flex;
+    align-items: center;
+}
+
+#viewChecklistTareas input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+/* Botones para Agregar y Guardar Tareas Manuales */
+.add-manual-task-btn {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.add-manual-task-btn:hover {
+    background-color: #005a4d;
+}
+
+#saveManualTasksViewBtn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 10px;
+}
+
+#saveManualTasksViewBtn:hover {
+    background-color: #1e7e34;
+}
+
+.manual-tasks-container {
+    margin-top: 15px;
+}
+
+.manual-task-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.manual-task-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.manual-task-input button {
+    margin-left: 10px;
+    padding: 8px 12px;
+    background-color: #dc3545;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.manual-task-input button:hover {
+    background-color: #c82333;
+}
+
+/* Progress Bar */
+.progress-container {
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 10px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #00796b;
+    width: 0%;
+    transition: width 0.3s ease-in-out;
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+    .table-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions-buttons {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    #viewSection {
+        margin-left: 0;
+        margin-top: 20px;
+    }
+
+    /* Ajustar el ancho de los modales en pantallas pequeñas */
+    .modal-content {
+        width: 95%;
+        max-width: 500px;
+    }
+}
