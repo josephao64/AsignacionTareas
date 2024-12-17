@@ -1,11 +1,8 @@
-// reportesServices.js
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 // Configuración de Firebase
 const firebaseConfig = {
-    // Reemplaza estos valores con tu configuración real de Firebase
     apiKey: "AIzaSyCc_XNSGWjrl8eOmOvbSpxvsmgoLunI_pk",
     authDomain: "tareasdb-193f4.firebaseapp.com",
     projectId: "tareasdb-193f4",
@@ -34,26 +31,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToServicesBtn = document.getElementById('backToServicesBtn');
     const closeModalBtn = document.querySelector('.close');
 
-    // Variables para almacenar los filtros seleccionados
     let tiposReporteSeleccionados = [];
     let sucursalSeleccionada = '';
     let servicioSeleccionado = '';
     let fechaInicioSeleccionada = '';
     let fechaFinSeleccionada = '';
 
-    // Establecer fechas por defecto (fecha actual)
     const now = new Date();
-    const fechaActualISO = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const fechaActualISO = now.toISOString().slice(0, 10);
     fechaInicioInput.value = fechaActualISO;
     fechaFinInput.value = fechaActualISO;
 
-    // Array de meses en español
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
 
-    // Cargar tipos de servicio desde Firestore
     function cargarTiposServicios() {
         const tiposServiciosRef = collection(db, "tiposServicios");
         const q = query(tiposServiciosRef, orderBy("nombre", "asc"));
@@ -70,10 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarTiposServicios();
 
-    // Actualizar el select de servicios con tipos de servicio
     function actualizarSelectServicios() {
         const servicioSelect = document.getElementById('filterServicio');
-        // Nota: La opción "Todos los Servicios" ya está presente en el HTML, no es necesario agregarla aquí
         tiposServicios.forEach(tipo => {
             const option = document.createElement('option');
             option.value = tipo.nombre;
@@ -82,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Cargar servicios desde Firebase
     function cargarServicios() {
         const serviciosRef = collection(db, "servicios");
         onSnapshot(serviciosRef, (snapshot) => {
@@ -97,11 +87,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarServicios();
 
-    // Manejar el envío del formulario de filtros
     filterForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Obtener valores de filtros
         const fechaInicio = fechaInicioInput.value;
         const fechaFin = fechaFinInput.value;
         fechaInicioSeleccionada = fechaInicioInput.value;
@@ -110,11 +98,9 @@ document.addEventListener('DOMContentLoaded', function() {
         servicioSeleccionado = filterServicio.value;
         const estadoPago = filterEstadoPago.value;
 
-        // Obtener tipos de reporte seleccionados
         const tiposReporteCheckboxes = document.querySelectorAll('input[name="tipoReporte"]:checked');
         tiposReporteSeleccionados = Array.from(tiposReporteCheckboxes).map(cb => cb.value);
 
-        // Validaciones
         if (tiposReporteSeleccionados.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -133,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Validar fechas solo si no se seleccionó "estadisticas"
         if (!tiposReporteSeleccionados.includes('estadisticas')) {
             if (!fechaInicio || !fechaFin) {
                 Swal.fire({
@@ -154,19 +139,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Filtrar servicios
         let serviciosFiltrados = servicios.filter(servicio => {
-            // Filtrar por sucursal
             if (filterSucursal.value && servicio.sucursal !== filterSucursal.value) {
                 return false;
             }
 
-            // Filtrar por servicio
             if (servicioSeleccionado && servicioSeleccionado !== 'todos' && servicio.servicio !== servicioSeleccionado) {
                 return false;
             }
 
-            // Filtrar por estado de pago
             if (estadoPago) {
                 const estadoPagoServicio = calcularEstadoPagoServicio(servicio);
                 if (estadoPagoServicio !== estadoPago) {
@@ -177,27 +158,22 @@ document.addEventListener('DOMContentLoaded', function() {
             return true;
         });
 
-        // Generar reportes según los tipos seleccionados
         generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin);
-
-        // Mostrar el modal con el reporte
         reportModal.style.display = 'block';
     });
 
-    // Cerrar el modal
     closeModalBtn.addEventListener('click', () => {
         reportModal.style.display = 'none';
-        reportContainer.innerHTML = ''; // Limpiar el contenedor del reporte
+        reportContainer.innerHTML = '';
     });
 
     window.addEventListener('click', (event) => {
         if (event.target === reportModal) {
             reportModal.style.display = 'none';
-            reportContainer.innerHTML = ''; // Limpiar el contenedor del reporte
+            reportContainer.innerHTML = '';
         }
     });
 
-    // Función para calcular el estado de pago del servicio
     function calcularEstadoPagoServicio(servicio) {
         if (servicio.historialPagos && servicio.historialPagos.length > 0) {
             const todosPagados = servicio.historialPagos.every(pago => pago.estadoPago === 'Pagado');
@@ -207,11 +183,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Función para generar los reportes
     function generarReportes(serviciosFiltrados, tiposReporteSeleccionados, fechaInicio, fechaFin) {
         reportContainer.innerHTML = "";
 
-        // Convertir los tipos de reporte seleccionados a texto para mostrar en el encabezado
         const tiposReporteTextos = tiposReporteSeleccionados.map(tipo => {
             switch (tipo) {
                 case 'detallado':
@@ -228,12 +202,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     return 'Estadísticas';
                 case 'todos':
                     return 'Todos';
+                case 'soloRecibos':
+                    return 'Solo Recibos';
+                case 'soloPagos':
+                    return 'Solo Pagos';
                 default:
                     return tipo;
             }
         }).join(', ');
 
-        // Crear encabezado del reporte
         const encabezado = document.createElement('div');
         encabezado.classList.add('report-header');
         encabezado.innerHTML = `
@@ -249,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         reportContainer.appendChild(encabezado);
 
-        // Generar reportes según cada tipo seleccionado
         tiposReporteSeleccionados.forEach(tipoReporte => {
             switch (tipoReporte) {
                 case 'detallado':
@@ -273,13 +249,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 case 'todos':
                     generarReporteTodos(serviciosFiltrados, fechaInicio, fechaFin);
                     break;
+                case 'soloRecibos':
+                    generarReporteSoloRecibos(serviciosFiltrados, fechaInicio, fechaFin);
+                    break;
+                case 'soloPagos':
+                    generarReporteSoloPagos(serviciosFiltrados, fechaInicio, fechaFin);
+                    break;
                 default:
                     break;
             }
         });
     }
 
-    // Función para generar reporte detallado por mes
     function generarReporteDetallado(servicios, fechaInicio, fechaFin) {
         const titleElement = document.createElement('h2');
         titleElement.innerText = 'Reporte Detallado por Mes';
@@ -289,7 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const servicioDiv = document.createElement('div');
             servicioDiv.classList.add('servicio-detalle');
 
-            // Incluir ubicación y proveedor en el título
             const servicioHeader = document.createElement('h3');
             servicioHeader.innerText = `${servicio.servicio} - ${servicio.sucursal} - Ubicación: ${servicio.ubicacion || 'Sin Ubicación'} - Proveedor: ${servicio.proveedorServicio}`;
             servicioDiv.appendChild(servicioHeader);
@@ -311,6 +291,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tbody = document.createElement('tbody');
 
+            let totalCantidadAPagar = 0;
+            let totalCantidadPagada = 0;
+
             meses.forEach(mes => {
                 const pagosDelMes = servicio.historialPagos ? servicio.historialPagos.filter(pago => {
                     const fechaPago = new Date(pago.fechaPago);
@@ -320,33 +303,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (pagosDelMes.length > 0) {
                     pagosDelMes.forEach(pago => {
                         const tr = document.createElement('tr');
+                        const cantidadAPagar = parseFloat(pago.cantidadAPagar).toFixed(2);
+                        totalCantidadAPagar += parseFloat(cantidadAPagar);
+
+                        let cantidadPagada = 0;
+                        let detallesPago = 'N/A';
+
+                        if (pago.estadoPago === 'Pagado') {
+                            if (pago.boletaPago && !isNaN(pago.boletaPago.cantidadPagada)) {
+                                // Pago con boleta (transferencia/deposito)
+                                cantidadPagada = parseFloat(pago.boletaPago.cantidadPagada);
+                                detallesPago = `
+                                    Banco: ${pago.boletaPago.banco}, 
+                                    Número Boleta: ${pago.boletaPago.numeroBoleta}, 
+                                    Fecha: ${new Date(pago.boletaPago.fecha).toLocaleDateString('es-ES')}, 
+                                    Tipo de Pago: ${pago.boletaPago.tipoPago}, 
+                                    Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}
+                                `;
+                            } else {
+                                // Pago en efectivo (Pagado sin boletaPago)
+                                cantidadPagada = parseFloat(cantidadAPagar);
+                                detallesPago = `Pago en efectivo, Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}`;
+                            }
+                            totalCantidadPagada += cantidadPagada;
+                        }
+
                         tr.innerHTML = `
                             <td>${mes}</td>
                             <td>${pago.numeroRecibo}</td>
-                            <td>Q. ${parseFloat(pago.cantidadAPagar).toFixed(2)}</td>
+                            <td>Q. ${cantidadAPagar}</td>
                             <td>${pago.estadoPago}</td>
-                            <td>${pago.estadoPago === 'Pagado' && pago.boletaPago ? `
-                                Banco: ${pago.boletaPago.banco}, 
-                                Número Boleta: ${pago.boletaPago.numeroBoleta}, 
-                                Fecha: ${new Date(pago.boletaPago.fecha).toLocaleDateString('es-ES')}, 
-                                Tipo de Pago: ${pago.boletaPago.tipoPago}, 
-                                Cantidad Pagada: Q. ${parseFloat(pago.boletaPago.cantidadPagada).toFixed(2)}
-                            ` : 'N/A'}</td>
+                            <td>${detallesPago}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 } else {
+                    // No tiene recibo en este mes
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${mes}</td>
-                        <td>No Registrado</td>
+                        <td>No Tiene Recibo. Por favor registrarlo.</td>
                         <td>N/A</td>
-                        <td>No Registrado</td>
+                        <td>Pendiente</td>
                         <td>N/A</td>
                     `;
                     tbody.appendChild(tr);
                 }
             });
+
+            const totalTr = document.createElement('tr');
+            totalTr.innerHTML = `
+                <td colspan="2"><strong>Total</strong></td>
+                <td><strong>Q. ${totalCantidadAPagar.toFixed(2)}</strong></td>
+                <td colspan="2"><strong>Total Pagado: Q. ${totalCantidadPagada.toFixed(2)}</strong></td>
+            `;
+            tbody.appendChild(totalTr);
 
             table.appendChild(tbody);
             servicioDiv.appendChild(table);
@@ -354,7 +365,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para generar reporte de servicios pagados
     function generarReportePagado(servicios, fechaInicio, fechaFin) {
         const serviciosPagados = servicios.filter(servicio => {
             const estadoPago = calcularEstadoPagoServicio(servicio);
@@ -364,7 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mostrarTablaServicios(serviciosPagados, 'Servicios Pagados', fechaInicio, fechaFin);
     }
 
-    // Función para generar reporte de servicios pendientes
     function generarReportePendiente(servicios, fechaInicio, fechaFin) {
         const serviciosPendientes = servicios.filter(servicio => {
             const estadoPago = calcularEstadoPagoServicio(servicio);
@@ -374,7 +383,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mostrarTablaServicios(serviciosPendientes, 'Servicios Pendientes', fechaInicio, fechaFin);
     }
 
-    // Función para generar reporte de servicios no pagados (sin historial de pagos)
     function generarReporteNoPagado(servicios, fechaInicio, fechaFin) {
         const serviciosNoPagados = servicios.filter(servicio => {
             return !servicio.historialPagos || servicio.historialPagos.length === 0;
@@ -383,7 +391,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mostrarTablaServicios(serviciosNoPagados, 'Servicios No Pagados', fechaInicio, fechaFin);
     }
 
-    // Función para generar reporte de recibos y pagos
     function generarReporteRecibos(servicios, fechaInicio, fechaFin) {
         const recibos = [];
 
@@ -410,9 +417,63 @@ document.addEventListener('DOMContentLoaded', function() {
         mostrarTablaRecibos(recibos, 'Recibos y Pagos', fechaInicio, fechaFin);
     }
 
-    // Función para generar reporte de estadísticas
+    function generarReporteSoloRecibos(servicios, fechaInicio, fechaFin) {
+        const recibos = [];
+
+        servicios.forEach(servicio => {
+            if (servicio.historialPagos && servicio.historialPagos.length > 0) {
+                servicio.historialPagos.forEach(pago => {
+                    const fechaPago = new Date(pago.fechaPago);
+                    if (fechaPago >= new Date(fechaInicio) && fechaPago <= new Date(fechaFin)) {
+                        recibos.push({
+                            servicio: servicio.servicio,
+                            sucursal: servicio.sucursal,
+                            proveedorServicio: servicio.proveedorServicio,
+                            numeroRecibo: pago.numeroRecibo,
+                            fechaPago: pago.fechaPago,
+                            cantidadAPagar: pago.cantidadAPagar,
+                            estadoPago: pago.estadoPago,
+                            boletaPago: pago.boletaPago || null
+                        });
+                    }
+                });
+            } else {
+                // Servicio sin recibos en el rango de fechas
+                // Opcionalmente podrías agregar una fila indicando que no tiene recibos,
+                // pero en el reporte de Solo Recibos, si no hay recibos, no se muestra nada.
+            }
+        });
+
+        mostrarTablaRecibos(recibos, 'Solo Recibos', fechaInicio, fechaFin);
+    }
+
+    function generarReporteSoloPagos(servicios, fechaInicio, fechaFin) {
+        const recibos = [];
+
+        servicios.forEach(servicio => {
+            if (servicio.historialPagos && servicio.historialPagos.length > 0) {
+                servicio.historialPagos.forEach(pago => {
+                    const fechaPago = new Date(pago.fechaPago);
+                    if (fechaPago >= new Date(fechaInicio) && fechaPago <= new Date(fechaFin) && pago.estadoPago === 'Pagado') {
+                        recibos.push({
+                            servicio: servicio.servicio,
+                            sucursal: servicio.sucursal,
+                            proveedorServicio: servicio.proveedorServicio,
+                            numeroRecibo: pago.numeroRecibo,
+                            fechaPago: pago.fechaPago,
+                            cantidadAPagar: pago.cantidadAPagar,
+                            estadoPago: pago.estadoPago,
+                            boletaPago: pago.boletaPago || null
+                        });
+                    }
+                });
+            }
+        });
+
+        mostrarTablaRecibos(recibos, 'Solo Pagos', fechaInicio, fechaFin);
+    }
+
     function generarReporteEstadisticas(servicios) {
-        // Filtrar los servicios que coinciden con el servicio seleccionado y sucursal (si aplica)
         const serviciosSeleccionados = servicios.filter(s => s.servicio === servicioSeleccionado && (!filterSucursal.value || s.sucursal === filterSucursal.value));
 
         if (serviciosSeleccionados.length === 0) {
@@ -424,7 +485,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Agrupar los servicios por "Ubicación"
         const serviciosPorUbicacion = {};
         serviciosSeleccionados.forEach(servicio => {
             const ubicacion = servicio.ubicacion || 'Sin Ubicación';
@@ -434,17 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
             serviciosPorUbicacion[ubicacion].push(servicio);
         });
 
-        // Array de meses en español
-        const meses = [
-            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-        ];
-
-        // Para cada ubicación, generar las estadísticas
         Object.keys(serviciosPorUbicacion).forEach(ubicacion => {
             const serviciosEnUbicacion = serviciosPorUbicacion[ubicacion];
 
-            // Combinar los pagos de todos los servicios en esta ubicación
             let historialPagos = [];
             serviciosEnUbicacion.forEach(servicio => {
                 if (servicio.historialPagos && servicio.historialPagos.length > 0) {
@@ -452,30 +504,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Obtener el consumo de los 12 meses
             const consumosPorMes = meses.map(mes => {
                 const pagosDelMes = historialPagos.filter(pago => {
                     return pago.mes === mes && pago.estadoPago === 'Pagado' && pago.boletaPago && !isNaN(pago.boletaPago.cantidadPagada);
                 });
 
-                // Sumar los consumos del mes
                 const totalMes = pagosDelMes.reduce((total, pago) => total + parseFloat(pago.boletaPago.cantidadPagada), 0);
-
                 return totalMes;
             });
 
-            // Verificar si hay datos para mostrar
             if (consumosPorMes.every(consumo => consumo === 0)) {
-                // No mostrar nada para esta ubicación si no hay datos
                 return;
             }
 
-            // Determinar si el consumo aumentó o disminuyó
             const consumoInicial = consumosPorMes[0];
             const consumoFinal = consumosPorMes[consumosPorMes.length - 1];
             const tendencia = consumoFinal > consumoInicial ? 'aumentado' : 'disminuido';
 
-            // Crear el contenedor para el reporte de esta ubicación
             const estadisticasDiv = document.createElement('div');
             estadisticasDiv.innerHTML = `
                 <h2>Estadísticas de Consumo Anual para ${servicioSeleccionado} - ${filterSucursal.value || 'Todas las Sucursales'} - Ubicación: ${ubicacion}</h2>
@@ -485,7 +530,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             reportContainer.appendChild(estadisticasDiv);
 
-            // Crear la gráfica
             const ctx = document.getElementById(`consumoChart_${ubicacion.replace(/\s+/g, '_')}`).getContext('2d');
             const consumoChart = new Chart(ctx, {
                 type: 'bar',
@@ -533,12 +577,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para generar reporte de todos los servicios
     function generarReporteTodos(servicios, fechaInicio, fechaFin) {
         mostrarTablaServicios(servicios, 'Todos los Servicios', fechaInicio, fechaFin);
     }
 
-    // Función para mostrar tabla de servicios
     function mostrarTablaServicios(servicios, titulo, fechaInicio, fechaFin) {
         const table = document.createElement('table');
         table.classList.add('report-table');
@@ -557,8 +599,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tbody = document.createElement('tbody');
 
+        let totalCantidadAPagar = 0;
+        let totalCantidadPagada = 0;
+
         servicios.forEach(servicio => {
             const estadoPago = calcularEstadoPagoServicio(servicio);
+
+            if (servicio.historialPagos && servicio.historialPagos.length > 0) {
+                servicio.historialPagos.forEach(pago => {
+                    const fechaPago = new Date(pago.fechaPago);
+                    if (fechaPago >= new Date(fechaInicio) && fechaPago <= new Date(fechaFin)) {
+                        totalCantidadAPagar += parseFloat(pago.cantidadAPagar);
+                        if (pago.estadoPago === 'Pagado') {
+                            if (pago.boletaPago && !isNaN(pago.boletaPago.cantidadPagada)) {
+                                totalCantidadPagada += parseFloat(pago.boletaPago.cantidadPagada);
+                            } else {
+                                // Pago en efectivo
+                                totalCantidadPagada += parseFloat(pago.cantidadAPagar);
+                            }
+                        }
+                    }
+                });
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${servicio.sucursal}</td>
@@ -570,6 +633,15 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             tbody.appendChild(tr);
         });
+
+        const totalTr = document.createElement('tr');
+        totalTr.innerHTML = `
+            <td colspan="2"><strong>Total</strong></td>
+            <td colspan="2"></td>
+            <td><strong>Cant. a Pagar:</strong></td>
+            <td>Q. ${totalCantidadAPagar.toFixed(2)} (Pagado: Q. ${totalCantidadPagada.toFixed(2)})</td>
+        `;
+        tbody.appendChild(totalTr);
 
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -588,7 +660,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Función para mostrar tabla de recibos
     function mostrarTablaRecibos(recibos, titulo, fechaInicio, fechaFin) {
         const table = document.createElement('table');
         table.classList.add('report-table');
@@ -609,7 +680,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tbody = document.createElement('tbody');
 
+        let totalCantidadAPagar = 0;
+        let totalCantidadPagada = 0;
+
+        if (recibos.length === 0) {
+            // Ningún recibo encontrado en el rango
+            // Podrías agregar aquí una fila indicando "No Tiene Recibo. Por favor registrarlo." si es necesario
+        }
+
         recibos.forEach(recibo => {
+            const cantidadAPagar = parseFloat(recibo.cantidadAPagar);
+            totalCantidadAPagar += cantidadAPagar;
+
+            let cantidadPagada = 0;
+            let detallesPago = 'N/A';
+
+            if (recibo.estadoPago === 'Pagado') {
+                if (recibo.boletaPago && !isNaN(recibo.boletaPago.cantidadPagada)) {
+                    cantidadPagada = parseFloat(recibo.boletaPago.cantidadPagada);
+                    detallesPago = `
+                        Banco: ${recibo.boletaPago.banco}, 
+                        Número Boleta: ${recibo.boletaPago.numeroBoleta}, 
+                        Fecha: ${new Date(recibo.boletaPago.fecha).toLocaleDateString('es-ES')}, 
+                        Tipo de Pago: ${recibo.boletaPago.tipoPago}, 
+                        Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}
+                    `;
+                } else {
+                    // Pago en efectivo
+                    cantidadPagada = cantidadAPagar;
+                    detallesPago = `Pago en efectivo, Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}`;
+                }
+                totalCantidadPagada += cantidadPagada;
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${recibo.sucursal}</td>
@@ -617,18 +720,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${recibo.proveedorServicio}</td>
                 <td>${recibo.numeroRecibo}</td>
                 <td>${new Date(recibo.fechaPago).toLocaleDateString('es-ES')}</td>
-                <td>Q. ${parseFloat(recibo.cantidadAPagar).toFixed(2)}</td>
+                <td>Q. ${cantidadAPagar.toFixed(2)}</td>
                 <td>${recibo.estadoPago}</td>
-                <td>${recibo.boletaPago ? `
-                    Banco: ${recibo.boletaPago.banco}, 
-                    Número Boleta: ${recibo.boletaPago.numeroBoleta}, 
-                    Fecha: ${new Date(recibo.boletaPago.fecha).toLocaleDateString('es-ES')}, 
-                    Tipo de Pago: ${recibo.boletaPago.tipoPago}, 
-                    Cantidad Pagada: Q. ${parseFloat(recibo.boletaPago.cantidadPagada).toFixed(2)}
-                ` : 'N/A'}</td>
+                <td>${detallesPago}</td>
             `;
             tbody.appendChild(tr);
         });
+
+        const totalTr = document.createElement('tr');
+        totalTr.innerHTML = `
+            <td colspan="5"><strong>Total</strong></td>
+            <td><strong>Q. ${totalCantidadAPagar.toFixed(2)}</strong></td>
+            <td colspan="1"></td>
+            <td><strong>Total Pagado: Q. ${totalCantidadPagada.toFixed(2)}</strong></td>
+        `;
+        tbody.appendChild(totalTr);
 
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -642,12 +748,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (recibos.length === 0) {
             const noDataMessage = document.createElement('p');
             noDataMessage.classList.add('no-data');
-            noDataMessage.innerText = 'No hay datos para mostrar.';
+            noDataMessage.innerText = 'No Tiene Recibo. Por favor registrarlo.';
             reportContainer.appendChild(noDataMessage);
         }
     }
 
-    // Manejar el botón de exportación
     exportBtn.addEventListener('click', () => {
         Swal.fire({
             title: 'Exportar Reporte',
@@ -680,20 +785,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Función para exportar el reporte a PDF
     function exportarAPDF() {
         const { jsPDF } = window.jspdf;
 
-        // Crear un nuevo documento PDF
         const doc = new jsPDF('p', 'pt', 'a4');
-
-        // Obtener el contenido del reporte
         const reportContent = reportContainer.cloneNode(true);
 
-        // Ajustar el estilo para el PDF
         reportContent.style.width = '595px';
 
-        // Convertir el contenido del reporte a PDF
         doc.html(reportContent, {
             callback: function(doc) {
                 doc.save('reporte.pdf');
@@ -701,15 +800,14 @@ document.addEventListener('DOMContentLoaded', function() {
             margin: [20, 20, 20, 20],
             autoPaging: 'text',
             html2canvas: {
-                scale: 0.57, // Ajustar el escalado para que quepa en la página
+                scale: 0.57,
             },
             x: 0,
             y: 0,
-            width: 595 // Ancho de la página A4 en puntos
+            width: 595
         });
     }
 
-    // Función para exportar el reporte a Imagen
     function exportarAImagen() {
         html2canvas(reportContainer).then(canvas => {
             const link = document.createElement('a');
@@ -719,9 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para exportar el reporte a Excel
     function exportarAExcel() {
-        /* Recolectar las tablas dentro del reportContainer */
         const tables = reportContainer.querySelectorAll('table');
 
         if (tables.length === 0) {
@@ -733,32 +829,24 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        /* Convertir cada tabla a hoja de Excel */
         const workbook = XLSX.utils.book_new();
-
-        let sheetIndex = 0;
 
         tables.forEach((table, index) => {
             const worksheet = XLSX.utils.table_to_sheet(table);
             const titleElement = table.previousElementSibling;
-
             let sheetName = `Sheet${index + 1}`;
 
             if (titleElement && (titleElement.tagName === 'H2' || titleElement.tagName === 'H3')) {
-                sheetName = titleElement.innerText.substring(0, 31); // Máximo 31 caracteres
+                sheetName = titleElement.innerText.substring(0, 31);
             }
 
             XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-            sheetIndex++;
         });
 
-        /* Exportar el libro de Excel */
         XLSX.writeFile(workbook, 'reporte.xlsx');
     }
 
-    // Función para manejar el botón "Volver a Servicios"
     backToServicesBtn.addEventListener('click', () => {
-        // Redirigir al usuario a la página servicios.html dentro de la carpeta servicios
         window.location.href = 'servicios/servicios.html';
     });
 });

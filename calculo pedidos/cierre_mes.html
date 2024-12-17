@@ -179,7 +179,7 @@
             color: #388e3c;
         }
 
-        /* Estilos para los Reportes por Empresa */
+        /* Estilos para los Reportes por Marca */
         .empresa-summary {
             background-color: #e8f5e9;
             padding: 15px;
@@ -242,6 +242,7 @@
                     <option value="santa elena">Santa Elena</option>
                     <option value="pinula">Pinula</option>
                     <option value="eskala">Eskala</option>
+                    <!-- Sucursales de AMERICAN EXPRESSO Eliminadas -->
                 </select>
             </div>
 
@@ -271,6 +272,7 @@
             { Empresa: "AMERICAN PIZZA", Sucursal: "santa elena", PizzaMensual: 5893, FingersMensual: 287 },
             { Empresa: "AMERICAN PIZZA", Sucursal: "pinula", PizzaMensual: 4639, FingersMensual: 379 },
             { Empresa: "AMERICAN PIZZA", Sucursal: "eskala", PizzaMensual: 2460, FingersMensual: 211 },
+            // Sucursales de AMERICAN EXPRESSO Eliminadas
         ];
 
         // Inicialización de datos desde localStorage
@@ -399,30 +401,30 @@
                 totalFingersSucursal += cajasPorSucursal[sucursal].fingers;
             });
 
-            // Calcular Resumen de Cajas por Empresa
-            const cajasPorEmpresa = {};
-            // Iterar sobre cada pedido filtrado y acumular por empresa usando el mapeo Sucursal -> Empresa
+            // Calcular Resumen de Cajas por Marca
+            const cajasPorMarca = {};
+            // Iterar sobre cada pedido filtrado y acumular por marca usando el campo 'Empresa' directamente
             pedidosFiltrados.forEach(pedido => {
-                const empresa = sucursalToEmpresaMap[pedido.Sucursal.toLowerCase()] || 'Desconocida';
-                if (!cajasPorEmpresa[empresa]) {
-                    cajasPorEmpresa[empresa] = { pizza: 0, fingers: 0 };
+                const marca = pedido.Empresa || 'Desconocida';
+                if (!cajasPorMarca[marca]) {
+                    cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
                 }
                 if (pedido.TipoCaja.toLowerCase() === 'pizza') {
-                    cajasPorEmpresa[empresa].pizza += pedido.Cantidad;
+                    cajasPorMarca[marca].pizza += pedido.Cantidad;
                 } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
-                    cajasPorEmpresa[empresa].fingers += pedido.Cantidad;
+                    cajasPorMarca[marca].fingers += pedido.Cantidad;
                 }
             });
 
-            // Calcular Totales de Pizza y Fingers para todas las Empresas
-            let totalPizzaEmpresa = 0;
-            let totalFingersEmpresa = 0;
-            Object.keys(cajasPorEmpresa).forEach(empresa => {
-                totalPizzaEmpresa += cajasPorEmpresa[empresa].pizza;
-                totalFingersEmpresa += cajasPorEmpresa[empresa].fingers;
+            // Calcular Totales de Pizza y Fingers para todas las Marcas
+            let totalPizzaMarca = 0;
+            let totalFingersMarca = 0;
+            Object.keys(cajasPorMarca).forEach(marca => {
+                totalPizzaMarca += cajasPorMarca[marca].pizza;
+                totalFingersMarca += cajasPorMarca[marca].fingers;
             });
 
-            // Generar el reporte por sucursal y empresa
+            // Generar el reporte por sucursal y marca
             let reporteHTML = '';
 
             // Añadir el Título Principal al inicio del reporte (dentro de reportContent)
@@ -478,36 +480,36 @@
                 </div>
             `;
 
-            // Añadir Resumen de Cajas por Empresa
+            // Añadir Resumen de Cajas por Marca
             reporteHTML += `
                 <div class="empresa-summary">
-                    <h3>Cajas Consumidas por Empresa</h3>
+                    <h3>Cajas Consumidas por Marca</h3>
                     <table>
                         <thead>
                             <tr>
-                                <th>Empresa</th>
+                                <th>Marca</th>
                                 <th>Pizza</th>
                                 <th>Fingers</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${Object.keys(cajasPorEmpresa).length > 0 ? Object.keys(cajasPorEmpresa).map(empresa => `
+                            ${Object.keys(cajasPorMarca).length > 0 ? Object.keys(cajasPorMarca).map(marca => `
                                 <tr>
-                                    <td>${empresa}</td>
-                                    <td>${cajasPorEmpresa[empresa].pizza}</td>
-                                    <td>${cajasPorEmpresa[empresa].fingers}</td>
+                                    <td>${marca}</td>
+                                    <td>${cajasPorMarca[marca].pizza}</td>
+                                    <td>${cajasPorMarca[marca].fingers}</td>
                                 </tr>
                             `).join('') : `
                                 <tr>
-                                    <td colspan="3" style="text-align: center;">No hay datos de empresas.</td>
+                                    <td colspan="3" style="text-align: center;">No hay datos de marcas.</td>
                                 </tr>
                             `}
                             <!-- Fila de Totales -->
-                            ${Object.keys(cajasPorEmpresa).length > 0 ? `
+                            ${Object.keys(cajasPorMarca).length > 0 ? `
                                 <tr>
                                     <td><strong>Total</strong></td>
-                                    <td><strong>${totalPizzaEmpresa}</strong></td>
-                                    <td><strong>${totalFingersEmpresa}</strong></td>
+                                    <td><strong>${totalPizzaMarca}</strong></td>
+                                    <td><strong>${totalFingersMarca}</strong></td>
                                 </tr>
                             ` : ''}
                         </tbody>
@@ -780,27 +782,27 @@
                 totalFingersSucursal += cajasPorSucursal[sucursal].fingers;
             });
 
-            // Calcular Resumen de Cajas por Empresa
-            const cajasPorEmpresa = {};
-            // Iterar sobre cada pedido filtrado y acumular por empresa usando el mapeo Sucursal -> Empresa
+            // Calcular Resumen de Cajas por Marca
+            const cajasPorMarca = {};
+            // Iterar sobre cada pedido filtrado y acumular por marca usando el campo 'Empresa' directamente
             pedidosFiltrados.forEach(pedido => {
-                const empresa = sucursalToEmpresaMap[pedido.Sucursal.toLowerCase()] || 'Desconocida';
-                if (!cajasPorEmpresa[empresa]) {
-                    cajasPorEmpresa[empresa] = { pizza: 0, fingers: 0 };
+                const marca = pedido.Empresa || 'Desconocida';
+                if (!cajasPorMarca[marca]) {
+                    cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
                 }
                 if (pedido.TipoCaja.toLowerCase() === 'pizza') {
-                    cajasPorEmpresa[empresa].pizza += pedido.Cantidad;
+                    cajasPorMarca[marca].pizza += pedido.Cantidad;
                 } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
-                    cajasPorEmpresa[empresa].fingers += pedido.Cantidad;
+                    cajasPorMarca[marca].fingers += pedido.Cantidad;
                 }
             });
 
-            // Calcular Totales de Pizza y Fingers para todas las Empresas
-            let totalPizzaEmpresa = 0;
-            let totalFingersEmpresa = 0;
-            Object.keys(cajasPorEmpresa).forEach(empresa => {
-                totalPizzaEmpresa += cajasPorEmpresa[empresa].pizza;
-                totalFingersEmpresa += cajasPorEmpresa[empresa].fingers;
+            // Calcular Totales de Pizza y Fingers para todas las Marcas
+            let totalPizzaMarca = 0;
+            let totalFingersMarca = 0;
+            Object.keys(cajasPorMarca).forEach(marca => {
+                totalPizzaMarca += cajasPorMarca[marca].pizza;
+                totalFingersMarca += cajasPorMarca[marca].fingers;
             });
 
             let csvContent = "data:text/csv;charset=utf-8,";
@@ -827,17 +829,17 @@
             }
             csvContent += `\n`;
 
-            // Añadir Resumen de Cajas por Empresa al CSV
-            csvContent += `Cajas Consumidas por Empresa,,,\n`;
-            csvContent += `Empresa,Pizza,Fingers\n`;
-            if (Object.keys(cajasPorEmpresa).length > 0) {
-                Object.keys(cajasPorEmpresa).forEach(empresa => {
-                    csvContent += `${empresa},${cajasPorEmpresa[empresa].pizza},${cajasPorEmpresa[empresa].fingers}\n`;
+            // Añadir Resumen de Cajas por Marca al CSV
+            csvContent += `Cajas Consumidas por Marca,,,\n`;
+            csvContent += `Marca,Pizza,Fingers\n`;
+            if (Object.keys(cajasPorMarca).length > 0) {
+                Object.keys(cajasPorMarca).forEach(marca => {
+                    csvContent += `${marca},${cajasPorMarca[marca].pizza},${cajasPorMarca[marca].fingers}\n`;
                 });
                 // Añadir fila de Totales
-                csvContent += `Total,${totalPizzaEmpresa},${totalFingersEmpresa}\n`;
+                csvContent += `Total,${totalPizzaMarca},${totalFingersMarca}\n`;
             } else {
-                csvContent += `No hay datos de empresas.\n`;
+                csvContent += `No hay datos de marcas.\n`;
             }
             csvContent += `\n`;
 
@@ -867,10 +869,10 @@
 
             // Encabezado del reporte por sucursal
             csvContent += `Reporte por Sucursal,,,\n`;
-            csvContent += `Sucursal,Empresa,ID Pedido,Tipo de Caja,Fecha Pedido,Cantidad,Precio Unitario (Q),Precio Total (Q),ID Pago,Fecha Pago,Número de Boleta,Total Boleta (Q)\n`;
+            csvContent += `Sucursal,Marca,ID Pedido,Tipo de Caja,Fecha Pedido,Cantidad,Precio Unitario (Q),Precio Total (Q),ID Pago,Fecha Pago,Número de Boleta,Total Boleta (Q)\n`;
 
             sucursalesReport.forEach(sucursal => {
-                const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
+                const marca = sucursalToEmpresaMap[sucursal] || 'Desconocida';
 
                 // Filtrar pedidos y pagos para esta sucursal
                 const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);

@@ -318,6 +318,7 @@
             <button class="sucursal-btn" onclick="filtrarPorSucursal('santa elena', this)">Santa Elena</button>
             <button class="sucursal-btn" onclick="filtrarPorSucursal('pinula', this)">Pinula</button>
             <button class="sucursal-btn" onclick="filtrarPorSucursal('eskala', this)">Eskala</button>
+            <!-- Sucursales de AMERICAN EXPRESSO Eliminadas -->
         </div>
 
         <!-- Controles Globales -->
@@ -456,11 +457,30 @@
                 <span class="close" onclick="cerrarModalPedido()">&times;</span>
                 <h2 id="modalTitlePedido">Agregar Pedido</h2>
                 <form id="pedidoForm">
+                    <label for="empresaPedido">Empresa:</label>
+                    <select id="empresaPedido" required>
+                        <option value="">Selecciona una Empresa</option>
+                        <option value="VIPIZZA">VIPIZZA</option>
+                        <option value="AMERICAN PIZZA">AMERICAN PIZZA</option>
+                        <option value="AMERICAN EXPRESSO">AMERICAN EXPRESSO</option>
+                    </select>
+
                     <label for="tipoCajaPedido">Tipo de Caja:</label>
                     <select id="tipoCajaPedido" required>
                         <option value="">Selecciona un tipo</option>
-                        <option value="Pizza">Pizza</option>
-                        <option value="Fingers">Fingers</option>
+                        <!-- Las opciones se llenarán dinámicamente según la Empresa seleccionada -->
+                    </select>
+
+                    <label for="sucursalPedido">Sucursal:</label>
+                    <select id="sucursalPedido" required>
+                        <option value="">Selecciona una Sucursal</option>
+                        <option value="jalapa">Jalapa</option>
+                        <option value="poptun">Poptún</option>
+                        <option value="zacapa">Zacapa</option>
+                        <option value="santa elena">Santa Elena</option>
+                        <option value="pinula">Pinula</option>
+                        <option value="eskala">Eskala</option>
+                        <!-- Sucursales de AMERICAN EXPRESSO Eliminadas -->
                     </select>
 
                     <label for="fechaPedido">Fecha:</label>
@@ -515,6 +535,8 @@
                 { Empresa: "AMERICAN PIZZA", Sucursal: "santa elena", PizzaMensual: 5893, FingersMensual: 287 },
                 { Empresa: "AMERICAN PIZZA", Sucursal: "pinula", PizzaMensual: 4639, FingersMensual: 379 },
                 { Empresa: "AMERICAN PIZZA", Sucursal: "eskala", PizzaMensual: 2460, FingersMensual: 211 },
+                { Empresa: "AMERICAN EXPRESSO", Sucursal: "expresso1", PizzaMensual: 3000, FingersMensual: 400 }, // Eliminado
+                { Empresa: "AMERICAN EXPRESSO", Sucursal: "expresso2", PizzaMensual: 3200, FingersMensual: 450 }, // Eliminado
             ];
 
             // Inicialización de datos
@@ -532,6 +554,7 @@
                     { id: 2, Empresa: "VIPIZZA", Sucursal: "poptun", TipoCaja: "Fingers", Fecha: "2024-01-15", Cantidad: 30, PrecioUnitario: 5.00, PrecioTotal: 150.00, CantidadPagada: 0 },
                     { id: 3, Empresa: "AMERICAN PIZZA", Sucursal: "santa elena", TipoCaja: "Pizza", Fecha: "2024-02-05", Cantidad: 60, PrecioUnitario: 12.00, PrecioTotal: 720.00, CantidadPagada: 0 },
                     { id: 4, Empresa: "AMERICAN PIZZA", Sucursal: "pinula", TipoCaja: "Fingers", Fecha: "2024-02-20", Cantidad: 40, PrecioUnitario: 6.00, PrecioTotal: 240.00, CantidadPagada: 0 },
+                    // Pedidos de AMERICAN EXPRESSO Eliminados
                 ];
                 pedidos = datosIniciales;
                 lastIdPedidos = 4;
@@ -556,7 +579,9 @@
             const pagoForm = document.getElementById('pagoForm');
 
             // Pedidos
+            const empresaSelectPedido = document.getElementById('empresaPedido');
             const tipoCajaSelectPedido = document.getElementById('tipoCajaPedido');
+            const sucursalSelectPedido = document.getElementById('sucursalPedido');
             const fechaPedidoInput = document.getElementById('fechaPedido');
             const cantidadInputPedido = document.getElementById('cantidadPedido');
             const precioUnitarioInputPedido = document.getElementById('precioUnitarioPedido');
@@ -593,6 +618,27 @@
             const totalPendienteEl = document.getElementById('totalPendiente');
             const saldoEl = document.getElementById('saldo'); // Nuevo elemento para Saldo
 
+            // Opciones de Tipo de Caja por Empresa
+            const tipoCajaOpciones = {
+                "VIPIZZA": ["Pizza", "Fingers"],
+                "AMERICAN PIZZA": ["Pizza", "Fingers"],
+                "AMERICAN EXPRESSO": ["Pizza", "Fingers"]
+            };
+
+            // Actualizar opciones de Tipo de Caja según la Empresa seleccionada
+            empresaSelectPedido.addEventListener('change', function() {
+                const empresaSeleccionada = empresaSelectPedido.value;
+                tipoCajaSelectPedido.innerHTML = '<option value="">Selecciona un tipo</option>';
+                if (tipoCajaOpciones[empresaSeleccionada]) {
+                    tipoCajaOpciones[empresaSeleccionada].forEach(tipo => {
+                        const option = document.createElement('option');
+                        option.value = tipo;
+                        option.textContent = tipo;
+                        tipoCajaSelectPedido.appendChild(option);
+                    });
+                }
+            });
+
             // Funciones para el Modal de Pedido
             function abrirModalPedido() {
                 if (!selectedSucursal || selectedSucursal === '') {
@@ -606,6 +652,7 @@
                 pedidoForm.reset();
                 precioTotalInputPedido.value = '';
                 modalTitlePedido.textContent = "Agregar Pedido";
+                tipoCajaSelectPedido.innerHTML = '<option value="">Selecciona un tipo</option>'; // Resetear Tipo de Caja
                 pedidoModal.style.display = "block";
             }
 
@@ -670,13 +717,15 @@
             // Manejar el envío del formulario para agregar/editar Pedido
             pedidoForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                const empresa = empresaSelectPedido.value;
                 const tipoCaja = tipoCajaSelectPedido.value;
+                const sucursal = sucursalSelectPedido.value;
                 const fecha = fechaPedidoInput.value;
                 const cantidad = parseInt(cantidadInputPedido.value) || 0;
                 const precioUnitario = parseFloat(precioUnitarioInputPedido.value) || 0;
                 const precioTotal = parseFloat(precioTotalInputPedido.value) || 0;
 
-                if (!tipoCaja || !fecha || cantidad <= 0 || precioUnitario <= 0) {
+                if (!empresa || !tipoCaja || !sucursal || !fecha || cantidad <= 0 || precioUnitario <= 0) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -691,7 +740,9 @@
                     const pedidoId = parseInt(pedidoForm.dataset.pedidoId);
                     const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
                     if (pedidoIndex !== -1) {
+                        pedidos[pedidoIndex].Empresa = empresa;
                         pedidos[pedidoIndex].TipoCaja = tipoCaja;
+                        pedidos[pedidoIndex].Sucursal = sucursal;
                         pedidos[pedidoIndex].Fecha = fecha;
                         pedidos[pedidoIndex].Cantidad = cantidad;
                         pedidos[pedidoIndex].PrecioUnitario = precioUnitario;
@@ -708,8 +759,8 @@
                     lastIdPedidos += 1;
                     const nuevoPedido = {
                         id: lastIdPedidos,
-                        Empresa: obtenerEmpresaPorSucursal(selectedSucursal),
-                        Sucursal: selectedSucursal,
+                        Empresa: empresa,
+                        Sucursal: sucursal,
                         TipoCaja: tipoCaja,
                         Fecha: fecha,
                         Cantidad: cantidad,
@@ -754,46 +805,12 @@
                     return;
                 }
 
-                // Calcular el total de pedidos en el mes seleccionado
-                const [year, month] = mesPago.split('-').map(num => parseInt(num));
-                const pedidosMes = pedidos.filter(pedido => {
-                    const pedidoDate = new Date(pedido.Fecha);
-                    return pedidoDate.getFullYear() === year && (pedidoDate.getMonth() + 1) === month;
-                });
-
-                const totalPedidosMes = parseFloat(
-                    pedidosMes.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0).toFixed(2)
-                );
-                const totalPagadoMes = parseFloat(
-                    pagos
-                        .filter(pago => pago.mes === mesPago)
-                        .reduce((sum, pago) => sum + pago.precioTotalPagado, 0)
-                        .toFixed(2)
-                );
-
-                let pendienteMes = parseFloat((totalPedidosMes - totalPagadoMes).toFixed(2));
-                pendienteMes = pendienteMes > 0 ? pendienteMes : 0;
-
-                // Definir un pequeño margen de error para la comparación
-                const epsilon = 0.01; // Puedes ajustar este valor según tus necesidades
-
-                if (precioTotalPagado > (pendienteMes + epsilon)) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: `El monto pagado excede el pendiente del Mes Seleccionado (Q${pendienteMes.toFixed(2)}).`,
-                    });
-                    return;
-                }
-
                 // Determinar si se está editando o agregando un pago
                 const isEditing = modalTitlePago.textContent === "Editar Pago";
                 if (isEditing) {
                     const pagoId = parseInt(pagoForm.dataset.pagoId);
                     const pagoIndex = pagos.findIndex(p => p.id === pagoId);
                     if (pagoIndex !== -1) {
-                        // Restaurar el monto anterior al total pagado del mes
-                        const montoAnterior = pagos[pagoIndex].precioTotalPagado;
                         pagos[pagoIndex].precioTotalPagado = precioTotalPagado;
                         pagos[pagoIndex].fechaPago = fechaPago;
                         pagos[pagoIndex].boletaPago = boletaPago;
@@ -836,12 +853,6 @@
                 cerrarModalPago();
             });
 
-            // Obtener la Empresa basada en la Sucursal seleccionada
-            function obtenerEmpresaPorSucursal(sucursal) {
-                const sucursalData = data.find(item => item.Sucursal.toLowerCase() === sucursal.toLowerCase());
-                return sucursalData ? sucursalData.Empresa : 'Desconocida';
-            }
-
             // Mostrar los pedidos en la tabla y actualizar el resumen
             function mostrarPedidos(sucursalFiltrada) {
                 let pedidosFiltrados = [...pedidos];
@@ -853,10 +864,10 @@
 
                 // Filtrar por Mes
                 if (selectedMes !== '') {
-                    const [year, month] = selectedMes.split('-');
+                    const [year, month] = selectedMes.split('-').map(num => parseInt(num));
                     pedidosFiltrados = pedidosFiltrados.filter(pedido => {
                         const pedidoDate = new Date(pedido.Fecha);
-                        return pedidoDate.getFullYear() === parseInt(year) && (pedidoDate.getMonth() + 1) === parseInt(month);
+                        return pedidoDate.getFullYear() === year && (pedidoDate.getMonth() + 1) === month;
                     });
                 }
 
@@ -946,8 +957,6 @@
                 totalPizzaPedidosEl.textContent = totalPizza;
                 totalFingersPedidosEl.textContent = totalFingers;
                 totalPrecioPedidosEl.textContent = `Q${totalPrecio.toFixed(2)}`;
-
-                // No es necesario actualizar el select de pedidos en el modal de pago
             }
 
             // Mostrar los pagos en la tabla y actualizar el resumen
@@ -1056,13 +1065,15 @@
                 // Actualizar el resumen en el DOM
                 totalPagadoEl.textContent = `Q${totalPagado.toFixed(2)}`;
                 totalPendienteEl.textContent = `Q${totalPendiente.toFixed(2)}`;
-                saldoEl.textContent = saldo > 0 ? `Q${saldo.toFixed(2)}` : `Q0.00`;
+                saldoEl.textContent = saldo > 0 ? `Q${saldo.toFixed(2)}` : `Q${Math.abs(saldo).toFixed(2)}`;
 
                 // Aplicar estilos al saldo
                 if (saldo > 0) {
                     saldoEl.style.color = 'green';
-                } else {
+                } else if (saldo < 0) {
                     saldoEl.style.color = 'red';
+                } else {
+                    saldoEl.style.color = '#004d40'; // Color por defecto
                 }
 
                 // Aplicar estilos al total pendiente
@@ -1117,7 +1128,12 @@
                 const pedido = pedidos.find(p => p.id === id);
                 if (pedido) {
                     modalTitlePedido.textContent = "Editar Pedido";
+                    empresaSelectPedido.value = pedido.Empresa;
+                    // Disparar el evento para actualizar las opciones de Tipo de Caja
+                    const event = new Event('change');
+                    empresaSelectPedido.dispatchEvent(event);
                     tipoCajaSelectPedido.value = pedido.TipoCaja;
+                    sucursalSelectPedido.value = pedido.Sucursal;
                     fechaPedidoInput.value = pedido.Fecha;
                     cantidadInputPedido.value = pedido.Cantidad;
                     precioUnitarioInputPedido.value = pedido.PrecioUnitario;
@@ -1141,10 +1157,10 @@
                     if (result.isConfirmed) {
                         // Obtener el pedido a eliminar
                         const pedido = pedidos.find(p => p.id === id);
-                        const sucursalPedido = pedido ? pedido.Sucursal.toLowerCase() : '';
+                        const mesPedido = pedido ? getMesDePedido(pedido) : '';
 
                         // Eliminar los pagos asociados a este mes del pedido
-                        pagos = pagos.filter(pago => pago.mes !== getMesDePedido(pedido));
+                        pagos = pagos.filter(pago => pago.mes !== mesPedido);
 
                         // Eliminar el pedido
                         pedidos = pedidos.filter(p => p.id !== id);
@@ -1200,10 +1216,6 @@
                     confirmButtonText: 'Sí, eliminar!'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Obtener el pago a eliminar
-                        const pago = pagos.find(p => p.id === id);
-                        const mesPago = pago ? pago.mes : '';
-
                         // Eliminar el pago
                         pagos = pagos.filter(p => p.id !== id);
                         localStorage.setItem('pagos', JSON.stringify(pagos));

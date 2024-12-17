@@ -478,6 +478,16 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                     });
                     return;
                 }
+
+                if (!selectedMes) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Selecciona un Mes Inicial antes de agregar una Factura.',
+                    });
+                    return;
+                }
+
                 facturaForm.reset();
                 delete facturaForm.dataset.facturaId;
                 modalTitleFactura.textContent = "Agregar Factura";
@@ -531,7 +541,7 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
 
                 if (cadena !== '') {
                     // Usar cadena de datos
-                    const campos = cadena.split(',').map(c => c.trim());
+                    const campos = cadena.replace(/\r?\n|\r/g, '').split(',').map(c => c.trim());
                     if (campos.length !== 4) {
                         Swal.fire({
                             icon: 'error',
@@ -541,19 +551,41 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                         return;
                     }
 
-                    fecha = campos[0];
+                    let fechaCadena = campos[0];
                     proveedor = campos[1];
                     noFact = campos[2];
                     const totalCadena = parseFloat(campos[3]) || 0;
 
-                    if (!fecha || !proveedor || !noFact || isNaN(totalCadena) || totalCadena <= 0) {
+                    // Validar fecha y convertirla a YYYY-MM-DD
+                    const fechaParts = fechaCadena.split('-');
+                    if (fechaParts.length !== 3) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Cadena de datos inválida. Verifica el formato y los valores.',
+                            text: 'La fecha en la cadena de datos debe ser YYYY-MM-DD.',
                         });
                         return;
                     }
+                    const year = parseInt(fechaParts[0]);
+                    const month = parseInt(fechaParts[1]);
+                    const day = parseInt(fechaParts[2]);
+                    const testDate = new Date(year, month - 1, day);
+
+                    if (isNaN(testDate.getTime()) || !proveedor || !noFact || totalCadena <= 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Cadena de datos inválida. Verifica la fecha y los valores.',
+                        });
+                        return;
+                    }
+
+                    // Normalizar fecha a YYYY-MM-DD
+                    // *** MODIFICACIÓN PRINCIPAL ***
+                    // Asociar la fecha al mes seleccionado
+                    const [selectedYear, selectedMonth] = selectedMes.split('-').map(num => parseInt(num));
+                    const normalizedFecha = `${selectedYear.toString().padStart(4,'0')}-${selectedMonth.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`;
+                    fecha = normalizedFecha;
                     total = totalCadena;
                 } else {
                     // Usar campos manuales
@@ -565,6 +597,25 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                         });
                         return;
                     }
+                    // Normalizar fecha en caso manual (ya viene en YYYY-MM-DD)
+                    const fParts = fecha.split('-');
+                    if (fParts.length === 3) {
+                        const fy = parseInt(fParts[0]);
+                        const fm = parseInt(fParts[1]);
+                        const fd = parseInt(fParts[2]);
+                        const normalized = `${fy.toString().padStart(4,'0')}-${fm.toString().padStart(2,'0')}-${fd.toString().padStart(2,'0')}`;
+                        fecha = normalized;
+                    }
+                }
+
+                // Asegurar que la fecha pertenece al mes seleccionado
+                if (selectedMes && fecha.substr(0,7) !== selectedMes) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'La fecha de la factura no coincide con el mes seleccionado.',
+                    });
+                    return;
                 }
 
                 const isEditing = modalTitleFactura.textContent === "Editar Factura";
@@ -625,10 +676,9 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
 
                 const [year, month] = selectedMes.split('-').map(num => parseInt(num));
                 const facturasMes = facturas.filter(f => {
-                    const fDate = new Date(f.Fecha);
                     return f.Sucursal.toLowerCase() === selectedSucursal.toLowerCase() &&
-                           fDate.getFullYear() === year &&
-                           (fDate.getMonth() + 1) === month;
+                           parseInt(f.Fecha.substr(0,4)) === year &&
+                           parseInt(f.Fecha.substr(5,2)) === month;
                 });
 
                 const totalFacturasMes = facturasMes.reduce((sum, f) => sum + f.Total, 0);
@@ -707,11 +757,7 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 }
 
                 if (selectedMes) {
-                    const [year, month] = selectedMes.split('-');
-                    filtradas = filtradas.filter(f => {
-                        const fDate = new Date(f.Fecha);
-                        return fDate.getFullYear() === parseInt(year) && (fDate.getMonth() + 1) === parseInt(month);
-                    });
+                    filtradas = filtradas.filter(f => f.Fecha.substr(0,7) === selectedMes);
                 }
 
                 const fechaDesde = document.getElementById('filterFechaDesdeFacturas').value;
@@ -720,10 +766,10 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 const sort = document.getElementById('sortOrderFacturas').value;
 
                 if (fechaDesde) {
-                    filtradas = filtradas.filter(f => f.Fecha >= fechaDesde);
+                    filtradas = filtradas.filter(f => new Date(f.Fecha) >= new Date(fechaDesde));
                 }
                 if (fechaHasta) {
-                    filtradas = filtradas.filter(f => f.Fecha <= fechaHasta);
+                    filtradas = filtradas.filter(f => new Date(f.Fecha) <= new Date(fechaHasta));
                 }
                 if (searchTerm) {
                     filtradas = filtradas.filter(f =>
@@ -786,10 +832,10 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 const sort = document.getElementById('sortOrderPagos').value;
 
                 if (fechaDesde) {
-                    pagosFiltrados = pagosFiltrados.filter(pg => pg.fechaPago >= fechaDesde);
+                    pagosFiltrados = pagosFiltrados.filter(pg => new Date(pg.fechaPago) >= new Date(fechaDesde));
                 }
                 if (fechaHasta) {
-                    pagosFiltrados = pagosFiltrados.filter(pg => pg.fechaPago <= fechaHasta);
+                    pagosFiltrados = pagosFiltrados.filter(pg => new Date(pg.fechaPago) <= new Date(fechaHasta));
                 }
                 if (searchTerm) {
                     pagosFiltrados = pagosFiltrados.filter(pg =>
@@ -832,10 +878,9 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 if (selectedMes) {
                     const [year, month] = selectedMes.split('-').map(num => parseInt(num));
                     const facturasMes = facturas.filter(f => {
-                        const fDate = new Date(f.Fecha);
                         return f.Sucursal.toLowerCase() === selectedSucursal.toLowerCase() &&
-                               fDate.getFullYear() === year &&
-                               (fDate.getMonth() + 1) === month;
+                               parseInt(f.Fecha.substr(0,4)) === year &&
+                               parseInt(f.Fecha.substr(5,2)) === month;
                     });
                     totalFacturasMes = facturasMes.reduce((sum, f) => sum + f.Total, 0);
                 }
@@ -897,8 +942,7 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
 
             function getMesDeFactura(factura) {
                 if (!factura || !factura.Fecha) return '';
-                const [year, month] = factura.Fecha.split('-');
-                return `${year}-${month}`;
+                return factura.Fecha.substr(0,7); // YYYY-MM
             }
 
             function editarPago(id) {
