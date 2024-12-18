@@ -311,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         if (pago.estadoPago === 'Pagado') {
                             if (pago.boletaPago && !isNaN(pago.boletaPago.cantidadPagada)) {
-                                // Pago con boleta (transferencia/deposito)
                                 cantidadPagada = parseFloat(pago.boletaPago.cantidadPagada);
                                 detallesPago = `
                                     Banco: ${pago.boletaPago.banco}, 
@@ -321,7 +320,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}
                                 `;
                             } else {
-                                // Pago en efectivo (Pagado sin boletaPago)
                                 cantidadPagada = parseFloat(cantidadAPagar);
                                 detallesPago = `Pago en efectivo, Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}`;
                             }
@@ -338,11 +336,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         tbody.appendChild(tr);
                     });
                 } else {
-                    // No tiene recibo en este mes
+                    // No tiene recibo ni pago en este mes
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${mes}</td>
-                        <td>No Tiene Recibo. Por favor registrarlo.</td>
+                        <td>No tiene recibo ni pago</td>
                         <td>N/A</td>
                         <td>Pendiente</td>
                         <td>N/A</td>
@@ -393,8 +391,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function generarReporteRecibos(servicios, fechaInicio, fechaFin) {
         const recibos = [];
+        const servicioKeys = new Set();
 
         servicios.forEach(servicio => {
+            let tieneRecibos = false;
             if (servicio.historialPagos && servicio.historialPagos.length > 0) {
                 servicio.historialPagos.forEach(pago => {
                     const fechaPago = new Date(pago.fechaPago);
@@ -409,18 +409,33 @@ document.addEventListener('DOMContentLoaded', function() {
                             estadoPago: pago.estadoPago,
                             boletaPago: pago.boletaPago || null
                         });
+                        tieneRecibos = true;
                     }
+                });
+            }
+            // Si no tiene recibos en el rango, igualmente agregamos una fila con N/A
+            if (!tieneRecibos) {
+                recibos.push({
+                    servicio: servicio.servicio,
+                    sucursal: servicio.sucursal,
+                    proveedorServicio: servicio.proveedorServicio,
+                    numeroRecibo: 'N/A',
+                    fechaPago: null,
+                    cantidadAPagar: null,
+                    estadoPago: 'N/A',
+                    boletaPago: null
                 });
             }
         });
 
-        mostrarTablaRecibos(recibos, 'Recibos y Pagos', fechaInicio, fechaFin);
+        mostrarTablaRecibos(recibos, 'Recibos y Pagos', fechaInicio, fechaFin, servicios);
     }
 
     function generarReporteSoloRecibos(servicios, fechaInicio, fechaFin) {
         const recibos = [];
 
         servicios.forEach(servicio => {
+            let tieneRecibos = false;
             if (servicio.historialPagos && servicio.historialPagos.length > 0) {
                 servicio.historialPagos.forEach(pago => {
                     const fechaPago = new Date(pago.fechaPago);
@@ -435,22 +450,32 @@ document.addEventListener('DOMContentLoaded', function() {
                             estadoPago: pago.estadoPago,
                             boletaPago: pago.boletaPago || null
                         });
+                        tieneRecibos = true;
                     }
                 });
-            } else {
-                // Servicio sin recibos en el rango de fechas
-                // Opcionalmente podrías agregar una fila indicando que no tiene recibos,
-                // pero en el reporte de Solo Recibos, si no hay recibos, no se muestra nada.
+            }
+            if (!tieneRecibos) {
+                recibos.push({
+                    servicio: servicio.servicio,
+                    sucursal: servicio.sucursal,
+                    proveedorServicio: servicio.proveedorServicio,
+                    numeroRecibo: 'N/A',
+                    fechaPago: null,
+                    cantidadAPagar: null,
+                    estadoPago: 'N/A',
+                    boletaPago: null
+                });
             }
         });
 
-        mostrarTablaRecibos(recibos, 'Solo Recibos', fechaInicio, fechaFin);
+        mostrarTablaRecibos(recibos, 'Solo Recibos', fechaInicio, fechaFin, servicios);
     }
 
     function generarReporteSoloPagos(servicios, fechaInicio, fechaFin) {
         const recibos = [];
 
         servicios.forEach(servicio => {
+            let tieneRecibos = false;
             if (servicio.historialPagos && servicio.historialPagos.length > 0) {
                 servicio.historialPagos.forEach(pago => {
                     const fechaPago = new Date(pago.fechaPago);
@@ -465,12 +490,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             estadoPago: pago.estadoPago,
                             boletaPago: pago.boletaPago || null
                         });
+                        tieneRecibos = true;
                     }
+                });
+            }
+            if (!tieneRecibos) {
+                recibos.push({
+                    servicio: servicio.servicio,
+                    sucursal: servicio.sucursal,
+                    proveedorServicio: servicio.proveedorServicio,
+                    numeroRecibo: 'N/A',
+                    fechaPago: null,
+                    cantidadAPagar: null,
+                    estadoPago: 'N/A',
+                    boletaPago: null
                 });
             }
         });
 
-        mostrarTablaRecibos(recibos, 'Solo Pagos', fechaInicio, fechaFin);
+        mostrarTablaRecibos(recibos, 'Solo Pagos', fechaInicio, fechaFin, servicios);
     }
 
     function generarReporteEstadisticas(servicios) {
@@ -655,12 +693,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (servicios.length === 0) {
             const noDataMessage = document.createElement('p');
             noDataMessage.classList.add('no-data');
-            noDataMessage.innerText = 'No hay datos para mostrar.';
+            noDataMessage.innerText = 'No tiene recibo ni pago';
             reportContainer.appendChild(noDataMessage);
         }
     }
 
-    function mostrarTablaRecibos(recibos, titulo, fechaInicio, fechaFin) {
+    function mostrarTablaRecibos(recibos, titulo, fechaInicio, fechaFin, servicios) {
         const table = document.createElement('table');
         table.classList.add('report-table');
 
@@ -683,48 +721,60 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalCantidadAPagar = 0;
         let totalCantidadPagada = 0;
 
-        if (recibos.length === 0) {
-            // Ningún recibo encontrado en el rango
-            // Podrías agregar aquí una fila indicando "No Tiene Recibo. Por favor registrarlo." si es necesario
-        }
-
         recibos.forEach(recibo => {
-            const cantidadAPagar = parseFloat(recibo.cantidadAPagar);
-            totalCantidadAPagar += cantidadAPagar;
+            // Si númeroRecibo es 'N/A', significa que no tiene recibos ni pagos
+            // pero mostramos sucursal, servicio, proveedor
+            if (recibo.numeroRecibo === 'N/A') {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${recibo.sucursal}</td>
+                    <td>${recibo.servicio}</td>
+                    <td>${recibo.proveedorServicio}</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                `;
+                tbody.appendChild(tr);
+            } else {
+                const cantidadAPagar = parseFloat(recibo.cantidadAPagar);
+                totalCantidadAPagar += cantidadAPagar;
 
-            let cantidadPagada = 0;
-            let detallesPago = 'N/A';
+                let cantidadPagada = 0;
+                let detallesPago = 'N/A';
 
-            if (recibo.estadoPago === 'Pagado') {
-                if (recibo.boletaPago && !isNaN(recibo.boletaPago.cantidadPagada)) {
-                    cantidadPagada = parseFloat(recibo.boletaPago.cantidadPagada);
-                    detallesPago = `
-                        Banco: ${recibo.boletaPago.banco}, 
-                        Número Boleta: ${recibo.boletaPago.numeroBoleta}, 
-                        Fecha: ${new Date(recibo.boletaPago.fecha).toLocaleDateString('es-ES')}, 
-                        Tipo de Pago: ${recibo.boletaPago.tipoPago}, 
-                        Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}
-                    `;
-                } else {
-                    // Pago en efectivo
-                    cantidadPagada = cantidadAPagar;
-                    detallesPago = `Pago en efectivo, Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}`;
+                if (recibo.estadoPago === 'Pagado') {
+                    if (recibo.boletaPago && !isNaN(recibo.boletaPago.cantidadPagada)) {
+                        cantidadPagada = parseFloat(recibo.boletaPago.cantidadPagada);
+                        detallesPago = `
+                            Banco: ${recibo.boletaPago.banco}, 
+                            Número Boleta: ${recibo.boletaPago.numeroBoleta}, 
+                            Fecha: ${new Date(recibo.boletaPago.fecha).toLocaleDateString('es-ES')}, 
+                            Tipo de Pago: ${recibo.boletaPago.tipoPago}, 
+                            Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}
+                        `;
+                    } else {
+                        // Pago en efectivo
+                        cantidadPagada = cantidadAPagar;
+                        detallesPago = `Pago en efectivo, Cantidad Pagada: Q. ${cantidadPagada.toFixed(2)}`;
+                    }
+                    totalCantidadPagada += cantidadPagada;
                 }
-                totalCantidadPagada += cantidadPagada;
-            }
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${recibo.sucursal}</td>
-                <td>${recibo.servicio}</td>
-                <td>${recibo.proveedorServicio}</td>
-                <td>${recibo.numeroRecibo}</td>
-                <td>${new Date(recibo.fechaPago).toLocaleDateString('es-ES')}</td>
-                <td>Q. ${cantidadAPagar.toFixed(2)}</td>
-                <td>${recibo.estadoPago}</td>
-                <td>${detallesPago}</td>
-            `;
-            tbody.appendChild(tr);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${recibo.sucursal}</td>
+                    <td>${recibo.servicio}</td>
+                    <td>${recibo.proveedorServicio}</td>
+                    <td>${recibo.numeroRecibo}</td>
+                    <td>${new Date(recibo.fechaPago).toLocaleDateString('es-ES')}</td>
+                    <td>Q. ${cantidadAPagar.toFixed(2)}</td>
+                    <td>${recibo.estadoPago}</td>
+                    <td>${detallesPago}</td>
+                `;
+                tbody.appendChild(tr);
+            }
         });
 
         const totalTr = document.createElement('tr');
@@ -744,13 +794,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         reportContainer.appendChild(titleElement);
         reportContainer.appendChild(table);
-
-        if (recibos.length === 0) {
-            const noDataMessage = document.createElement('p');
-            noDataMessage.classList.add('no-data');
-            noDataMessage.innerText = 'No Tiene Recibo. Por favor registrarlo.';
-            reportContainer.appendChild(noDataMessage);
-        }
     }
 
     exportBtn.addEventListener('click', () => {
