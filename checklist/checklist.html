@@ -10,221 +10,6 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
     <!-- Opcional: Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Estilos básicos. Es recomendable trasladar estos estilos a tu archivo CSS */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f8f9fa;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        /* Botón principal */
-        #openChecklistModal {
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        #openChecklistModal:hover {
-            background-color: #218838;
-        }
-
-        /* Tabla de checklists */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-        }
-
-        th, td {
-            padding: 12px;
-            border: 1px solid #dee2e6;
-            text-align: left;
-        }
-
-        th {
-            background-color: #343a40;
-            color: white;
-        }
-
-        /* Mensajes informativos */
-        .info-message {
-            text-align: center;
-            color: #6c757d;
-            padding: 20px 0;
-        }
-
-        /* Botones de acción */
-        .action-btn {
-            padding: 6px 12px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            color: white;
-        }
-
-        .action-btn:hover {
-            opacity: 0.8;
-        }
-
-        .edit-btn {
-            background-color: #ffc107;
-        }
-
-        .delete-btn {
-            background-color: #dc3545;
-        }
-
-        .view-btn {
-            background-color: #17a2b8;
-        }
-
-        /* Modal */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1000; /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 50px auto; /* 15% from the top and centered */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 600px; /* Could be more or less, depending on screen size */
-            border-radius: 8px;
-            position: relative;
-        }
-
-        /* Close Button */
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            position: absolute;
-            right: 20px;
-            top: 10px;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-        }
-
-        /* Formulario del modal */
-        .modal-form label {
-            display: block;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .modal-form input[type="text"],
-        .modal-form input[type="date"],
-        .modal-form select {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-        }
-
-        .modal-form button[type="submit"] {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            border: none;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .modal-form button[type="submit"]:hover {
-            background-color: #0069d9;
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            background-color: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-            height: 20px;
-            margin-top: 5px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background-color: #28a745;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        /* Tareas Manuales */
-        .add-manual-task-btn {
-            padding: 8px 16px;
-            background-color: #17a2b8;
-            border: none;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .add-manual-task-btn:hover {
-            background-color: #138496;
-        }
-
-        .manual-tasks-container {
-            margin-top: 10px;
-        }
-
-        .manual-task-input {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .manual-task-input input {
-            flex: 1;
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .manual-task-input button {
-            padding: 8px 12px;
-            background-color: #dc3545;
-            border: none;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .manual-task-input button:hover {
-            background-color: #c82333;
-        }
-    </style>
 </head>
 <body>
 
@@ -233,7 +18,7 @@
     <!-- Botón para abrir el modal de crear checklist -->
     <button id="openChecklistModal">Crear Nuevo Checklist</button>
 
-    <!-- Tabla para listar los checklists existentes -->
+    <!-- **ELIMINAR** la tabla de checklists existente
     <table id="checklistTable">
         <thead>
             <tr>
@@ -248,6 +33,12 @@
             <!-- Filas de checklists serán insertadas dinámicamente aquí -->
         </tbody>
     </table>
+    -->
+
+    <!-- **AGREGAR** el nuevo contenedor para columnas de responsables -->
+    <div id="checklistsContainer" class="checklists-container">
+        <!-- Columnas de responsables serán insertadas dinámicamente aquí -->
+    </div>
 
     <!-- Modal para Crear/Editar Checklist -->
     <div id="checklistModal" class="modal">

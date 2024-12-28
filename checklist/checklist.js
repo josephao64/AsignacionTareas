@@ -1,4 +1,4 @@
-// checklist.js 
+// checklist.js  
 import { db } from '../firebase-config.js';
 import { 
     collection, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, doc, query, where, arrayUnion, arrayRemove 
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checklistForm = document.getElementById('checklistForm');
     const checklistTareasDiv = document.getElementById('checklistTareas');
     const checklistResponsablesSelect = document.getElementById('checklistResponsables');
-    const checklistTableBody = document.getElementById('checklistTable').querySelector('tbody');
+    // const checklistTableBody = document.getElementById('checklistTable').querySelector('tbody'); // **ELIMINAR**
 
     const viewChecklistModal = document.getElementById('viewChecklistModal');
     const closeViewChecklistModalBtn = document.getElementById('closeViewChecklistModal');
@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // **Variables para el Modal de Visualización**
     let currentViewChecklistId = null;
+
+    // **Nuevo: Elemento del DOM para las columnas de responsables**
+    const checklistsContainer = document.getElementById('checklistsContainer');
 
     // **Funciones para Manejar el Modal de Crear/Editar Checklist**
     openChecklistModalBtn.addEventListener('click', function() {
@@ -97,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            responsables = Array.from(responsablesSet);
+            responsables = Array.from(responsablesSet).sort(); // Ordenar alfabéticamente
 
             // Llenar el select de responsables
             checklistResponsablesSelect.innerHTML = ''; // Limpiar opciones
@@ -221,13 +224,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Obtener las tareas manuales ingresadas
+        const manualTareasInputs = document.querySelectorAll('#manualTasksContainer .manual-task-input input');
+        const manualTareas = Array.from(manualTareasInputs).map(input => ({
+            descripcion: input.value.trim(),
+            completado: false
+        })).filter(tarea => tarea.descripcion !== "");
+
         // Crear el objeto del checklist
         const checklistData = {
             titulo,
             fecha,
             responsables: responsablesSeleccionados,
             tareas: tareasSeleccionadas.map(tareaId => ({ id: tareaId, completado: false })),
-            manualTareas: [] // Inicializar manualTareas como vacío
+            manualTareas: manualTareas
         };
 
         if (isEditMode && currentEditChecklistId) {
@@ -264,7 +274,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     titulo: checklistData.titulo,
                     fecha: checklistData.fecha,
                     responsables: checklistData.responsables,
-                    tareas: checklistData.tareas
+                    tareas: checklistData.tareas,
+                    manualTareas: checklistData.manualTareas
                 });
 
                 // Actualizar el estado de las tareas agregadas
@@ -335,7 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 checklist.id = docu.id;
                 checklists.push(checklist);
             });
-            actualizarTablaChecklists();
+            actualizarColumnasChecklists();
         }, (error) => {
             console.error("Error al cargar checklists:", error);
             Swal.fire({
@@ -348,45 +359,92 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarChecklists();
 
-    // **Actualizar la Tabla de Checklists**
-    function actualizarTablaChecklists() {
-        checklistTableBody.innerHTML = '';
+    // **Actualizar las Columnas de Checklists por Responsable**
+    function actualizarColumnasChecklists() {
+        // Limpiar el contenedor de checklists
+        checklistsContainer.innerHTML = '';
 
-        if (checklists.length === 0) {
-            const fila = document.createElement('tr');
-            fila.innerHTML = `<td colspan="5" class="info-message">No hay checklists disponibles. Crea uno nuevo.</td>`;
-            checklistTableBody.appendChild(fila);
+        if (responsables.length === 0) {
+            checklistsContainer.innerHTML = '<p class="info-message">No hay responsables disponibles.</p>';
             return;
         }
 
-        checklists.forEach(checklist => {
-            // Calcular el progreso
-            const totalTareas = checklist.tareas.length + (checklist.manualTareas ? checklist.manualTareas.length : 0);
-            const tareasCompletadas = checklist.tareas.filter(t => t.completado).length + 
-                                        (checklist.manualTareas ? checklist.manualTareas.filter(t => t.completado).length : 0);
-            const progreso = totalTareas > 0 ? Math.round((tareasCompletadas / totalTareas) * 100) : 0;
+        // Crear un mapa de responsables a sus checklists
+        const responsableMap = {};
 
-            const fila = document.createElement('tr');
-
-            fila.innerHTML = `
-                <td>${checklist.titulo}</td>
-                <td>${checklist.fecha}</td>
-                <td>${checklist.responsables.join(', ')}</td>
-                <td>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progreso}%;"></div>
-                    </div>
-                    <small>${progreso}% Completado</small>
-                </td>
-                <td>
-                    <button class="action-btn" onclick="verChecklist('${checklist.id}')">Ver</button>
-                    <button class="edit-btn action-btn" onclick="editarChecklist('${checklist.id}')">Editar</button>
-                    <button class="delete-btn" onclick="eliminarChecklist('${checklist.id}')">Eliminar</button>
-                </td>
-            `;
-
-            checklistTableBody.appendChild(fila);
+        responsables.forEach(responsable => {
+            responsableMap[responsable] = [];
         });
+
+        checklists.forEach(checklist => {
+            checklist.responsables.forEach(responsable => {
+                if (responsableMap[responsable]) {
+                    responsableMap[responsable].push(checklist);
+                }
+            });
+        });
+
+        // Crear columnas para cada responsable
+        for (const [responsable, checklistsAsignados] of Object.entries(responsableMap)) {
+            const columna = document.createElement('div');
+            columna.classList.add('responsable-column');
+
+            const encabezado = document.createElement('h2');
+            encabezado.textContent = responsable;
+            columna.appendChild(encabezado);
+
+            // Ordenar los checklists por fecha (más antiguos al principio)
+            const checklistsOrdenados = checklistsAsignados.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            if (checklistsOrdenados.length === 0) {
+                const mensaje = document.createElement('p');
+                mensaje.classList.add('info-message');
+                mensaje.textContent = 'No hay checklists asignados.';
+                columna.appendChild(mensaje);
+            } else {
+                checklistsOrdenados.forEach(checklist => {
+                    const checklistDiv = document.createElement('div');
+                    checklistDiv.classList.add('checklist-item');
+
+                    const titulo = document.createElement('div');
+                    titulo.classList.add('checklist-title');
+                    titulo.textContent = checklist.titulo;
+                    checklistDiv.appendChild(titulo);
+
+                    const fecha = document.createElement('div');
+                    fecha.classList.add('checklist-date');
+                    fecha.textContent = `Fecha: ${checklist.fecha}`;
+                    checklistDiv.appendChild(fecha);
+
+                    const acciones = document.createElement('div');
+                    acciones.classList.add('checklist-actions');
+
+                    const verBtn = document.createElement('button');
+                    verBtn.classList.add('action-btn', 'view-btn');
+                    verBtn.innerHTML = '<i class="fas fa-eye"></i> Ver';
+                    verBtn.onclick = () => verChecklist(checklist.id);
+                    acciones.appendChild(verBtn);
+
+                    const editarBtn = document.createElement('button');
+                    editarBtn.classList.add('action-btn', 'edit-btn');
+                    editarBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+                    editarBtn.onclick = () => editarChecklist(checklist.id);
+                    acciones.appendChild(editarBtn);
+
+                    const eliminarBtn = document.createElement('button');
+                    eliminarBtn.classList.add('action-btn', 'delete-btn');
+                    eliminarBtn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
+                    eliminarBtn.onclick = () => eliminarChecklist(checklist.id);
+                    acciones.appendChild(eliminarBtn);
+
+                    checklistDiv.appendChild(acciones);
+
+                    columna.appendChild(checklistDiv);
+                });
+            }
+
+            checklistsContainer.appendChild(columna);
+        }
     }
 
     // **Función para Ver un Checklist**
@@ -559,8 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
 
-                    // Actualizar la barra de progreso en la tabla
-                    actualizarTablaChecklists();
+                    // **Actualizar las columnas después de cualquier cambio**
+                    actualizarColumnasChecklists();
                 }
             });
 
@@ -624,6 +682,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }, 500); // Ajusta el tiempo según la carga de tareas
+
+            // Cargar las tareas manuales existentes
+            const manualTasksContainer = document.getElementById('manualTasksContainer');
+            manualTasksContainer.innerHTML = ''; // Limpiar tareas manuales existentes
+            if (checklistSnap.manualTareas && checklistSnap.manualTareas.length > 0) {
+                checklistSnap.manualTareas.forEach(manualTarea => {
+                    const div = document.createElement('div');
+                    div.classList.add('manual-task-input');
+                    div.innerHTML = `
+                        <input type="text" value="${manualTarea.descripcion}" readonly>
+                        <button type="button" class="remove-manual-task-btn"><i class="fas fa-trash"></i></button>
+                    `;
+                    manualTasksContainer.appendChild(div);
+
+                    // Agregar evento para eliminar la tarea manual
+                    div.querySelector('.remove-manual-task-btn').addEventListener('click', function() {
+                        manualTasksContainer.removeChild(div);
+                    });
+                });
+            }
 
             // Cambiar el título del modal
             document.getElementById('modalTitle').textContent = 'Editar Checklist';
