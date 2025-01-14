@@ -12,9 +12,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Definir el único usuario admin
+    // Definir los usuarios, incluyendo DAVID
     const usuarios = [
-        { username: 'admin', password: '1', isAdmin: true }
+        { username: 'admin', password: '1', isAdmin: true },
+        { username: 'david', password: 'tu_contraseña_segura', isAdmin: false } // Nuevo usuario agregado
     ];
 
     let usuarioActual = null; // Variable para rastrear el usuario actual
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         usuarios.forEach(usuario => {
             const option = document.createElement('option');
             option.value = usuario.username;
-            option.textContent = usuario.username;
+            option.textContent = usuario.username.toUpperCase(); // Mostrar en mayúsculas
             usernameSelect.appendChild(option);
         });
     }
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
             icon: 'success',
             title: 'Bienvenido de Nuevo',
-            text: `Has iniciado sesión como ${usuarioActual.username}.`,
+            text: `Has iniciado sesión como ${usuarioActual.username.toUpperCase()}.`,
             timer: 1500,
             showConfirmButton: false
         });
@@ -98,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'success',
                     title: 'Bienvenido',
-                    text: `Has iniciado sesión como ${usuarioActual.username}.`,
+                    text: `Has iniciado sesión como ${usuarioActual.username.toUpperCase()}.`,
                     timer: 1500,
                     showConfirmButton: false
                 });
