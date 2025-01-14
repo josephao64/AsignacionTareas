@@ -687,6 +687,9 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
 
                 const pendienteMes = (totalFacturasMes - totalPagadoMes) > 0 ? (totalFacturasMes - totalPagadoMes) : 0;
                 const epsilon = 0.01;
+
+                // COMENTAMOS/REMOVEMOS ESTA VALIDACIÓN PARA PERMITIR PAGOS MAYORES:
+                /*
                 if (precioTotalPagado > (pendienteMes + epsilon)) {
                     Swal.fire({
                         icon: 'error',
@@ -695,6 +698,7 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                     });
                     return;
                 }
+                */
 
                 const isEditing = modalTitlePago.textContent === "Editar Pago";
                 if (isEditing) {

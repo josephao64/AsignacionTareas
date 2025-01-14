@@ -367,7 +367,7 @@
                 <div id="summaryPedidos" class="summary">
                     <p>Cantidad de Cajas de Pizza: <strong id="totalPizzaPedidos">0</strong></p>
                     <p>Cantidad de Cajas de Fingers: <strong id="totalFingersPedidos">0</strong></p>
-                    <p>Precio Total de Cajas: <strong id="totalPrecioPedidos">Q0.00</strong></p>
+                    <p>Precio Total de Cajas: <strong id="totalPrecioPedidos">Q0</strong></p>
                 </div>
 
                 <!-- Tabla de Pedidos -->
@@ -423,9 +423,9 @@
 
                 <!-- Resumen de Pagos -->
                 <div id="summaryPagos" class="summary">
-                    <p>Total Pagado: <strong id="totalPagado">Q0.00</strong></p>
-                    <p>Total Pendiente: <strong id="totalPendiente">Q0.00</strong></p>
-                    <p>Saldo: <strong id="saldo">Q0.00</strong></p>
+                    <p>Total Pagado: <strong id="totalPagado">Q0</strong></p>
+                    <p>Total Pendiente: <strong id="totalPendiente">Q0</strong></p>
+                    <p>Saldo: <strong id="saldo">Q0</strong></p>
                 </div>
 
                 <!-- Tabla de Pagos -->
@@ -490,10 +490,10 @@
                     <input type="number" id="cantidadPedido" min="1" required>
 
                     <label for="precioUnitarioPedido">Precio Unitario (Q):</label>
-                    <input type="number" id="precioUnitarioPedido" min="0" step="0.01" required>
+                    <input type="number" id="precioUnitarioPedido" min="0" step="any" required>
 
                     <label for="precioTotalPedido">Precio Total (Q):</label>
-                    <input type="number" id="precioTotalPedido" min="0" step="0.01" readonly>
+                    <input type="number" id="precioTotalPedido" min="0" step="any" readonly>
 
                     <button type="submit">Guardar Pedido</button>
                 </form>
@@ -513,7 +513,7 @@
                     <input type="text" id="boletaPago" required>
 
                     <label for="precioTotalPagado">Total Boleta (Q):</label>
-                    <input type="number" id="precioTotalPagado" min="0" step="0.01" required>
+                    <input type="number" id="precioTotalPagado" min="0" step="any" required>
 
                     <!-- Eliminado el campo de selección de Pedido -->
 
@@ -535,8 +535,7 @@
                 { Empresa: "AMERICAN PIZZA", Sucursal: "santa elena", PizzaMensual: 5893, FingersMensual: 287 },
                 { Empresa: "AMERICAN PIZZA", Sucursal: "pinula", PizzaMensual: 4639, FingersMensual: 379 },
                 { Empresa: "AMERICAN PIZZA", Sucursal: "eskala", PizzaMensual: 2460, FingersMensual: 211 },
-                { Empresa: "AMERICAN EXPRESSO", Sucursal: "expresso1", PizzaMensual: 3000, FingersMensual: 400 }, // Eliminado
-                { Empresa: "AMERICAN EXPRESSO", Sucursal: "expresso2", PizzaMensual: 3200, FingersMensual: 450 }, // Eliminado
+                // Sucursales de AMERICAN EXPRESSO Eliminadas
             ];
 
             // Inicialización de datos
@@ -708,7 +707,7 @@
                 const cantidad = parseInt(cantidadInputPedido.value) || 0;
                 const precioUnitario = parseFloat(precioUnitarioInputPedido.value) || 0;
                 const precioTotal = cantidad * precioUnitario;
-                precioTotalInputPedido.value = precioTotal.toFixed(2);
+                precioTotalInputPedido.value = precioTotal.toFixed(8); // Permite hasta 8 decimales
             }
 
             cantidadInputPedido.addEventListener('input', actualizarPrecioTotalPedido);
@@ -935,8 +934,8 @@
                         <td>${pedido.TipoCaja}</td>
                         <td>${pedido.Fecha}</td>
                         <td>${pedido.Cantidad}</td>
-                        <td>Q${pedido.PrecioUnitario.toFixed(2)}</td>
-                        <td>Q${pedido.PrecioTotal.toFixed(2)}</td>
+                        <td>Q${pedido.PrecioUnitario.toFixed(8)}</td>
+                        <td>Q${pedido.PrecioTotal.toFixed(8)}</td>
                         <td>
                             <button class="action-btn edit-btn" onclick="editarPedido(${pedido.id})">Editar</button>
                             <button class="action-btn delete-btn" onclick="eliminarPedido(${pedido.id})">Eliminar</button>
@@ -953,10 +952,10 @@
                     totalPrecio += pedido.PrecioTotal;
                 });
 
-                // Actualizar el resumen en el DOM
+                // Actualizar el resumen en el DOM sin decimales
                 totalPizzaPedidosEl.textContent = totalPizza;
                 totalFingersPedidosEl.textContent = totalFingers;
-                totalPrecioPedidosEl.textContent = `Q${totalPrecio.toFixed(2)}`;
+                totalPrecioPedidosEl.textContent = `Q${Math.round(totalPrecio)}`;
             }
 
             // Mostrar los pagos en la tabla y actualizar el resumen
@@ -1050,7 +1049,7 @@
                         <td>${pago.mes}</td>
                         <td>${pago.fechaPago}</td>
                         <td>${pago.boletaPago}</td>
-                        <td>Q${pago.precioTotalPagado.toFixed(2)}</td>
+                        <td>Q${Math.round(pago.precioTotalPagado)}</td>
                         <td>
                             <button class="action-btn edit-btn" onclick="editarPago(${pago.id})">Editar</button>
                             <button class="action-btn delete-btn" onclick="eliminarPago(${pago.id})">Eliminar</button>
@@ -1062,10 +1061,10 @@
                 // Calcular Total Pendiente
                 const totalPendiente = totalPrecioCajas - totalPagado > 0 ? totalPrecioCajas - totalPagado : 0;
 
-                // Actualizar el resumen en el DOM
-                totalPagadoEl.textContent = `Q${totalPagado.toFixed(2)}`;
-                totalPendienteEl.textContent = `Q${totalPendiente.toFixed(2)}`;
-                saldoEl.textContent = saldo > 0 ? `Q${saldo.toFixed(2)}` : `Q${Math.abs(saldo).toFixed(2)}`;
+                // Actualizar el resumen en el DOM sin decimales
+                totalPagadoEl.textContent = `Q${Math.round(totalPagado)}`;
+                totalPendienteEl.textContent = `Q${Math.round(totalPendiente)}`;
+                saldoEl.textContent = saldo > 0 ? `Q${Math.round(saldo)}` : `Q${Math.round(Math.abs(saldo))}`;
 
                 // Aplicar estilos al saldo
                 if (saldo > 0) {
@@ -1137,7 +1136,7 @@
                     fechaPedidoInput.value = pedido.Fecha;
                     cantidadInputPedido.value = pedido.Cantidad;
                     precioUnitarioInputPedido.value = pedido.PrecioUnitario;
-                    precioTotalInputPedido.value = pedido.PrecioTotal.toFixed(2);
+                    precioTotalInputPedido.value = pedido.PrecioTotal.toFixed(8);
                     pedidoForm.dataset.pedidoId = pedido.id;
                     pedidoModal.style.display = "block";
                 }
@@ -1147,7 +1146,7 @@
             function eliminarPedido(id) {
                 Swal.fire({
                     title: '¿Estás seguro?',
-                    text: "Esto eliminará el Pedido y todos sus Pagos asociados. ¡No podrás revertir esto!",
+                    text: "Esto eliminará el Pedido. ¡No podrás revertir esto!",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
@@ -1157,26 +1156,23 @@
                     if (result.isConfirmed) {
                         // Obtener el pedido a eliminar
                         const pedido = pedidos.find(p => p.id === id);
-                        const mesPedido = pedido ? getMesDePedido(pedido) : '';
-
-                        // Eliminar los pagos asociados a este mes del pedido
-                        pagos = pagos.filter(pago => pago.mes !== mesPedido);
+                        // const mesPedido = pedido ? getMesDePedido(pedido) : ''; // Ya no es necesario
 
                         // Eliminar el pedido
                         pedidos = pedidos.filter(p => p.id !== id);
 
-                        // Actualizar localStorage
+                        // Guardar cambios en localStorage
                         localStorage.setItem('pedidos', JSON.stringify(pedidos));
-                        localStorage.setItem('pagos', JSON.stringify(pagos));
-                        localStorage.setItem('lastIdPedidos', lastIdPedidos);
-                        localStorage.setItem('lastIdPagos', lastIdPagos);
+                        // localStorage.setItem('pagos', JSON.stringify(pagos)); // No se modifican los pagos
+                        // localStorage.setItem('lastIdPedidos', lastIdPedidos);
+                        // localStorage.setItem('lastIdPagos', lastIdPagos);
 
                         // Actualizar las tablas y resúmenes
                         mostrarPedidos(selectedSucursal);
                         mostrarPagos();
                         Swal.fire(
                             'Eliminado!',
-                            'Tu pedido y sus pagos asociados han sido eliminados.',
+                            'Tu pedido ha sido eliminado.',
                             'success'
                         )
                     }
@@ -1197,7 +1193,7 @@
                     modalTitlePago.textContent = "Editar Pago";
                     fechaPagoInput.value = pago.fechaPago;
                     boletaPagoInput.value = pago.boletaPago;
-                    precioTotalPagadoInputPago.value = pago.precioTotalPagado.toFixed(2);
+                    precioTotalPagadoInputPago.value = pago.precioTotalPagado.toFixed(8);
                     // No hay campo para seleccionar pedido
                     pagoForm.dataset.pagoId = pago.id;
                     pagoModal.style.display = "block";

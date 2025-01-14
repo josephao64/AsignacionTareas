@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -49,7 +49,7 @@
             color: #555;
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="date"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -152,7 +152,7 @@
             body {
                 -webkit-print-color-adjust: exact;
             }
-            .form-section, #inventoryForm, .export-button {
+            .form-section, #inventoryForm, .export-button, #pedidoForm, #pedidoRangoForm {
                 display: none !important;
             }
 
@@ -169,17 +169,48 @@
                 page-break-inside: avoid;
             }
         }
+
+        /* Nuevos estilos para las secciones de pedido */
+        .pedido-section, .pedido-rango-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        .pedido-result, .pedido-rango-result {
+            margin-top: 20px;
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
+        }
+
+        .pedido-result table, .pedido-rango-result table {
+            margin-top: 10px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container" id="mainContent">
-        <h1>RESULTADOS INVENTARIO DE CAJAS <span id="fechaHoy"></span></h1>
+        <h1>RESULTADOS INVENTARIO DE CAJAS <span id="fechaInventarioDisplay"></span></h1>
         
         <div class="form-section">
             <div class="stock-message">
                 <p><strong>Ingrese datos para calcular:</strong></p>
             </div>
             <form id="inventoryForm">
+                <div class="input-group">
+                    <label for="fechaInventario">Fecha del Inventario:</label>
+                    <input type="date" id="fechaInventario" name="fechaInventario" required>
+                </div>
                 <div class="input-group">
                     <label for="cajasPizzaAmerican">Pizza American Pizza:</label>
                     <input type="number" id="cajasPizzaAmerican" name="cajasPizzaAmerican" min="0" required>
@@ -203,7 +234,7 @@
         <!-- Página 1: Aproximación de Cajas en Stock -->
         <div id="page1" class="page-section" style="display:none;">
             <h2>Aproximación de Cajas en Stock</h2>
-            <p><strong>Fecha de Hoy:</strong> <span id="fechaHoyPage1"></span></p>
+            <p><strong>Fecha del Inventario:</strong> <span id="fechaInventarioPage1"></span></p>
             <table>
                 <thead>
                     <tr>
@@ -331,6 +362,70 @@
             </table>
         </div>
 
+        <!-- Nueva Sección: Realizar Pedido con Fecha Estipulada -->
+        <div class="pedido-section">
+            <h2>Realizar Pedido con Fecha Estipulada</h2>
+            <form id="pedidoForm">
+                <div class="input-group">
+                    <label for="fechaPedido">Seleccione la Fecha Deseada:</label>
+                    <input type="date" id="fechaPedido" name="fechaPedido" required>
+                </div>
+                <button type="submit">Calcular Pedido</button>
+            </form>
+            <div id="pedidoResult" class="pedido-result" style="display:none;">
+                <h3>Recomendación de Pedido</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cajas Necesarias para la Fecha</th>
+                            <th>Cajas a Pedir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pedidoTable">
+                        <!-- Filas generadas dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="pedidoError" class="error-message" style="display:none;">
+                <!-- Mensajes de error -->
+            </div>
+        </div>
+
+        <!-- Nueva Sección: Realizar Pedido con Fecha de Inicio y Fin -->
+        <div class="pedido-rango-section">
+            <h2>Realizar Pedido con Fecha de Inicio y Fin</h2>
+            <form id="pedidoRangoForm">
+                <div class="input-group">
+                    <label for="fechaInicioPedido">Seleccione la Fecha de Inicio:</label>
+                    <input type="date" id="fechaInicioPedido" name="fechaInicioPedido" required>
+                </div>
+                <div class="input-group">
+                    <label for="fechaFinPedido">Seleccione la Fecha de Fin:</label>
+                    <input type="date" id="fechaFinPedido" name="fechaFinPedido" required>
+                </div>
+                <button type="submit">Calcular Pedido</button>
+            </form>
+            <div id="pedidoRangoResult" class="pedido-rango-result" style="display:none;">
+                <h3>Recomendación de Pedido para el Rango de Fechas</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cajas Necesarias para el Rango</th>
+                            <th>Cajas a Pedir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pedidoRangoTable">
+                        <!-- Filas generadas dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="pedidoRangoError" class="error-message" style="display:none;">
+                <!-- Mensajes de error -->
+            </div>
+        </div>
+
         <!-- Botón para generar reporte -->
         <div class="result">
             <button type="button" class="export-button" onclick="generarReporte()">Generar Reporte</button>
@@ -339,14 +434,30 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const hoy = new Date();
-        const fechaStr = formatDate(hoy);
-        document.getElementById('fechaHoy').textContent = fechaStr;
-        document.getElementById('fechaHoyPage1').textContent = fechaStr;
+        // Inicialmente, no hay fecha de inventario hasta que el usuario la ingrese
+        // Puedes establecer una fecha por defecto si lo deseas
     });
 
     document.getElementById('inventoryForm').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        const fechaInventarioInput = document.getElementById('fechaInventario').value;
+        const fechaInventario = new Date(fechaInventarioInput);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0); // Normalizar la hora
+
+        const fechaInventarioDisplay = document.getElementById('fechaInventarioDisplay');
+        const fechaInventarioPage1 = document.getElementById('fechaInventarioPage1');
+
+        if (isNaN(fechaInventario.getTime())) {
+            alert('Por favor, seleccione una fecha válida para el inventario.');
+            return;
+        }
+
+        if (fechaInventario > hoy) {
+            alert('La fecha del inventario no puede estar en el futuro.');
+            return;
+        }
 
         const cajasPizzaAmerican = parseInt(document.getElementById('cajasPizzaAmerican').value) || 0;
         const cajasPizzaVipizza = parseInt(document.getElementById('cajasPizzaVipizza').value) || 0;
@@ -357,6 +468,11 @@
         document.getElementById('stockPizzaVipizza').textContent = cajasPizzaVipizza;
         document.getElementById('stockFingersAmerican').textContent = cajasFingersAmerican;
         document.getElementById('stockFingersVipizza').textContent = cajasFingersVipizza;
+
+        // Mostrar la fecha del inventario en las secciones correspondientes
+        const fechaStr = formatDate(fechaInventario);
+        fechaInventarioDisplay.textContent = fechaStr;
+        fechaInventarioPage1.textContent = fechaStr;
 
         const products = [
             {
@@ -433,11 +549,9 @@
             });
         });
 
-        const hoy = new Date();
-
         const resultados = products.map(product => {
             const mesesLeft = product.total / product.totalMonthly;
-            const fechaAgotamiento = addMonths(hoy, mesesLeft);
+            const fechaAgotamiento = addMonths(fechaInventario, mesesLeft);
             return {
                 name: product.name,
                 mesesLeft: mesesLeft,
@@ -520,6 +634,267 @@
         document.getElementById('page3').style.display = 'block';
     });
 
+    // Funcionalidad para el pedido con fecha estipulada
+    document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const fechaPedidoInput = document.getElementById('fechaPedido').value;
+        const fechaPedido = new Date(fechaPedidoInput);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0); // Normalizar la hora
+
+        const pedidoResult = document.getElementById('pedidoResult');
+        const pedidoTable = document.getElementById('pedidoTable');
+        const pedidoError = document.getElementById('pedidoError');
+
+        // Limpiar resultados anteriores
+        pedidoTable.innerHTML = '';
+        pedidoResult.style.display = 'none';
+        pedidoError.style.display = 'none';
+        pedidoError.textContent = '';
+
+        if (isNaN(fechaPedido.getTime())) {
+            pedidoError.textContent = 'Por favor, seleccione una fecha válida.';
+            pedidoError.style.display = 'block';
+            return;
+        }
+
+        // Obtener la fecha de inventario
+        const fechaInventarioInput = document.getElementById('fechaInventario').value;
+        const fechaInventario = new Date(fechaInventarioInput);
+        fechaInventario.setHours(0,0,0,0); // Normalizar la hora
+
+        if (fechaPedido < fechaInventario) {
+            pedidoError.textContent = 'La fecha seleccionada es anterior a la fecha del inventario. Por favor, elija una fecha posterior.';
+            pedidoError.style.display = 'block';
+            return;
+        }
+
+        const timeDiff = fechaPedido - fechaInventario;
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        if (daysDiff === 0) {
+            pedidoError.textContent = 'La fecha seleccionada es la misma que la fecha del inventario. No es necesario realizar un pedido.';
+            pedidoError.style.display = 'block';
+            return;
+        }
+
+        // Obtener los datos actuales de stock y consumo diario
+        const cajasPizzaAmerican = parseInt(document.getElementById('stockPizzaAmerican').textContent) || 0;
+        const cajasPizzaVipizza = parseInt(document.getElementById('stockPizzaVipizza').textContent) || 0;
+        const cajasFingersAmerican = parseInt(document.getElementById('stockFingersAmerican').textContent) || 0;
+        const cajasFingersVipizza = parseInt(document.getElementById('stockFingersVipizza').textContent) || 0;
+
+        const consumoDiario = {
+            "Cajas Pizza American Pizza": parseInt(document.getElementById('consumoPizzaAmerican').textContent) || 0,
+            "Cajas Pizza VIPIZZA": parseInt(document.getElementById('consumoPizzaVipizza').textContent) || 0,
+            "Cajas FINGERS American Pizza": parseInt(document.getElementById('consumoFingersAmerican').textContent) || 0,
+            "Cajas FINGERS VIPIZZA": parseInt(document.getElementById('consumoFingersVipizza').textContent) || 0
+        };
+
+        const productos = [
+            {
+                name: "Cajas Pizza American Pizza",
+                stock: cajasPizzaAmerican,
+                dailyConsumption: consumoDiario["Cajas Pizza American Pizza"]
+            },
+            {
+                name: "Cajas Pizza VIPIZZA",
+                stock: cajasPizzaVipizza,
+                dailyConsumption: consumoDiario["Cajas Pizza VIPIZZA"]
+            },
+            {
+                name: "Cajas FINGERS American Pizza",
+                stock: cajasFingersAmerican,
+                dailyConsumption: consumoDiario["Cajas FINGERS American Pizza"]
+            },
+            {
+                name: "Cajas FINGERS VIPIZZA",
+                stock: cajasFingersVipizza,
+                dailyConsumption: consumoDiario["Cajas FINGERS VIPIZZA"]
+            }
+        ];
+
+        let necesitaPedido = false;
+
+        productos.forEach(product => {
+            const totalRequerido = product.dailyConsumption * daysDiff;
+            const aPedir = totalRequerido - product.stock;
+            if (aPedir > 0) {
+                necesitaPedido = true;
+                const row = document.createElement('tr');
+
+                const productoCell = document.createElement('td');
+                productoCell.textContent = product.name;
+                row.appendChild(productoCell);
+
+                const necesarioCell = document.createElement('td');
+                necesarioCell.textContent = totalRequerido;
+                row.appendChild(necesarioCell);
+
+                const aPedirCell = document.createElement('td');
+                aPedirCell.textContent = aPedir;
+                row.appendChild(aPedirCell);
+
+                pedidoTable.appendChild(row);
+            } else {
+                // Opcional: Mostrar productos que no necesitan pedido
+                const row = document.createElement('tr');
+
+                const productoCell = document.createElement('td');
+                productoCell.textContent = product.name;
+                row.appendChild(productoCell);
+
+                const necesarioCell = document.createElement('td');
+                necesarioCell.textContent = product.dailyConsumption * daysDiff;
+                row.appendChild(necesarioCell);
+
+                const aPedirCell = document.createElement('td');
+                aPedirCell.textContent = '0';
+                row.appendChild(aPedirCell);
+
+                pedidoTable.appendChild(row);
+            }
+        });
+
+        if (!necesitaPedido) {
+            pedidoError.textContent = 'No es necesario realizar un pedido para la fecha seleccionada.';
+            pedidoError.style.display = 'block';
+            return;
+        }
+
+        pedidoResult.style.display = 'block';
+    });
+
+    // Nueva funcionalidad para el pedido con fecha de inicio y fin
+    document.getElementById('pedidoRangoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const fechaInicioInput = document.getElementById('fechaInicioPedido').value;
+        const fechaFinInput = document.getElementById('fechaFinPedido').value;
+
+        const fechaInicio = new Date(fechaInicioInput);
+        const fechaFin = new Date(fechaFinInput);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0); // Normalizar la hora
+
+        const pedidoRangoResult = document.getElementById('pedidoRangoResult');
+        const pedidoRangoTable = document.getElementById('pedidoRangoTable');
+        const pedidoRangoError = document.getElementById('pedidoRangoError');
+
+        // Limpiar resultados anteriores
+        pedidoRangoTable.innerHTML = '';
+        pedidoRangoResult.style.display = 'none';
+        pedidoRangoError.style.display = 'none';
+        pedidoRangoError.textContent = '';
+
+        // Validaciones básicas
+        if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+            pedidoRangoError.textContent = 'Por favor, seleccione fechas válidas para el rango.';
+            pedidoRangoError.style.display = 'block';
+            return;
+        }
+
+        // Obtener la fecha de inventario
+        const fechaInventarioInput = document.getElementById('fechaInventario').value;
+        const fechaInventario = new Date(fechaInventarioInput);
+        fechaInventario.setHours(0,0,0,0); // Normalizar la hora
+
+        if (fechaInicio < fechaInventario) {
+            pedidoRangoError.textContent = 'La fecha de inicio es anterior a la fecha del inventario. Por favor, elija una fecha de inicio posterior.';
+            pedidoRangoError.style.display = 'block';
+            return;
+        }
+
+        if (fechaFin < fechaInicio) {
+            pedidoRangoError.textContent = 'La fecha de fin debe ser posterior a la fecha de inicio.';
+            pedidoRangoError.style.display = 'block';
+            return;
+        }
+
+        // Calcular la cantidad de días en el rango
+        const timeDiff = fechaFin - fechaInicio;
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // Incluir el día de fin
+
+        if (daysDiff <= 0) {
+            pedidoRangoError.textContent = 'El rango de fechas seleccionado no es válido.';
+            pedidoRangoError.style.display = 'block';
+            return;
+        }
+
+        // Obtener los datos de consumo diario
+        const consumoDiario = {
+            "Cajas Pizza American Pizza": parseInt(document.getElementById('consumoPizzaAmerican').textContent) || 0,
+            "Cajas Pizza VIPIZZA": parseInt(document.getElementById('consumoPizzaVipizza').textContent) || 0,
+            "Cajas FINGERS American Pizza": parseInt(document.getElementById('consumoFingersAmerican').textContent) || 0,
+            "Cajas FINGERS VIPIZZA": parseInt(document.getElementById('consumoFingersVipizza').textContent) || 0
+        };
+
+        const productos = [
+            {
+                name: "Cajas Pizza American Pizza",
+                dailyConsumption: consumoDiario["Cajas Pizza American Pizza"]
+            },
+            {
+                name: "Cajas Pizza VIPIZZA",
+                dailyConsumption: consumoDiario["Cajas Pizza VIPIZZA"]
+            },
+            {
+                name: "Cajas FINGERS American Pizza",
+                dailyConsumption: consumoDiario["Cajas FINGERS American Pizza"]
+            },
+            {
+                name: "Cajas FINGERS VIPIZZA",
+                dailyConsumption: consumoDiario["Cajas FINGERS VIPIZZA"]
+            }
+        ];
+
+        let necesitaPedido = false;
+
+        productos.forEach(product => {
+            const totalRequerido = product.dailyConsumption * daysDiff;
+            const aPedir = totalRequerido; // Ignorar inventario actual
+            if (aPedir > 0) {
+                necesitaPedido = true;
+                const row = document.createElement('tr');
+
+                const productoCell = document.createElement('td');
+                productoCell.textContent = product.name;
+                row.appendChild(productoCell);
+
+                const necesarioCell = document.createElement('td');
+                necesarioCell.textContent = totalRequerido;
+                row.appendChild(necesarioCell);
+
+                const aPedirCell = document.createElement('td');
+                aPedirCell.textContent = aPedir;
+                row.appendChild(aPedirCell);
+
+                pedidoRangoTable.appendChild(row);
+            } else {
+                // Aunque en este caso siempre aPedir será >=0
+                const row = document.createElement('tr');
+
+                const productoCell = document.createElement('td');
+                productoCell.textContent = product.name;
+                row.appendChild(productoCell);
+
+                const necesarioCell = document.createElement('td');
+                necesarioCell.textContent = totalRequerido;
+                row.appendChild(necesarioCell);
+
+                const aPedirCell = document.createElement('td');
+                aPedirCell.textContent = aPedir;
+                row.appendChild(aPedirCell);
+
+                pedidoRangoTable.appendChild(row);
+            }
+        });
+
+        // Siempre se necesita realizar el pedido basado en el consumo
+        pedidoRangoResult.style.display = 'block';
+    });
+
     function addMonths(date, months) {
         const d = new Date(date);
         const wholeMonths = Math.floor(months);
@@ -536,8 +911,9 @@
     }
 
     function generarReporte() {
-        const hoy = new Date();
-        const fechaStr = formatDate(hoy);
+        const fechaInventarioInput = document.getElementById('fechaInventario').value;
+        const fechaInventario = new Date(fechaInventarioInput);
+        const fechaStr = formatDate(fechaInventario);
         const tituloOriginal = document.title;
         document.title = "RESULTADOS INVENTARIO DE CAJAS " + fechaStr;
         window.print();

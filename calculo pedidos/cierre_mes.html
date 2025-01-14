@@ -5,10 +5,14 @@
     <title>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</title>
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <!-- jsPDF, html2canvas y html2pdf.js CDN -->
+    
+    <!-- jsPDF y jsPDF-AutoTable CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- Eliminado html2pdf.js y html2canvas CDN -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script> -->
+    
     <style>
         /* Estilos Específicos para la Página de Cierre de Mes */
         body {
@@ -891,7 +895,7 @@
                 // Añadir detalles de pedidos y pagos
                 pedidosSucursal.forEach(pedido => {
                     pagosSucursal.forEach(pago => {
-                        csvContent += `${pedido.id},${capitalizeFirstLetter(sucursal)},${pedido.TipoCaja},${pedido.Fecha},${pedido.Cantidad},Q${pedido.PrecioUnitario.toFixed(2)},Q${pedido.PrecioTotal.toFixed(2)},${pago.id},${pago.fechaPago},${pago.boletaPago},Q${pago.precioTotalPagado.toFixed(2)}\n`;
+                        csvContent += `${pedido.id},${capitalizeFirstLetter(sucursal)},${marca},${pedido.TipoCaja},${pedido.Fecha},${pedido.Cantidad},Q${pedido.PrecioUnitario.toFixed(2)},Q${pedido.PrecioTotal.toFixed(2)},${pago.id},${pago.fechaPago},${pago.boletaPago},Q${pago.precioTotalPagado.toFixed(2)}\n`;
                     });
                 });
 
@@ -912,7 +916,7 @@
             document.body.removeChild(link); // Limpiar
         }
 
-        // Función para exportar el reporte a PDF
+        // Función para exportar el reporte a PDF usando jsPDF y AutoTable
         async function exportarPDF() {
             const mesSeleccionado = reportMesInput.value; // Formato 'YYYY-MM'
             const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
@@ -926,50 +930,315 @@
                 return;
             }
 
-            // Seleccionar el contenido del reporte
-            const reportElement = document.getElementById('reportContent');
+            // Filtrar datos nuevamente para el PDF
+            const [year, month] = mesSeleccionado.split('-');
 
-            if (reportElement.innerHTML.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No hay datos para exportar.',
-                });
-                return;
+            // Filtrar Pedidos por Mes y Sucursal
+            let pedidosFiltrados = pedidos.filter(pedido => {
+                const pedidoDate = new Date(pedido.Fecha);
+                const pedidoYear = pedidoDate.getFullYear();
+                const pedidoMonth = pedidoDate.getMonth() + 1; // Los meses en JS van de 0-11
+                const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
+                const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+                return mesCoincide && sucursalCoincide;
+            });
+
+            // Filtrar Pagos asociados al Mes Seleccionado y Sucursal
+            let pagosFiltrados = pagos.filter(pago => {
+                const pagoMes = pago.mes;
+                const pagoSucursal = pago.Sucursal.toLowerCase();
+                const mesCoincide = pagoMes === mesSeleccionado;
+                const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
+                return mesCoincide && sucursalCoincide;
+            });
+
+            // Obtener la lista de sucursales a reportar
+            let sucursalesReport = [];
+            if (sucursalSeleccionada) {
+                sucursalesReport = [sucursalSeleccionada];
+            } else {
+                // Obtener todas las sucursales únicas presentes en los pedidos y pagos filtrados
+                const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
+                const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
+                const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
+                sucursalesReport = todasSucursales;
             }
 
-            try {
-                console.log('Iniciando generación del PDF');
+            // Calcular Totales Generales
+            const totalPedidosGenerales = pedidosFiltrados.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
+            const totalPagadoGenerales = pagosFiltrados.reduce((sum, pago) => sum + pago.precioTotalPagado, 0);
+            const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
+            const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
 
-                // Eliminar iframes dentro de reportContent antes de generar el PDF
-                eliminarIframes(reportElement);
+            // Calcular Resumen de Cajas por Sucursal
+            const cajasPorSucursal = {};
+            sucursalesReport.forEach(sucursal => {
+                const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
+                const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0);
+                const fingersCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0);
+                cajasPorSucursal[sucursal] = { pizza: pizzaCount, fingers: fingersCount };
+            });
 
-                // Opciones para html2pdf
-                const opt = {
-                    margin:       [10, 10, 10, 10], // [top, left, bottom, right]
-                    filename:     `Reporte_Pedidos_Pagos_Cajas_${mesSeleccionado}.pdf`,
-                    image:        { type: 'png', quality: 0.98 },
-                    html2canvas:  { 
-                        scale: 2, 
-                        useCORS: true, 
-                        ignoreElements: (element) => element.classList.contains('page-break') 
-                    },
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }, // Orientación vertical
-                    pagebreak:    { mode: ['css', 'legacy'] }
+            // Calcular Totales de Pizza y Fingers para todas las Sucursales
+            let totalPizzaSucursal = 0;
+            let totalFingersSucursal = 0;
+            sucursalesReport.forEach(sucursal => {
+                totalPizzaSucursal += cajasPorSucursal[sucursal].pizza;
+                totalFingersSucursal += cajasPorSucursal[sucursal].fingers;
+            });
+
+            // Calcular Resumen de Cajas por Marca
+            const cajasPorMarca = {};
+            // Iterar sobre cada pedido filtrado y acumular por marca usando el campo 'Empresa' directamente
+            pedidosFiltrados.forEach(pedido => {
+                const marca = pedido.Empresa || 'Desconocida';
+                if (!cajasPorMarca[marca]) {
+                    cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
+                }
+                if (pedido.TipoCaja.toLowerCase() === 'pizza') {
+                    cajasPorMarca[marca].pizza += pedido.Cantidad;
+                } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
+                    cajasPorMarca[marca].fingers += pedido.Cantidad;
+                }
+            });
+
+            // Calcular Totales de Pizza y Fingers para todas las Marcas
+            let totalPizzaMarca = 0;
+            let totalFingersMarca = 0;
+            Object.keys(cajasPorMarca).forEach(marca => {
+                totalPizzaMarca += cajasPorMarca[marca].pizza;
+                totalFingersMarca += cajasPorMarca[marca].fingers;
+            });
+
+            // Crear un nuevo PDF
+            const { jsPDF } = window.jspdf; // Asegurarse de que jsPDF está disponible
+            const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+
+            // Título Principal
+            const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+            doc.setFontSize(16);
+            doc.text(`Reporte de Pedidos y Pagos de Cajas - ${fechaTitulo}`, 40, 40);
+
+            // Resumen General
+            doc.setFontSize(12);
+            doc.text('Resumen General:', 40, 60);
+
+            doc.autoTable({
+                startY: 65,
+                margin: { left: 40, right: 40 },
+                theme: 'grid',
+                head: [['Concepto', 'Monto (Q)']],
+                body: [
+                    ['Total Pedidos', totalPedidosGenerales.toFixed(2)],
+                    ['Total Pagado', totalPagadoGenerales.toFixed(2)],
+                    ['Total Pendiente', totalPendienteGenerales.toFixed(2)],
+                    ['Saldo', saldoGenerales > 0 ? saldoGenerales.toFixed(2) : '0.00'],
+                ],
+                styles: { halign: 'left' },
+                headStyles: { fillColor: [0, 121, 107] }, // Color similar a #00796b
+            });
+
+            // Resumen de Cajas por Sucursal
+            doc.setFontSize(14);
+            doc.text('Cajas Consumidas por Sucursal:', 40, doc.lastAutoTable.finalY + 20);
+
+            const cajasSucursalBody = sucursalesReport.map(sucursal => [
+                capitalizeFirstLetter(sucursal),
+                cajasPorSucursal[sucursal].pizza,
+                cajasPorSucursal[sucursal].fingers
+            ]);
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 25,
+                margin: { left: 40, right: 40 },
+                theme: 'grid',
+                head: [['Sucursal', 'Pizza', 'Fingers']],
+                body: cajasSucursalBody,
+                styles: { halign: 'left' },
+                headStyles: { fillColor: [245, 127, 23] }, // Color similar a #f57f17
+            });
+
+            // Resumen de Cajas por Marca
+            doc.setFontSize(14);
+            doc.text('Cajas Consumidas por Marca:', 40, doc.lastAutoTable.finalY + 20);
+
+            const cajasMarcaBody = Object.keys(cajasPorMarca).map(marca => [
+                marca,
+                cajasPorMarca[marca].pizza,
+                cajasPorMarca[marca].fingers
+            ]);
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 25,
+                margin: { left: 40, right: 40 },
+                theme: 'grid',
+                head: [['Marca', 'Pizza', 'Fingers']],
+                body: cajasMarcaBody,
+                styles: { halign: 'left' },
+                headStyles: { fillColor: [245, 127, 23] },
+            });
+
+            // Detalle de Todos los Pedidos
+            doc.setFontSize(14);
+            doc.text('Todos los Pedidos:', 40, doc.lastAutoTable.finalY + 20);
+
+            const pedidosBody = pedidosFiltrados.map(pedido => [
+                pedido.id,
+                capitalizeFirstLetter(pedido.Sucursal),
+                pedido.TipoCaja,
+                pedido.Fecha,
+                pedido.Cantidad,
+                pedido.PrecioUnitario.toFixed(2),
+                pedido.PrecioTotal.toFixed(2)
+            ]);
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 25,
+                margin: { left: 40, right: 40 },
+                theme: 'grid',
+                head: [['ID', 'Sucursal', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
+                body: pedidosBody,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [245, 127, 23] },
+            });
+
+            doc.setFontSize(12);
+            doc.text(`Total General de Pedidos: Q${totalPedidosGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
+
+            // Detalle de Todos los Pagos
+            doc.setFontSize(14);
+            doc.text('Todos los Pagos:', 40, doc.lastAutoTable.finalY + 30);
+
+            const pagosBody = pagosFiltrados.map(pago => [
+                pago.id,
+                capitalizeFirstLetter(pago.Sucursal),
+                pago.fechaPago,
+                pago.boletaPago,
+                pago.precioTotalPagado.toFixed(2)
+            ]);
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 35,
+                margin: { left: 40, right: 40 },
+                theme: 'grid',
+                head: [['ID', 'Sucursal', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
+                body: pagosBody,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [245, 127, 23] },
+            });
+
+            doc.setFontSize(12);
+            doc.text(`Total General de Pagos: Q${totalPagadoGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
+
+            // Generar Reporte por Sucursal
+            sucursalesReport.forEach((sucursal, index) => {
+                doc.addPage();
+
+                const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
+                const sucursalNombre = capitalizeFirstLetter(sucursal);
+
+                // Filtrar pedidos y pagos para esta sucursal
+                const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
+                const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
+
+                // Calcular Totales
+                const totalPedidos = pedidosSucursal.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
+                const totalPagado = pagosSucursal.reduce((sum, pago) => sum + pago.precioTotalPagado, 0);
+                const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
+                const saldo = totalPagado - totalPedidos > 0 ? totalPagado - totalPedidos : 0;
+
+                // Título de la Sucursal
+                doc.setFontSize(16);
+                doc.text(`Reporte - ${sucursalNombre} (${empresa})`, 40, 40);
+
+                // Resumen de Cajas Consumidas
+                const cajasTipo = {
+                    pizza: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0),
+                    fingers: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0)
                 };
 
-                // Generar y descargar el PDF usando html2pdf.js
-                await html2pdf().set(opt).from(reportElement).save();
+                doc.setFontSize(12);
+                doc.text('Resumen de Cajas Consumidas:', 40, 60);
 
-                console.log('PDF generado y descargado exitosamente');
-            } catch (error) {
-                console.error('Error al generar el PDF:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al generar el PDF. Por favor, inténtalo de nuevo.',
+                doc.autoTable({
+                    startY: 65,
+                    margin: { left: 40, right: 40 },
+                    theme: 'grid',
+                    head: [['Pizza', 'Fingers']],
+                    body: [
+                        [cajasTipo.pizza, cajasTipo.fingers]
+                    ],
+                    styles: { halign: 'left' },
+                    headStyles: { fillColor: [0, 121, 107] }, // Color similar a #00796b
                 });
-            }
+
+                // Detalle de Pedidos
+                doc.setFontSize(14);
+                doc.text('Pedidos:', 40, doc.lastAutoTable.finalY + 20);
+
+                const pedidosSucBody = pedidosSucursal.map(pedido => [
+                    pedido.id,
+                    pedido.TipoCaja,
+                    pedido.Fecha,
+                    pedido.Cantidad,
+                    pedido.PrecioUnitario.toFixed(2),
+                    pedido.PrecioTotal.toFixed(2)
+                ]);
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 25,
+                    margin: { left: 40, right: 40 },
+                    theme: 'grid',
+                    head: [['ID', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
+                    body: pedidosSucBody,
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [245, 127, 23] },
+                });
+
+                // Detalle de Pagos
+                doc.setFontSize(14);
+                doc.text('Pagos:', 40, doc.lastAutoTable.finalY + 30);
+
+                const pagosSucBody = pagosSucursal.map(pago => [
+                    pago.id,
+                    pago.fechaPago,
+                    pago.boletaPago,
+                    pago.precioTotalPagado.toFixed(2)
+                ]);
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 35,
+                    margin: { left: 40, right: 40 },
+                    theme: 'grid',
+                    head: [['ID', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
+                    body: pagosSucBody,
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [245, 127, 23] },
+                });
+
+                // Resumen de la Sucursal
+                doc.setFontSize(12);
+                doc.text('Resumen:', 40, doc.lastAutoTable.finalY + 10);
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 15,
+                    margin: { left: 40, right: 40 },
+                    theme: 'grid',
+                    head: [['Concepto', 'Monto (Q)']],
+                    body: [
+                        ['Total Pedidos', totalPedidos.toFixed(2)],
+                        ['Total Pagado', totalPagado.toFixed(2)],
+                        ['Total Pendiente', totalPendiente.toFixed(2)],
+                        ['Saldo', saldo > 0 ? saldo.toFixed(2) : '0.00'],
+                    ],
+                    styles: { halign: 'left' },
+                    headStyles: { fillColor: [0, 121, 107] },
+                });
+            });
+
+            // Guardar PDF
+            const filename = `Reporte_Pedidos_Pagos_Cajas_${year}_${month}.pdf`;
+            doc.save(filename);
         }
 
         // Evento del botón de generar reporte
