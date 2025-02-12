@@ -18,7 +18,7 @@
   /* ====================================================
      VARIABLES GLOBALES Y DATOS INICIALES
      ==================================================== */
-  // Usamos fechas de ejemplo: hoy y ayer
+  // Fechas de ejemplo
   const hoy = new Date();
   const hoyStr = hoy.toISOString().split("T")[0];
   const ayer = new Date();
@@ -29,19 +29,21 @@
   let saleTypes = [];  // Colección "saleTypes"
   let salesData = [];  // Colección "sales"
   
-  // Variable que indica el tipo de venta actualmente activo (seleccionado)
+  // Tipo de venta actualmente activo (seleccionado)
   let activeSaleType = null;
   // Variable para saber si se está editando un registro (null = nuevo)
   let currentEditIndex = null;
   // Variable para la gráfica de ventas diarias
   let dailySalesChart;
+  // Variable global para el tipo de gráfica (por defecto "line")
+  // Opciones: "line", "stepline", "smoothline", "bar", "radar"
+  let chartType = "line";
+  // Variable global para activar/desactivar etiquetas en la gráfica
+  let showLabels = false;
   
   /* ====================================================
      FUNCIÓN PARA PARSEAR FECHAS COMO LOCALES
      ==================================================== */
-  /**
-   * Convierte una cadena "YYYY-MM-DD" en un objeto Date en hora local.
-   */
   function parseDateAsLocal(dateStr) {
     const parts = dateStr.split("-");
     return new Date(parts[0], parts[1] - 1, parts[2]);
@@ -57,7 +59,6 @@
         snapshot.forEach((doc) => {
           saleTypes.push({ ...doc.data(), id: doc.id });
         });
-        // Si no hay tipos, precargamos dos ejemplos
         if (saleTypes.length === 0) {
           const initialTypes = [
             { id: "general", label: "General", color: "rgba(0, 123, 255, 1)" },
@@ -72,9 +73,7 @@
           renderDetailedSaleTypeSelector();
         }
       })
-      .catch((error) => {
-        console.error("Error al cargar saleTypes:", error);
-      });
+      .catch((error) => { console.error("Error al cargar saleTypes:", error); });
   }
   
   function loadSalesData() {
@@ -88,9 +87,7 @@
         updateIndicators();
         loadSalesDetailed();
       })
-      .catch((error) => {
-        console.error("Error al cargar salesData:", error);
-      });
+      .catch((error) => { console.error("Error al cargar salesData:", error); });
   }
   
   /* ====================================================
@@ -155,18 +152,28 @@
       alert("Por favor seleccione un tipo de venta en el Dashboard.");
       return;
     }
+    
+    // Título de la gráfica: incluye mes, año y el rango de fechas (primer y último día)
+    const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const monthName = monthNames[month - 1];
+    const firstDay = "01/" + (month < 10 ? "0" + month : month) + "/" + year;
+    const lastDay = getDaysInMonth(year, month);
+    const lastDayStr = (lastDay < 10 ? "0" + lastDay : lastDay) + "/" + (month < 10 ? "0" + month : month) + "/" + year;
+    
     const daysInMonth = getDaysInMonth(year, month);
     const labels = [];
     for (let d = 1; d <= daysInMonth; d++) {
+      // Etiquetas: solo el día (01, 02, etc.)
       const dayStr = ("0" + d).slice(-2);
-      const monthStr = ("0" + month).slice(-2);
-      labels.push(`${dayStr}/${monthStr}`);
+      labels.push(dayStr);
     }
+    
     const ctx = document.getElementById("dailySalesChart").getContext("2d");
     if (dailySalesChart) { dailySalesChart.destroy(); }
+    
+    // Acumular ventas diarias para el tipo activo
     const data = new Array(daysInMonth).fill(0);
     salesData.forEach((sale) => {
-      // Usar parseDateAsLocal para evitar problemas de zona horaria
       const saleDate = parseDateAsLocal(sale.date);
       if (
         saleDate.getFullYear() === year &&
@@ -177,14 +184,25 @@
         data[day - 1] += sale.amount;
       }
     });
+    
     const total = data.reduce((sum, val) => sum + val, 0);
-    const avg = total / daysInMonth;
-    const avgLineData = new Array(daysInMonth).fill(avg);
+    const avgDaily = total / daysInMonth;
+    const avgLineData = new Array(daysInMonth).fill(avgDaily);
     const typeObj = saleTypes.find((t) => t.id === activeSaleType);
     const borderColor = typeObj ? typeObj.color : "rgba(75, 192, 192, 1)";
     const labelText = typeObj ? typeObj.label + " (Q)" : "Ventas (Q)";
+    
+    // Opciones de la línea según el tipo de gráfica
+    let datasetOptions = { tension: 0.2, stepped: false };
+    if (chartType === "stepline") {
+      datasetOptions.stepped = true;
+      datasetOptions.tension = 0;
+    } else if (chartType === "smoothline") {
+      datasetOptions.tension = 0.4;
+    }
+    
     dailySalesChart = new Chart(ctx, {
-      type: "line",
+      type: (chartType === "bar" || chartType === "radar") ? chartType : "line",
       data: {
         labels: labels,
         datasets: [
@@ -195,7 +213,7 @@
             borderColor: borderColor,
             backgroundColor: borderColor,
             pointRadius: 5,
-            tension: 0.2,
+            ...datasetOptions
           },
           {
             label: "Promedio Diario",
@@ -210,15 +228,42 @@
       options: {
         responsive: true,
         plugins: {
+          title: {
+            display: true,
+            text: `Ventas Diarias – ${monthName} ${year} (del ${firstDay} al ${lastDayStr})`
+          },
+          datalabels: {
+            display: showLabels,
+            color: "#000",
+            align: 'top',
+            formatter: Math.round
+          },
           tooltip: { mode: "index", intersect: false },
           legend: { position: "top" },
         },
         scales: {
           y: { beginAtZero: true, title: { display: true, text: "Ventas (Q)" } },
-          x: { title: { display: true, text: "Día/Mes" } }
-        },
+          x: { title: { display: true, text: "Día" } }
+        }
       },
+      plugins: [ChartDataLabels]
     });
+  }
+  
+  /* ====================================================
+     CAMBIAR TIPO DE GRÁFICA
+     ==================================================== */
+  function setChartType(newType) {
+    chartType = newType;
+    updateDailySalesChart();
+  }
+  
+  /* ====================================================
+     TOGGLE DE ETIQUETAS EN LA GRÁFICA
+     ==================================================== */
+  function toggleDataLabels(activate) {
+    showLabels = activate;
+    updateDailySalesChart();
   }
   
   /* ====================================================
@@ -230,21 +275,28 @@
     if (!year || !month || !activeSaleType) return;
     const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const monthName = monthNames[month - 1];
-    document.getElementById("dashboardMonthInfo").innerText = "Datos para: " + monthName + " " + year;
+    const firstDay = "01/" + (month < 10 ? "0" + month : month) + "/" + year;
+    const lastDay = getDaysInMonth(year, month);
+    const lastDayStr = (lastDay < 10 ? "0" + lastDay : lastDay) + "/" + (month < 10 ? "0" + month : month) + "/" + year;
+    document.getElementById("dashboardMonthInfo").innerText = `Datos para: ${monthName} ${year} (del ${firstDay} al ${lastDayStr})`;
+    
+    // Filtrar ventas del mes para el tipo activo
     const monthSales = salesData.filter((sale) => {
       const saleDate = parseDateAsLocal(sale.date);
       return saleDate.getFullYear() === year &&
              saleDate.getMonth() + 1 === month &&
              sale.type === activeSaleType;
     });
+    // Total de ventas y promedio por transacción (mes)
     const totalSales = monthSales.reduce((sum, sale) => sum + sale.amount, 0);
     const avgSale = monthSales.length > 0 ? totalSales / monthSales.length : 0;
+    
     const container = document.getElementById("indicatorsContainer");
     container.innerHTML = "";
     
     // Tarjeta: Venta Total (Mes)
     const colTotal = document.createElement("div");
-    colTotal.className = "col-md-6 mb-3";
+    colTotal.className = "col-md-4 mb-3";
     const cardTotal = document.createElement("div");
     cardTotal.className = "card text-white bg-secondary";
     const cardBodyTotal = document.createElement("div");
@@ -261,24 +313,91 @@
     colTotal.appendChild(cardTotal);
     container.appendChild(colTotal);
     
-    // Tarjeta: Promedio de Venta (Mes)
+    // Tarjeta: Promedio de Venta (Mes) - por transacción
     const colAvg = document.createElement("div");
-    colAvg.className = "col-md-6 mb-3";
+    colAvg.className = "col-md-4 mb-3";
     const cardAvg = document.createElement("div");
     cardAvg.className = "card text-white bg-warning";
     const cardBodyAvg = document.createElement("div");
     cardBodyAvg.className = "card-body";
     const titleAvg = document.createElement("h5");
     titleAvg.className = "card-title";
-    titleAvg.textContent = "Promedio de Venta (Mes)";
+    titleAvg.textContent = "Promedio (Mes)";
     const textAvg = document.createElement("p");
     textAvg.className = "card-text";
-    textAvg.textContent = "Q" + avgSale.toFixed(2);
+    textAvg.textContent = "Q" + (monthSales.length > 0 ? (totalSales / monthSales.length).toFixed(2) : "0.00");
     cardBodyAvg.appendChild(titleAvg);
     cardBodyAvg.appendChild(textAvg);
     cardAvg.appendChild(cardBodyAvg);
     colAvg.appendChild(cardAvg);
     container.appendChild(colAvg);
+    
+    // Tarjeta: Promedio de Venta Diario
+    const colDailyAvg = document.createElement("div");
+    colDailyAvg.className = "col-md-4 mb-3";
+    const cardDailyAvg = document.createElement("div");
+    cardDailyAvg.className = "card text-white bg-info";
+    const cardBodyDailyAvg = document.createElement("div");
+    cardBodyDailyAvg.className = "card-body";
+    const titleDailyAvg = document.createElement("h5");
+    titleDailyAvg.className = "card-title";
+    titleDailyAvg.textContent = "Promedio Diario";
+    const dailyAvg = totalSales / getDaysInMonth(year, month);
+    const textDailyAvg = document.createElement("p");
+    textDailyAvg.className = "card-text";
+    textDailyAvg.textContent = "Q" + dailyAvg.toFixed(2);
+    const textDailyRange = document.createElement("small");
+    textDailyRange.className = "text-light";
+    textDailyRange.textContent = ` (del ${firstDay} al ${lastDayStr})`;
+    cardBodyDailyAvg.appendChild(titleDailyAvg);
+    cardBodyDailyAvg.appendChild(textDailyAvg);
+    cardBodyDailyAvg.appendChild(textDailyRange);
+    cardDailyAvg.appendChild(cardBodyDailyAvg);
+    colDailyAvg.appendChild(cardDailyAvg);
+    container.appendChild(colDailyAvg);
+  }
+  
+  /* ====================================================
+     INDICADORES DE CRECIMIENTO (DIARIO Y SEMANAL)
+     ==================================================== */
+  function updateGrowthIndicators(year, month) {
+    const daysInMonth = getDaysInMonth(year, month);
+    const dailyTotals = new Array(daysInMonth).fill(0);
+    salesData.forEach((sale) => {
+      const saleDate = parseDateAsLocal(sale.date);
+      if (
+        saleDate.getFullYear() === year &&
+        saleDate.getMonth() + 1 === month &&
+        sale.type === activeSaleType
+      ) {
+        const day = saleDate.getDate();
+        dailyTotals[day - 1] += sale.amount;
+      }
+    });
+    let dailyGrowthText = "";
+    if (daysInMonth >= 2 && dailyTotals[dailyTotals.length - 2] > 0) {
+      const growthDaily = ((dailyTotals[dailyTotals.length - 1] - dailyTotals[dailyTotals.length - 2]) / dailyTotals[dailyTotals.length - 2]) * 100;
+      const iconDaily = growthDaily >= 0 ? "🔼" : "🔽";
+      dailyGrowthText = `Crecimiento Diario: ${iconDaily} ${Math.abs(growthDaily).toFixed(2)}%`;
+    } else {
+      dailyGrowthText = "Crecimiento Diario: N/A";
+    }
+    let weeklyGrowthText = "";
+    if (daysInMonth >= 14) {
+      const last7 = dailyTotals.slice(-7).reduce((a, b) => a + b, 0);
+      const prev7 = dailyTotals.slice(-14, -7).reduce((a, b) => a + b, 0);
+      if (prev7 > 0) {
+        const growthWeekly = ((last7 - prev7) / prev7) * 100;
+        const iconWeekly = growthWeekly >= 0 ? "🔼" : "🔽";
+        weeklyGrowthText = `Crecimiento Semanal: ${iconWeekly} ${Math.abs(growthWeekly).toFixed(2)}%`;
+      } else {
+        weeklyGrowthText = "Crecimiento Semanal: N/A";
+      }
+    } else {
+      weeklyGrowthText = "Crecimiento Semanal: N/A";
+    }
+    const additionalContainer = document.getElementById("additionalTrendIndicator");
+    additionalContainer.innerHTML = `<p>${dailyGrowthText}</p><p>${weeklyGrowthText}</p>`;
   }
   
   /* ====================================================
@@ -311,10 +430,10 @@
     if (prevTotal > 0) {
       const trendPercentage = ((currentTotal - prevTotal) / prevTotal) * 100;
       const trendIcon = trendPercentage >= 0 ? "🔼" : "🔽";
-      trendText = "Tendencia: " + trendIcon + " " + Math.abs(trendPercentage).toFixed(2) +
+      trendText = "Tendencia Mensual: " + trendIcon + " " + Math.abs(trendPercentage).toFixed(2) +
                   "% (Comparado con " + prevMonth + "/" + prevYear + ")";
     } else {
-      trendText = "Tendencia: N/A (sin datos del mes anterior)";
+      trendText = "Tendencia Mensual: N/A (sin datos del mes anterior)";
     }
     document.getElementById("trendIndicator").innerText = trendText;
   }
@@ -477,17 +596,13 @@
   }
   
   /* ====================================================
-     BOTÓN PARA MINIMIZAR EL MENÚ CON DESLIZAMIENTO
+     BOTÓN PARA MINIMIZAR EL MENÚ Y AJUSTAR EL CONTENIDO
      ==================================================== */
   function toggleSidebar() {
     const sidebar = document.getElementById("sidebarMenu");
-    const mainContent = document.querySelector("main");
+    const mainContent = document.getElementById("mainContent");
     sidebar.classList.toggle("minimized");
-    if (sidebar.classList.contains("minimized")) {
-      mainContent.classList.add("full-width");
-    } else {
-      mainContent.classList.remove("full-width");
-    }
+    mainContent.classList.toggle("full-width");
   }
   
   /* ====================================================
