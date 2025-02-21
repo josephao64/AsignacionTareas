@@ -270,27 +270,22 @@
                 return;
             }
 
-            // Extraer año y mes numéricos
-            const [year, month] = mesSeleccionado.split('-');
-
             // Convertir a mes textual para el título
+            const [year, month] = mesSeleccionado.split('-');
             const fechaTitulo = new Date(year, month - 1)
                 .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
-            // Filtrar Facturas por Mes y Sucursal
+            // Filtrar Facturas por Mes y Sucursal usando substring
             let facturasFiltradas = facturas.filter(f => {
-                const fDate = new Date(f.Fecha);
-                const fYear = fDate.getFullYear();
-                const fMonth = fDate.getMonth() + 1;
-                const coincideMes       = (fYear === parseInt(year)) && (fMonth === parseInt(month));
-                const coincideSucursal  = sucursalSeleccionada ? (f.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+                const coincideMes = f.Fecha.substr(0,7) === mesSeleccionado;
+                const coincideSucursal = sucursalSeleccionada ? (f.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
                 return coincideMes && coincideSucursal;
             });
 
             // Filtrar Pagos por Mes y Sucursal
             let pagosFiltrados = pagos.filter(pg => {
-                const coincideMes       = (pg.mes === mesSeleccionado);
-                const coincideSucursal  = sucursalSeleccionada ? (pg.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+                const coincideMes = pg.mes === mesSeleccionado;
+                const coincideSucursal = sucursalSeleccionada ? (pg.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
                 return coincideMes && coincideSucursal;
             });
 
@@ -452,23 +447,17 @@
                 return;
             }
 
-            // Filtrar datos nuevamente para el PDF
-            const [year, month] = mesSeleccionado.split('-');
-
-            // Filtrar Facturas por Mes y Sucursal
+            // Filtrar Facturas por Mes y Sucursal usando substring
             let facturasFiltradas = facturas.filter(f => {
-                const fDate = new Date(f.Fecha);
-                const fYear = fDate.getFullYear();
-                const fMonth = fDate.getMonth() + 1;
-                const coincideMes       = (fYear === parseInt(year)) && (fMonth === parseInt(month));
-                const coincideSucursal  = sucursalSeleccionada ? (f.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+                const coincideMes = f.Fecha.substr(0,7) === mesSeleccionado;
+                const coincideSucursal = sucursalSeleccionada ? (f.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
                 return coincideMes && coincideSucursal;
             });
 
             // Filtrar Pagos por Mes y Sucursal
             let pagosFiltrados = pagos.filter(pg => {
-                const coincideMes       = (pg.mes === mesSeleccionado);
-                const coincideSucursal  = sucursalSeleccionada ? (pg.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+                const coincideMes = pg.mes === mesSeleccionado;
+                const coincideSucursal = sucursalSeleccionada ? (pg.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
                 return coincideMes && coincideSucursal;
             });
 
@@ -494,6 +483,7 @@
             const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
 
             // Título principal
+            const [year, month] = mesSeleccionado.split('-');
             const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
             doc.setFontSize(16);
             doc.text(`Reporte de Facturas y Pagos - ${fechaTitulo}`, 40, 40);
