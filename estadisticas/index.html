@@ -48,18 +48,18 @@
             </ul>
           </div>
         </nav>
-  
+
         <!-- Contenido principal -->
         <main id="mainContent" class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
           <!-- Botón para minimizar/restaurar el menú -->
           <button class="btn btn-outline-secondary mb-3" onclick="toggleSidebar()">
             <i class="fa-solid fa-bars"></i> Minimizar Menú
           </button>
-  
+
           <!-- Dashboard Section -->
           <section id="dashboardSection" class="my-4">
             <h1>Dashboard de Ventas Diarias</h1>
-  
+
             <!-- Card: Seleccionar Tipo de Venta (generado dinámicamente) -->
             <div class="card mb-4">
               <div class="card-header">Seleccione Tipo de Venta</div>
@@ -67,7 +67,7 @@
                 <!-- Botones generados dinámicamente -->
               </div>
             </div>
-  
+
             <!-- Contenido del Dashboard (visible cuando se ha seleccionado un tipo) -->
             <div id="dashboardContent" style="display: none;">
               <!-- Filtros para la gráfica -->
@@ -110,17 +110,17 @@
                   </button>
                 </div>
               </div>
-  
+
               <!-- Información del mes y rango de fechas -->
               <p id="dashboardMonthInfo" class="mb-3"></p>
-  
+
               <!-- Botón para ver la tendencia mensual -->
               <button class="btn btn-secondary mb-3" onclick="showTrend()">Ver Tendencia Mensual</button>
               <p id="trendIndicator" class="mb-3"></p>
-  
+
               <!-- Indicadores adicionales: Crecimiento Diario y Semanal -->
               <div id="additionalTrendIndicator" class="mb-3"></div>
-  
+
               <!-- Gráfico de Ventas Diarias -->
               <div class="card mb-4">
                 <div class="card-header">Ventas Diarias</div>
@@ -128,16 +128,16 @@
                   <canvas id="dailySalesChart" height="100"></canvas>
                 </div>
               </div>
-  
+
               <!-- Indicadores (Total y Promedio) -->
               <div id="indicatorsContainer" class="row"></div>
             </div>
           </section>
-  
+
           <!-- Ventas Detalladas Section -->
           <section id="detailedSalesSection" class="my-4" style="display: none;">
             <h1>Ventas Detalladas</h1>
-  
+
             <!-- Card: Seleccionar Tipo de Venta para el CRUD -->
             <div class="card mb-4" id="detailedSaleTypeContainer">
               <div class="card-header">Seleccione Tipo de Venta</div>
@@ -145,13 +145,13 @@
                 <!-- Botones generados dinámicamente -->
               </div>
             </div>
-  
+
             <!-- Filtros para el CRUD -->
             <div class="card mb-3">
               <div class="card-header">Filtrar Ventas</div>
               <div class="card-body">
                 <div class="row">
-                  <div class="col-md-6">
+                  <div class="col-md-4">
                     <label for="filterYear" class="form-label">Año</label>
                     <select id="filterYear" class="form-select" onchange="loadSalesDetailed()">
                       <option value="">Seleccione Año</option>
@@ -159,7 +159,7 @@
                       <option value="2025">2025</option>
                     </select>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-4">
                     <label for="filterMonth" class="form-label">Mes</label>
                     <select id="filterMonth" class="form-select" onchange="loadSalesDetailed()">
                       <option value="">Seleccione Mes</option>
@@ -177,13 +177,20 @@
                       <option value="12">Diciembre</option>
                     </select>
                   </div>
+                  <div class="col-md-4">
+                    <label for="filterOrder" class="form-label">Orden</label>
+                    <select id="filterOrder" class="form-select" onchange="loadSalesDetailed()">
+                      <option value="asc">Ascendente (más antiguo primero)</option>
+                      <option value="desc">Descendente (más reciente primero)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-  
+
             <!-- Botón para cargar datos filtrados -->
             <button class="btn btn-primary mb-3" onclick="loadSalesDetailed()">Cargar Datos</button>
-  
+
             <!-- Tabla de Ventas Detalladas -->
             <div class="card">
               <div class="card-header">Listado de Ventas Diarias</div>
@@ -196,21 +203,26 @@
                 </div>
               </div>
             </div>
-  
-            <!-- Botones para Agregar Venta y Agregar Tipo -->
+
+            <!-- Botones para Agregar Venta, Agregar Tipo y Modificar Tipos -->
             <div class="d-flex justify-content-between align-items-center mt-3">
               <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saleModal">
                 <i class="fa-solid fa-plus"></i> Agregar Venta
               </button>
-              <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
-                <i class="fa-solid fa-plus"></i> Agregar Tipo de Venta
-              </button>
+              <div>
+                <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
+                  <i class="fa-solid fa-plus"></i> Agregar Tipo de Venta
+                </button>
+                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modifySaleTypeModal" onclick="renderModifySaleTypes()">
+                  <i class="fa-solid fa-edit"></i> Modificar Tipos de Venta
+                </button>
+              </div>
             </div>
           </section>
         </main>
       </div>
     </div>
-  
+
     <!-- Modal para Agregar/Editar Venta Diaria -->
     <div class="modal fade" id="saleModal" tabindex="-1" aria-labelledby="saleModalLabel" aria-hidden="true">
       <div class="modal-dialog">
@@ -238,7 +250,7 @@
         </div>
       </div>
     </div>
-  
+
     <!-- Modal para Agregar Tipo de Venta -->
     <div class="modal fade" id="saleTypeModal" tabindex="-1" aria-labelledby="saleTypeModalLabel" aria-hidden="true">
       <div class="modal-dialog">
@@ -266,7 +278,28 @@
         </div>
       </div>
     </div>
-  
+
+    <!-- Modal para Modificar Tipos de Venta -->
+    <div class="modal fade" id="modifySaleTypeModal" tabindex="-1" aria-labelledby="modifySaleTypeModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modifySaleTypeModalLabel">Modificar Tipos de Venta</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="modifySaleTypesContainer"></div>
+            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
+              <i class="fa-solid fa-plus"></i> Agregar Nuevo Tipo
+            </button>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Nuestro JavaScript -->

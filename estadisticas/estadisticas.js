@@ -1,5 +1,3 @@
-/* estadisticas.js */
-
 /* ====================================================
    CONFIGURACIÓN DE FIREBASE
    ==================================================== */
@@ -71,6 +69,7 @@
         } else {
           renderSaleTypeSelector();
           renderDetailedSaleTypeSelector();
+          renderModifySaleTypes(); // Actualiza la lista del modal de modificación
         }
       })
       .catch((error) => { console.error("Error al cargar saleTypes:", error); });
@@ -163,7 +162,6 @@
     const daysInMonth = getDaysInMonth(year, month);
     const labels = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      // Etiquetas: solo el día (01, 02, etc.)
       const dayStr = ("0" + d).slice(-2);
       labels.push(dayStr);
     }
@@ -192,7 +190,6 @@
     const borderColor = typeObj ? typeObj.color : "rgba(75, 192, 192, 1)";
     const labelText = typeObj ? typeObj.label + " (Q)" : "Ventas (Q)";
     
-    // Opciones de la línea según el tipo de gráfica
     let datasetOptions = { tension: 0.2, stepped: false };
     if (chartType === "stepline") {
       datasetOptions.stepped = true;
@@ -280,14 +277,12 @@
     const lastDayStr = (lastDay < 10 ? "0" + lastDay : lastDay) + "/" + (month < 10 ? "0" + month : month) + "/" + year;
     document.getElementById("dashboardMonthInfo").innerText = `Datos para: ${monthName} ${year} (del ${firstDay} al ${lastDayStr})`;
     
-    // Filtrar ventas del mes para el tipo activo
     const monthSales = salesData.filter((sale) => {
       const saleDate = parseDateAsLocal(sale.date);
       return saleDate.getFullYear() === year &&
              saleDate.getMonth() + 1 === month &&
              sale.type === activeSaleType;
     });
-    // Total de ventas y promedio por transacción (mes)
     const totalSales = monthSales.reduce((sum, sale) => sum + sale.amount, 0);
     const avgSale = monthSales.length > 0 ? totalSales / monthSales.length : 0;
     
@@ -358,49 +353,6 @@
   }
   
   /* ====================================================
-     INDICADORES DE CRECIMIENTO (DIARIO Y SEMANAL)
-     ==================================================== */
-  function updateGrowthIndicators(year, month) {
-    const daysInMonth = getDaysInMonth(year, month);
-    const dailyTotals = new Array(daysInMonth).fill(0);
-    salesData.forEach((sale) => {
-      const saleDate = parseDateAsLocal(sale.date);
-      if (
-        saleDate.getFullYear() === year &&
-        saleDate.getMonth() + 1 === month &&
-        sale.type === activeSaleType
-      ) {
-        const day = saleDate.getDate();
-        dailyTotals[day - 1] += sale.amount;
-      }
-    });
-    let dailyGrowthText = "";
-    if (daysInMonth >= 2 && dailyTotals[dailyTotals.length - 2] > 0) {
-      const growthDaily = ((dailyTotals[dailyTotals.length - 1] - dailyTotals[dailyTotals.length - 2]) / dailyTotals[dailyTotals.length - 2]) * 100;
-      const iconDaily = growthDaily >= 0 ? "🔼" : "🔽";
-      dailyGrowthText = `Crecimiento Diario: ${iconDaily} ${Math.abs(growthDaily).toFixed(2)}%`;
-    } else {
-      dailyGrowthText = "Crecimiento Diario: N/A";
-    }
-    let weeklyGrowthText = "";
-    if (daysInMonth >= 14) {
-      const last7 = dailyTotals.slice(-7).reduce((a, b) => a + b, 0);
-      const prev7 = dailyTotals.slice(-14, -7).reduce((a, b) => a + b, 0);
-      if (prev7 > 0) {
-        const growthWeekly = ((last7 - prev7) / prev7) * 100;
-        const iconWeekly = growthWeekly >= 0 ? "🔼" : "🔽";
-        weeklyGrowthText = `Crecimiento Semanal: ${iconWeekly} ${Math.abs(growthWeekly).toFixed(2)}%`;
-      } else {
-        weeklyGrowthText = "Crecimiento Semanal: N/A";
-      }
-    } else {
-      weeklyGrowthText = "Crecimiento Semanal: N/A";
-    }
-    const additionalContainer = document.getElementById("additionalTrendIndicator");
-    additionalContainer.innerHTML = `<p>${dailyGrowthText}</p><p>${weeklyGrowthText}</p>`;
-  }
-  
-  /* ====================================================
      TENDENCIA DEL MES
      ==================================================== */
   function showTrend() {
@@ -444,6 +396,7 @@
   function loadSalesDetailed() {
     const filterYear = document.getElementById("filterYear").value;
     const filterMonth = document.getElementById("filterMonth").value;
+    const order = document.getElementById("filterOrder").value || "asc";
     const tableHeader = document.getElementById("salesTableHeader");
     const tableBody = document.getElementById("salesTableBody");
     if (!activeSaleType) {
@@ -468,6 +421,12 @@
                (saleDate.getMonth() + 1).toString() === filterMonth &&
                item.sale.type === activeSaleType;
       });
+    // Ordenar según la fecha (ascendente o descendente)
+    filteredSales.sort((a, b) => {
+      const dateA = parseDateAsLocal(a.sale.date);
+      const dateB = parseDateAsLocal(b.sale.date);
+      return order === "asc" ? dateA - dateB : dateB - dateA;
+    });
     filteredSales.forEach((item) => {
       const record = item.sale;
       const origIndex = item.idx;
@@ -593,6 +552,67 @@
       .catch((error) => {
         console.error("Error al guardar el tipo de venta:", error);
       });
+  }
+  
+  /* ====================================================
+     CRUD PARA TIPOS DE VENTA: MODIFICAR (EDITAR/ELIMINAR)
+     ==================================================== */
+  function renderModifySaleTypes() {
+    const container = document.getElementById("modifySaleTypesContainer");
+    container.innerHTML = "";
+    saleTypes.forEach((type) => {
+      const div = document.createElement("div");
+      div.className = "d-flex align-items-center mb-2";
+      
+      const span = document.createElement("span");
+      span.textContent = type.label;
+      span.style.color = type.color;
+      span.style.flexGrow = "1";
+      
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "btn btn-sm btn-primary me-2";
+      btnEdit.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+      btnEdit.onclick = () => { editSaleType(type); };
+      
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "btn btn-sm btn-danger";
+      btnDelete.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDelete.onclick = () => { deleteSaleType(type.id); };
+      
+      div.appendChild(span);
+      div.appendChild(btnEdit);
+      div.appendChild(btnDelete);
+      container.appendChild(div);
+    });
+  }
+  
+  function editSaleType(type) {
+    const newLabel = prompt("Editar nombre del tipo de venta:", type.label);
+    if (newLabel !== null && newLabel.trim() !== "") {
+      const newColor = prompt("Editar color del tipo de venta (valor HEX):", type.color);
+      if (newColor !== null && newColor.trim() !== "") {
+        db.collection("saleTypes").doc(type.id).update({
+          label: newLabel,
+          color: newColor
+        })
+        .then(() => {
+          loadSaleTypes();
+          renderModifySaleTypes();
+        })
+        .catch((error) => { console.error("Error al actualizar tipo de venta:", error); });
+      }
+    }
+  }
+  
+  function deleteSaleType(typeId) {
+    if (confirm("¿Está seguro de eliminar este tipo de venta?")) {
+      db.collection("saleTypes").doc(typeId).delete()
+        .then(() => {
+          loadSaleTypes();
+          renderModifySaleTypes();
+        })
+        .catch((error) => { console.error("Error al eliminar tipo de venta:", error); });
+    }
   }
   
   /* ====================================================
