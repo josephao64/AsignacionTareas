@@ -26,201 +26,200 @@
   </head>
   <body>
     <div class="container-fluid">
-      <div class="row">
-        <!-- Menú lateral (Sidebar) sin submenús desplegables -->
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-          <div class="position-sticky pt-3">
-            <ul class="nav flex-column">
-              <!-- Opción Dashboard -->
+      <!-- Menú superior -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Ventas Diarias</a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarTopMenu"
+            aria-controls="navbarTopMenu"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarTopMenu">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               <li class="nav-item">
-                <a class="nav-link" href="#" onclick="showSection('dashboardSection')">
-                  <i class="fa-solid fa-chart-line"></i>
-                  <span class="menu-text">Dashboard</span>
-                </a>
+                <a class="nav-link" href="#" onclick="showSection('dashboardSection')">Dashboard</a>
               </li>
-              <!-- Opción Ventas Detalladas -->
               <li class="nav-item">
-                <a class="nav-link" href="#" onclick="showSection('detailedSalesSection')">
-                  <i class="fa-solid fa-table"></i>
-                  <span class="menu-text">Ventas Detalladas</span>
-                </a>
+                <a class="nav-link" href="#" onclick="showSection('detailedSalesSection')">Ventas Detalladas</a>
               </li>
             </ul>
           </div>
-        </nav>
+        </div>
+      </nav>
+      
+      <!-- Contenido principal -->
+      <main id="mainContent" class="px-md-4 mt-4">
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="my-4">
+          <h1>Dashboard de Ventas Diarias</h1>
 
-        <!-- Contenido principal -->
-        <main id="mainContent" class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-          <!-- Botón para minimizar/restaurar el menú -->
-          <button class="btn btn-outline-secondary mb-3" onclick="toggleSidebar()">
-            <i class="fa-solid fa-bars"></i> Minimizar Menú
-          </button>
+          <!-- Card: Seleccionar Tipo de Venta (generado dinámicamente) -->
+          <div class="card mb-4">
+            <div class="card-header">Seleccione Tipo de Venta</div>
+            <div class="card-body" id="saleTypeSelector">
+              <!-- Botones generados dinámicamente -->
+            </div>
+          </div>
 
-          <!-- Dashboard Section -->
-          <section id="dashboardSection" class="my-4">
-            <h1>Dashboard de Ventas Diarias</h1>
-
-            <!-- Card: Seleccionar Tipo de Venta (generado dinámicamente) -->
+          <!-- Contenido del Dashboard (visible cuando se ha seleccionado un tipo) -->
+          <div id="dashboardContent" style="display: none;">
+            <!-- Filtros para la gráfica -->
             <div class="card mb-4">
-              <div class="card-header">Seleccione Tipo de Venta</div>
-              <div class="card-body" id="saleTypeSelector">
-                <!-- Botones generados dinámicamente -->
-              </div>
-            </div>
-
-            <!-- Contenido del Dashboard (visible cuando se ha seleccionado un tipo) -->
-            <div id="dashboardContent" style="display: none;">
-              <!-- Filtros para la gráfica -->
-              <div class="card mb-4">
-                <div class="card-header">Filtrar Gráfica de Ventas Diarias</div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <label for="chartFilterYear" class="form-label">Año</label>
-                      <select id="chartFilterYear" class="form-select"></select>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="chartFilterMonth" class="form-label">Mes</label>
-                      <select id="chartFilterMonth" class="form-select"></select>
-                    </div>
-                  </div>
-                  <!-- Selector de Tipo de Gráfica -->
-                  <div class="row mt-3">
-                    <div class="col-md-6">
-                      <label for="chartTypeSelector" class="form-label">Tipo de Gráfica</label>
-                      <select id="chartTypeSelector" class="form-select" onchange="setChartType(this.value)">
-                        <option value="line" selected>Lineal</option>
-                        <option value="stepline">Stepline</option>
-                        <option value="smoothline">Smoothline</option>
-                        <option value="bar">Barras</option>
-                        <option value="radar">Radar</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" value="" id="toggleLabels" onchange="toggleDataLabels(this.checked)">
-                        <label class="form-check-label" for="toggleLabels">
-                          Activar Etiquetas
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <button class="btn btn-primary mt-3" onclick="updateDailySalesChart(); updateIndicators();">
-                    Actualizar Gráfica e Indicadores
-                  </button>
-                </div>
-              </div>
-
-              <!-- Información del mes y rango de fechas -->
-              <p id="dashboardMonthInfo" class="mb-3"></p>
-
-              <!-- Botón para ver la tendencia mensual -->
-              <button class="btn btn-secondary mb-3" onclick="showTrend()">Ver Tendencia Mensual</button>
-              <p id="trendIndicator" class="mb-3"></p>
-
-              <!-- Indicadores adicionales: Crecimiento Diario y Semanal -->
-              <div id="additionalTrendIndicator" class="mb-3"></div>
-
-              <!-- Gráfico de Ventas Diarias -->
-              <div class="card mb-4">
-                <div class="card-header">Ventas Diarias</div>
-                <div class="card-body">
-                  <canvas id="dailySalesChart" height="100"></canvas>
-                </div>
-              </div>
-
-              <!-- Indicadores (Total y Promedio) -->
-              <div id="indicatorsContainer" class="row"></div>
-            </div>
-          </section>
-
-          <!-- Ventas Detalladas Section -->
-          <section id="detailedSalesSection" class="my-4" style="display: none;">
-            <h1>Ventas Detalladas</h1>
-
-            <!-- Card: Seleccionar Tipo de Venta para el CRUD -->
-            <div class="card mb-4" id="detailedSaleTypeContainer">
-              <div class="card-header">Seleccione Tipo de Venta</div>
-              <div class="card-body" id="detailedSaleTypeSelector">
-                <!-- Botones generados dinámicamente -->
-              </div>
-            </div>
-
-            <!-- Filtros para el CRUD -->
-            <div class="card mb-3">
-              <div class="card-header">Filtrar Ventas</div>
+              <div class="card-header">Filtrar Gráfica de Ventas Diarias</div>
               <div class="card-body">
                 <div class="row">
-                  <div class="col-md-4">
-                    <label for="filterYear" class="form-label">Año</label>
-                    <select id="filterYear" class="form-select" onchange="loadSalesDetailed()">
-                      <option value="">Seleccione Año</option>
-                      <option value="2024">2024</option>
-                      <option value="2025">2025</option>
-                    </select>
+                  <div class="col-md-6">
+                    <label for="chartFilterYear" class="form-label">Año</label>
+                    <select id="chartFilterYear" class="form-select"></select>
                   </div>
-                  <div class="col-md-4">
-                    <label for="filterMonth" class="form-label">Mes</label>
-                    <select id="filterMonth" class="form-select" onchange="loadSalesDetailed()">
-                      <option value="">Seleccione Mes</option>
-                      <option value="1">Enero</option>
-                      <option value="2">Febrero</option>
-                      <option value="3">Marzo</option>
-                      <option value="4">Abril</option>
-                      <option value="5">Mayo</option>
-                      <option value="6">Junio</option>
-                      <option value="7">Julio</option>
-                      <option value="8">Agosto</option>
-                      <option value="9">Septiembre</option>
-                      <option value="10">Octubre</option>
-                      <option value="11">Noviembre</option>
-                      <option value="12">Diciembre</option>
-                    </select>
-                  </div>
-                  <div class="col-md-4">
-                    <label for="filterOrder" class="form-label">Orden</label>
-                    <select id="filterOrder" class="form-select" onchange="loadSalesDetailed()">
-                      <option value="asc">Ascendente (más antiguo primero)</option>
-                      <option value="desc">Descendente (más reciente primero)</option>
-                    </select>
+                  <div class="col-md-6">
+                    <label for="chartFilterMonth" class="form-label">Mes</label>
+                    <select id="chartFilterMonth" class="form-select"></select>
                   </div>
                 </div>
+                <!-- Selector de Tipo de Gráfica -->
+                <div class="row mt-3">
+                  <div class="col-md-6">
+                    <label for="chartTypeSelector" class="form-label">Tipo de Gráfica</label>
+                    <select id="chartTypeSelector" class="form-select" onchange="setChartType(this.value)">
+                      <option value="line" selected>Lineal</option>
+                      <option value="stepline">Stepline</option>
+                      <option value="smoothline">Smoothline</option>
+                      <option value="bar">Barras</option>
+                      <option value="radar">Radar</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mt-4">
+                      <input class="form-check-input" type="checkbox" value="" id="toggleLabels" onchange="toggleDataLabels(this.checked)">
+                      <label class="form-check-label" for="toggleLabels">
+                        Activar Etiquetas
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn btn-primary mt-3" onclick="updateDailySalesChart(); updateIndicators();">
+                  Actualizar Gráfica e Indicadores
+                </button>
               </div>
             </div>
 
-            <!-- Botón para cargar datos filtrados -->
-            <button class="btn btn-primary mb-3" onclick="loadSalesDetailed()">Cargar Datos</button>
+            <!-- Información del mes y rango de fechas -->
+            <p id="dashboardMonthInfo" class="mb-3"></p>
 
-            <!-- Tabla de Ventas Detalladas -->
-            <div class="card">
-              <div class="card-header">Listado de Ventas Diarias</div>
+            <!-- Botón para ver la tendencia mensual -->
+            <button class="btn btn-secondary mb-3" onclick="showTrend()">Ver Tendencia Mensual</button>
+            <p id="trendIndicator" class="mb-3"></p>
+
+            <!-- Indicadores adicionales: Crecimiento Diario y Semanal -->
+            <div id="additionalTrendIndicator" class="mb-3"></div>
+
+            <!-- Gráfico de Ventas Diarias -->
+            <div class="card mb-4">
+              <div class="card-header">Ventas Diarias</div>
               <div class="card-body">
-                <div class="table-responsive">
-                  <table class="table table-bordered">
-                    <thead id="salesTableHeader"></thead>
-                    <tbody id="salesTableBody"></tbody>
-                  </table>
-                </div>
+                <canvas id="dailySalesChart" height="100"></canvas>
               </div>
             </div>
 
-            <!-- Botones para Agregar Venta, Agregar Tipo y Modificar Tipos -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saleModal">
-                <i class="fa-solid fa-plus"></i> Agregar Venta
-              </button>
-              <div>
-                <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
-                  <i class="fa-solid fa-plus"></i> Agregar Tipo de Venta
-                </button>
-                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modifySaleTypeModal" onclick="renderModifySaleTypes()">
-                  <i class="fa-solid fa-edit"></i> Modificar Tipos de Venta
-                </button>
+            <!-- Indicadores (Total y Promedio) -->
+            <div id="indicatorsContainer" class="row"></div>
+          </div>
+        </section>
+
+        <!-- Ventas Detalladas Section -->
+        <section id="detailedSalesSection" class="my-4" style="display: none;">
+          <h1>Ventas Detalladas</h1>
+
+          <!-- Card: Seleccionar Tipo de Venta para el CRUD -->
+          <div class="card mb-4" id="detailedSaleTypeContainer">
+            <div class="card-header">Seleccione Tipo de Venta</div>
+            <div class="card-body" id="detailedSaleTypeSelector">
+              <!-- Botones generados dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Filtros para el CRUD -->
+          <div class="card mb-3">
+            <div class="card-header">Filtrar Ventas</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <label for="filterYear" class="form-label">Año</label>
+                  <select id="filterYear" class="form-select" onchange="loadSalesDetailed()">
+                    <option value="">Seleccione Año</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="filterMonth" class="form-label">Mes</label>
+                  <select id="filterMonth" class="form-select" onchange="loadSalesDetailed()">
+                    <option value="">Seleccione Mes</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="filterOrder" class="form-label">Orden</label>
+                  <select id="filterOrder" class="form-select" onchange="loadSalesDetailed()">
+                    <option value="asc">Ascendente (más antiguo primero)</option>
+                    <option value="desc">Descendente (más reciente primero)</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </section>
-        </main>
-      </div>
+          </div>
+
+          <!-- Botón para cargar datos filtrados -->
+          <button class="btn btn-primary mb-3" onclick="loadSalesDetailed()">Cargar Datos</button>
+
+          <!-- Tabla de Ventas Detalladas -->
+          <div class="card">
+            <div class="card-header">Listado de Ventas Diarias</div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead id="salesTableHeader"></thead>
+                  <tbody id="salesTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones para Agregar Venta, Agregar Tipo y Modificar Tipos -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saleModal">
+              <i class="fa-solid fa-plus"></i> Agregar Venta
+            </button>
+            <div>
+              <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
+                <i class="fa-solid fa-plus"></i> Agregar Tipo de Venta
+              </button>
+              <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modifySaleTypeModal" onclick="renderModifySaleTypes()">
+                <i class="fa-solid fa-edit"></i> Modificar Tipos de Venta
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- Modal para Agregar/Editar Venta Diaria -->

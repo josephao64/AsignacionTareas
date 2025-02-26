@@ -19,69 +19,17 @@ body {
   padding: 0;
 }
 
-/* Layout similar al sistema de inventario de ejemplo */
-.row {
-  margin: 0;
-}
+/* Eliminamos estilos del sidebar (ya no se utiliza) */
 
-/* Sidebar */
-.sidebar {
+/* Estilos para el menú superior */
+.navbar {
   background-color: #ffffff;
-  border-right: 1px solid #dee2e6;
-  height: 100vh;
-  padding-top: 1rem;
-  width: 250px;
-  transition: width 0.3s ease;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.5rem 1rem;
+  margin-bottom: 20px;
 }
 
-/* Cuando el menú está minimizado: se reduce su ancho y se ocultan los textos */
-#sidebarMenu.minimized {
-  width: 50px;
-}
-#sidebarMenu.minimized .menu-text {
-  display: none;
-}
-#sidebarMenu.minimized .nav-link {
-  text-align: center;
-  padding: 10px 0;
-}
-
-/* Para dispositivos medianos y superiores */
-@media (min-width: 768px) {
-  #sidebarMenu {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 100;
-  }
-  main {
-    margin-left: 250px;
-    transition: margin-left 0.3s ease;
-  }
-  main.full-width {
-    margin-left: 0;
-  }
-}
-
-/* Enlaces del menú lateral */
-.nav.flex-column .nav-link {
-  font-size: 1rem;
-  padding: 10px 15px;
-  color: #333;
-  transition: background-color 0.2s ease-in-out;
-}
-.nav.flex-column .nav-link:hover {
-  background-color: #e9ecef;
-  color: #000;
-}
-.nav.flex-column .nav-link.active {
-  font-weight: bold;
-  background-color: #e9ecef;
-  color: #000;
-}
-
-/* Área principal */
+/* Layout principal */
 main {
   padding: 20px;
 }
