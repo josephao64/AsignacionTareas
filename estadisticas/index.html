@@ -60,15 +60,16 @@
         <section id="dashboardSection" class="my-4">
           <h1>Dashboard de Ventas Diarias</h1>
 
-          <!-- Card: Seleccionar Tipo de Venta (generado dinámicamente) -->
+          <!-- Card: Seleccionar Tipo de Venta por Categorías -->
           <div class="card mb-4">
             <div class="card-header">Seleccione Tipo de Venta</div>
             <div class="card-body" id="saleTypeSelector">
-              <!-- Botones generados dinámicamente -->
+              <!-- Aquí se generarán los botones de cada categoría.
+                   Los botones que contienen los tipos de venta estarán ocultos hasta pulsar la categoría. -->
             </div>
           </div>
 
-          <!-- Contenido del Dashboard (visible cuando se ha seleccionado un tipo) -->
+          <!-- Contenido del Dashboard (se muestra al seleccionar un tipo) -->
           <div id="dashboardContent" style="display: none;">
             <!-- Filtros para la gráfica -->
             <div class="card mb-4">
@@ -98,7 +99,7 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-check mt-4">
-                      <input class="form-check-input" type="checkbox" value="" id="toggleLabels" onchange="toggleDataLabels(this.checked)">
+                      <input class="form-check-input" type="checkbox" id="toggleLabels" onchange="toggleDataLabels(this.checked)">
                       <label class="form-check-label" for="toggleLabels">
                         Activar Etiquetas
                       </label>
@@ -111,15 +112,15 @@
               </div>
             </div>
 
-            <!-- Información del mes y rango de fechas -->
+            <!-- Información del mes -->
             <p id="dashboardMonthInfo" class="mb-3"></p>
 
             <!-- Botón para ver la tendencia mensual -->
             <button class="btn btn-secondary mb-3" onclick="showTrend()">Ver Tendencia Mensual</button>
             <p id="trendIndicator" class="mb-3"></p>
 
-            <!-- Indicadores adicionales: Crecimiento Diario y Semanal -->
-            <div id="additionalTrendIndicator" class="mb-3"></div>
+            <!-- Indicadores -->
+            <div id="indicatorsContainer" class="row"></div>
 
             <!-- Gráfico de Ventas Diarias -->
             <div class="card mb-4">
@@ -128,9 +129,6 @@
                 <canvas id="dailySalesChart" height="100"></canvas>
               </div>
             </div>
-
-            <!-- Indicadores (Total y Promedio) -->
-            <div id="indicatorsContainer" class="row"></div>
           </div>
         </section>
 
@@ -138,7 +136,7 @@
         <section id="detailedSalesSection" class="my-4" style="display: none;">
           <h1>Ventas Detalladas</h1>
 
-          <!-- Card: Seleccionar Tipo de Venta para el CRUD -->
+          <!-- Card: Seleccionar Tipo de Venta para CRUD -->
           <div class="card mb-4" id="detailedSaleTypeContainer">
             <div class="card-header">Seleccione Tipo de Venta</div>
             <div class="card-body" id="detailedSaleTypeSelector">
@@ -146,7 +144,7 @@
             </div>
           </div>
 
-          <!-- Filtros para el CRUD -->
+          <!-- Filtros para CRUD -->
           <div class="card mb-3">
             <div class="card-header">Filtrar Ventas</div>
             <div class="card-body">
@@ -204,7 +202,7 @@
             </div>
           </div>
 
-          <!-- Botones para Agregar Venta, Agregar Tipo y Modificar Tipos -->
+          <!-- Botones para Agregar Venta, Agregar Tipo y Modificar Tipos y Categorías -->
           <div class="d-flex justify-content-between align-items-center mt-3">
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saleModal">
               <i class="fa-solid fa-plus"></i> Agregar Venta
@@ -213,8 +211,8 @@
               <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
                 <i class="fa-solid fa-plus"></i> Agregar Tipo de Venta
               </button>
-              <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modifySaleTypeModal" onclick="renderModifySaleTypes()">
-                <i class="fa-solid fa-edit"></i> Modificar Tipos de Venta
+              <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modifySaleTypeModal" onclick="renderModifySaleTypes(); renderModifyCategoriesContainer();">
+                <i class="fa-solid fa-edit"></i> Modificar Tipos y Categorías
               </button>
             </div>
           </div>
@@ -232,12 +230,11 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-              <!-- Opción para ingresar ventas individualmente o en cadena -->
+              <!-- Opción de ingreso individual o masivo -->
               <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="bulkInputToggle" onchange="toggleBulkInput(this.checked)">
                 <label class="form-check-label" for="bulkInputToggle">Ingresar múltiples ventas en cadena</label>
               </div>
-              <!-- Contenedor para ingreso individual -->
               <div id="individualInputContainer">
                 <div class="mb-3">
                   <label for="saleDate" class="form-label">Fecha</label>
@@ -248,7 +245,6 @@
                   <input type="number" step="0.01" id="saleAmount" class="form-control" placeholder="Monto de la venta" required />
                 </div>
               </div>
-              <!-- Contenedor para ingreso masivo -->
               <div id="bulkInputContainer" style="display: none;">
                 <div class="mb-3">
                   <label for="bulkInputData" class="form-label">
@@ -269,16 +265,18 @@
       </div>
     </div>
 
-    <!-- Modal para Agregar Tipo de Venta -->
+    <!-- Modal para Agregar/Editar Tipo de Venta -->
     <div class="modal fade" id="saleTypeModal" tabindex="-1" aria-labelledby="saleTypeModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <form id="saleTypeForm" onsubmit="event.preventDefault(); saveSaleType();">
             <div class="modal-header">
-              <h5 class="modal-title" id="saleTypeModalLabel">Agregar Tipo de Venta</h5>
+              <h5 class="modal-title" id="saleTypeModalLabel">Agregar/Editar Tipo de Venta</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
+              <!-- Campo oculto para el ID (modo edición) -->
+              <input type="hidden" id="saleTypeId" value="" />
               <div class="mb-3">
                 <label for="saleTypeLabel" class="form-label">Nombre del Tipo de Venta</label>
                 <input type="text" id="saleTypeLabel" class="form-control" placeholder="Ej: Ventas a domicilio Jalapa" required />
@@ -286,6 +284,13 @@
               <div class="mb-3">
                 <label for="saleTypeColor" class="form-label">Color</label>
                 <input type="color" id="saleTypeColor" class="form-control" value="#0000ff" required />
+              </div>
+              <!-- Select para asignar categoría -->
+              <div class="mb-3">
+                <label for="saleTypeCategory" class="form-label">Categoría</label>
+                <select id="saleTypeCategory" class="form-select">
+                  <!-- Se llenará dinámicamente -->
+                </select>
               </div>
             </div>
             <div class="modal-footer">
@@ -297,19 +302,27 @@
       </div>
     </div>
 
-    <!-- Modal para Modificar Tipos de Venta -->
+    <!-- Modal para Modificar Tipos y Categorías de Venta -->
     <div class="modal fade" id="modifySaleTypeModal" tabindex="-1" aria-labelledby="modifySaleTypeModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="modifySaleTypeModalLabel">Modificar Tipos de Venta</h5>
+            <h5 class="modal-title" id="modifySaleTypeModalLabel">Modificar Tipos y Categorías de Venta</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
+            <!-- Sección para modificar Tipos de Venta -->
             <div id="modifySaleTypesContainer"></div>
             <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
               <i class="fa-solid fa-plus"></i> Agregar Nuevo Tipo
             </button>
+            <hr>
+            <!-- Sección para CRUD de Categorías -->
+            <h5>Categorías de Venta</h5>
+            <div id="modifyCategoriesContainer"></div>
+            <div class="mt-2">
+              <button class="btn btn-primary" onclick="openAddCategoryModal()">Agregar Categoría</button>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

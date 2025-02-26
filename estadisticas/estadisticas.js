@@ -16,27 +16,21 @@
   /* ====================================================
      VARIABLES GLOBALES Y DATOS INICIALES
      ==================================================== */
-  // Fechas de ejemplo
   const hoy = new Date();
   const hoyStr = hoy.toISOString().split("T")[0];
   const ayer = new Date();
   ayer.setDate(hoy.getDate() - 1);
   const ayerStr = ayer.toISOString().split("T")[0];
   
-  // Los arreglos se cargarán desde Firestore
-  let saleTypes = [];  // Colección "saleTypes"
-  let salesData = [];  // Colección "sales"
+  let saleTypes = [];      // Colección "saleTypes"
+  let salesData = [];      // Colección "sales"
+  let saleCategories = []; // Colección "saleCategories"
   
-  // Tipo de venta actualmente activo (seleccionado)
   let activeSaleType = null;
-  // Variable para saber si se está editando un registro (null = nuevo)
   let currentEditIndex = null;
-  // Variable para la gráfica de ventas diarias
+  let currentEditSaleTypeId = null;
   let dailySalesChart;
-  // Variable global para el tipo de gráfica (por defecto "line")
-  // Opciones: "line", "stepline", "smoothline", "bar", "radar"
   let chartType = "line";
-  // Variable global para activar/desactivar etiquetas en la gráfica
   let showLabels = false;
   
   /* ====================================================
@@ -57,20 +51,9 @@
         snapshot.forEach((doc) => {
           saleTypes.push({ ...doc.data(), id: doc.id });
         });
-        if (saleTypes.length === 0) {
-          const initialTypes = [
-            { id: "general", label: "General", color: "rgba(0, 123, 255, 1)" },
-            { id: "domicilio_jalapa", label: "Ventas a domicilio Jalapa", color: "rgba(75, 192, 192, 1)" }
-          ];
-          initialTypes.forEach((t) => {
-            db.collection("saleTypes").add(t);
-          });
-          setTimeout(loadSaleTypes, 1000);
-        } else {
-          renderSaleTypeSelector();
-          renderDetailedSaleTypeSelector();
-          renderModifySaleTypes(); // Actualiza la lista del modal de modificación
-        }
+        renderSaleTypeSelector();
+        renderDetailedSaleTypeSelector();
+        renderModifySaleTypes();
       })
       .catch((error) => { console.error("Error al cargar saleTypes:", error); });
   }
@@ -89,39 +72,201 @@
       .catch((error) => { console.error("Error al cargar salesData:", error); });
   }
   
-  /* ====================================================
-     FUNCIONES AUXILIARES
-     ==================================================== */
-  function getDaysInMonth(year, month) {
-    return new Date(year, month, 0).getDate();
+  function loadSaleCategories() {
+    db.collection("saleCategories").get()
+      .then((snapshot) => {
+        saleCategories = [];
+        snapshot.forEach((doc) => {
+          saleCategories.push({ ...doc.data(), id: doc.id });
+        });
+        renderSaleTypeCategoryOptions();
+        renderModifyCategoriesContainer();
+        renderSaleTypeSelector(); // Actualiza el dashboard con las categorías
+      })
+      .catch((error) => { console.error("Error al cargar saleCategories:", error); });
   }
   
   /* ====================================================
-     GESTIÓN DEL TIPO DE VENTA (SELECCIÓN)
+     RENDERIZACIÓN DEL SELECTOR DE TIPOS DE VENTA POR CATEGORÍAS (Dashboard)
      ==================================================== */
   function renderSaleTypeSelector() {
     const container = document.getElementById("saleTypeSelector");
     container.innerHTML = "";
-    saleTypes.forEach((type) => {
-      const btn = document.createElement("button");
-      btn.className = "btn btn-outline-primary me-2 mb-2" + (activeSaleType === type.id ? " active" : "");
-      btn.textContent = type.label;
-      btn.style.borderColor = type.color;
-      btn.style.color = type.color;
-      btn.onclick = () => { setActiveSaleType(type.id); };
-      container.appendChild(btn);
+  
+    // Agrupar por categoría: las categorías existentes y "Sin Categoría"
+    let groups = {};
+    saleCategories.forEach(cat => {
+      groups[cat.id] = {
+        label: cat.label,
+        saleTypes: []
+      };
+    });
+    groups["unassigned"] = {
+      label: "Sin Categoría",
+      saleTypes: []
+    };
+  
+    saleTypes.forEach(type => {
+      let groupId = type.category ? type.category : "unassigned";
+      if (!groups[groupId]) {
+        groups["unassigned"].saleTypes.push(type);
+      } else {
+        groups[groupId].saleTypes.push(type);
+      }
+    });
+  
+    // Ordenar las categorías (alfabéticamente) y colocar "Sin Categoría" al final
+    let groupKeys = Object.keys(groups).filter(key => key !== "unassigned").sort((a, b) => {
+      return groups[a].label.localeCompare(groups[b].label);
+    });
+    groupKeys.push("unassigned");
+  
+    // Por cada categoría, crear un botón que muestre la lista de tipos al pulsarlo
+    groupKeys.forEach(key => {
+      const group = groups[key];
+      const groupContainer = document.createElement("div");
+      groupContainer.className = "mb-3";
+  
+      // Botón de la categoría (inicialmente se muestra solo el botón)
+      const categoryBtn = document.createElement("button");
+      categoryBtn.className = "btn btn-primary mb-2 w-100 text-start";
+      categoryBtn.textContent = group.label;
+      
+      // Contenedor para los tipos de venta (inicialmente oculto)
+      const saleTypesContainer = document.createElement("div");
+      saleTypesContainer.style.display = "none";
+      saleTypesContainer.className = "d-flex flex-wrap gap-2";
+  
+      // Al pulsar, se despliega/oculta la lista de tipos
+      categoryBtn.onclick = function() {
+        saleTypesContainer.style.display = (saleTypesContainer.style.display === "none") ? "flex" : "none";
+      };
+  
+      group.saleTypes.forEach(type => {
+        const typeBtn = document.createElement("button");
+        typeBtn.className = "btn";
+        typeBtn.style.backgroundColor = type.color;
+        typeBtn.style.borderColor = type.color;
+        typeBtn.style.color = "#000";
+        typeBtn.textContent = type.label;
+        typeBtn.onclick = () => { setActiveSaleType(type.id); };
+        saleTypesContainer.appendChild(typeBtn);
+      });
+  
+      groupContainer.appendChild(categoryBtn);
+      groupContainer.appendChild(saleTypesContainer);
+      container.appendChild(groupContainer);
     });
   }
   
+  /* ====================================================
+     RENDERIZAR OPCIONES DE CATEGORÍA EN EL MODAL de Tipo de Venta
+     ==================================================== */
+  function renderSaleTypeCategoryOptions() {
+    const select = document.getElementById("saleTypeCategory");
+    if (!select) return;
+    select.innerHTML = "";
+    const optDefault = document.createElement("option");
+    optDefault.value = "";
+    optDefault.textContent = "Sin Categoría";
+    select.appendChild(optDefault);
+    saleCategories.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(cat => {
+      const opt = document.createElement("option");
+      opt.value = cat.id;
+      opt.textContent = cat.label;
+      select.appendChild(opt);
+    });
+  }
+  
+  /* ====================================================
+     GUARDAR O ACTUALIZAR TIPO DE VENTA (Modal)
+     ==================================================== */
+  function saveSaleType() {
+    const typeLabelInput = document.getElementById("saleTypeLabel");
+    const typeColorInput = document.getElementById("saleTypeColor");
+    const categorySelect = document.getElementById("saleTypeCategory");
+    const label = typeLabelInput.value.trim();
+    const color = typeColorInput.value;
+    const category = categorySelect ? categorySelect.value : null;
+    
+    if (!label) {
+      alert("Ingrese un nombre para el tipo de venta.");
+      return;
+    }
+    if (currentEditSaleTypeId) {
+      db.collection("saleTypes").doc(currentEditSaleTypeId).update({
+        label: label,
+        color: color,
+        category: category
+      })
+      .then(() => {
+        currentEditSaleTypeId = null;
+        document.getElementById("saleTypeModalLabel").innerText = "Agregar/Editar Tipo de Venta";
+        loadSaleTypes();
+        loadSalesData();
+        const saleTypeModalEl = document.getElementById("saleTypeModal");
+        const saleTypeModal = bootstrap.Modal.getInstance(saleTypeModalEl);
+        saleTypeModal.hide();
+        document.getElementById("saleTypeForm").reset();
+      })
+      .catch((error) => { console.error("Error al actualizar el tipo de venta:", error); });
+    } else {
+      const generatedId = label.toLowerCase().replace(/\s+/g, "_");
+      const exists = saleTypes.some(t => t.id === generatedId);
+      if (exists) {
+        alert("Ya existe un tipo de venta con ese nombre.");
+        return;
+      }
+      db.collection("saleTypes").add({ id: generatedId, label, color, category, order: Date.now() })
+        .then(() => {
+          loadSaleTypes();
+          loadSalesData();
+          const saleTypeModalEl = document.getElementById("saleTypeModal");
+          const saleTypeModal = bootstrap.Modal.getInstance(saleTypeModalEl);
+          saleTypeModal.hide();
+          document.getElementById("saleTypeForm").reset();
+        })
+        .catch((error) => {
+          console.error("Error al guardar el tipo de venta:", error);
+        });
+    }
+  }
+  
+  /* ====================================================
+     MODAL: Abrir para editar Tipo de Venta
+     ==================================================== */
+  function editSaleType(type) {
+    currentEditSaleTypeId = type.id;
+    document.getElementById("saleTypeId").value = type.id;
+    document.getElementById("saleTypeLabel").value = type.label;
+    document.getElementById("saleTypeColor").value = type.color;
+    document.getElementById("saleTypeCategory").value = type.category || "";
+    document.getElementById("saleTypeModalLabel").innerText = "Editar Tipo de Venta";
+    const saleTypeModal = new bootstrap.Modal(document.getElementById("saleTypeModal"));
+    saleTypeModal.show();
+  }
+  
+  function deleteSaleType(typeId) {
+    if (confirm("¿Está seguro de eliminar este tipo de venta?")) {
+      db.collection("saleTypes").doc(typeId).delete()
+        .then(() => { loadSaleTypes(); })
+        .catch((error) => { console.error("Error al eliminar tipo de venta:", error); });
+    }
+  }
+  
+  /* ====================================================
+     Resto de funciones para Ventas, Gráficos y CRUD de Ventas
+     ==================================================== */
   function renderDetailedSaleTypeSelector() {
     const container = document.getElementById("detailedSaleTypeSelector");
     container.innerHTML = "";
     saleTypes.forEach((type) => {
       const btn = document.createElement("button");
-      btn.className = "btn btn-outline-primary me-2 mb-2" + (activeSaleType === type.id ? " active" : "");
-      btn.textContent = type.label;
+      btn.className = "btn btn-outline-primary me-2 mb-2";
+      btn.style.backgroundColor = (activeSaleType === type.id) ? type.color : "transparent";
       btn.style.borderColor = type.color;
-      btn.style.color = type.color;
+      btn.style.color = "#000";
+      btn.textContent = type.label;
       btn.onclick = () => { setActiveSaleType(type.id); };
       container.appendChild(btn);
     });
@@ -137,9 +282,10 @@
     loadSalesDetailed();
   }
   
-  /* ====================================================
-     GRÁFICO DE VENTAS DIARIAS
-     ==================================================== */
+  function getDaysInMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+  }
+  
   function updateDailySalesChart() {
     const year = parseInt(document.getElementById("chartFilterYear").value);
     const month = parseInt(document.getElementById("chartFilterMonth").value);
@@ -161,8 +307,7 @@
     const daysInMonth = getDaysInMonth(year, month);
     const labels = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      const dayStr = ("0" + d).slice(-2);
-      labels.push(dayStr);
+      labels.push(("0" + d).slice(-2));
     }
     
     const ctx = document.getElementById("dailySalesChart").getContext("2d");
@@ -176,8 +321,7 @@
         saleDate.getMonth() + 1 === month &&
         sale.type === activeSaleType
       ) {
-        const day = saleDate.getDate();
-        data[day - 1] += sale.amount;
+        data[saleDate.getDate() - 1] += sale.amount;
       }
     });
     
@@ -230,7 +374,7 @@
           datalabels: {
             display: showLabels,
             color: "#000",
-            align: 'top',
+            align: "top",
             formatter: Math.round
           },
           tooltip: { mode: "index", intersect: false },
@@ -245,25 +389,16 @@
     });
   }
   
-  /* ====================================================
-     CAMBIAR TIPO DE GRÁFICA
-     ==================================================== */
   function setChartType(newType) {
     chartType = newType;
     updateDailySalesChart();
   }
   
-  /* ====================================================
-     TOGGLE DE ETIQUETAS EN LA GRÁFICA
-     ==================================================== */
   function toggleDataLabels(activate) {
     showLabels = activate;
     updateDailySalesChart();
   }
   
-  /* ====================================================
-     INDICADORES DEL DASHBOARD (POR MES)
-     ==================================================== */
   function updateIndicators() {
     const year = parseInt(document.getElementById("chartFilterYear").value);
     const month = parseInt(document.getElementById("chartFilterMonth").value);
@@ -282,12 +417,10 @@
              sale.type === activeSaleType;
     });
     const totalSales = monthSales.reduce((sum, sale) => sum + sale.amount, 0);
-    const avgSale = monthSales.length > 0 ? totalSales / monthSales.length : 0;
     
     const container = document.getElementById("indicatorsContainer");
     container.innerHTML = "";
     
-    // Tarjeta: Venta Total (Mes)
     const colTotal = document.createElement("div");
     colTotal.className = "col-md-4 mb-3";
     const cardTotal = document.createElement("div");
@@ -306,7 +439,6 @@
     colTotal.appendChild(cardTotal);
     container.appendChild(colTotal);
     
-    // Tarjeta: Promedio de Venta (Mes) - por transacción
     const colAvg = document.createElement("div");
     colAvg.className = "col-md-4 mb-3";
     const cardAvg = document.createElement("div");
@@ -325,7 +457,6 @@
     colAvg.appendChild(cardAvg);
     container.appendChild(colAvg);
     
-    // Tarjeta: Promedio de Venta Diario
     const colDailyAvg = document.createElement("div");
     colDailyAvg.className = "col-md-4 mb-3";
     const cardDailyAvg = document.createElement("div");
@@ -350,9 +481,6 @@
     container.appendChild(colDailyAvg);
   }
   
-  /* ====================================================
-     TENDENCIA DEL MES
-     ==================================================== */
   function showTrend() {
     const year = parseInt(document.getElementById("chartFilterYear").value);
     const month = parseInt(document.getElementById("chartFilterMonth").value);
@@ -388,9 +516,6 @@
     document.getElementById("trendIndicator").innerText = trendText;
   }
   
-  /* ====================================================
-     LISTADO DE VENTAS DETALLADAS (CRUD)
-     ==================================================== */
   function loadSalesDetailed() {
     const filterYear = document.getElementById("filterYear").value;
     const filterMonth = document.getElementById("filterMonth").value;
@@ -457,11 +582,7 @@
     });
   }
   
-  /* ====================================================
-     OPERACIONES CON FIREBASE: GUARDAR, EDITAR Y BORRAR
-     ==================================================== */
   function saveSale() {
-    // Si se activa la opción de ingreso masivo
     const isBulk = document.getElementById("bulkInputToggle").checked;
     if (isBulk) {
       const bulkData = document.getElementById("bulkInputData").value;
@@ -474,7 +595,6 @@
       lines.forEach(line => {
         const trimmedLine = line.trim();
         if (trimmedLine) {
-          // Formato esperado: "YYYY-MM-DD, monto"
           const parts = trimmedLine.split(",");
           if (parts.length < 2) {
             console.error("Formato inválido en línea:", trimmedLine);
@@ -497,7 +617,7 @@
           const saleModal = bootstrap.Modal.getInstance(saleModalEl);
           saleModal.hide();
           document.getElementById("saleForm").reset();
-          toggleBulkInput(false); // Restablecer a modo individual
+          toggleBulkInput(false);
           document.activeElement.blur();
         })
         .catch((error) => {
@@ -506,7 +626,6 @@
       return;
     }
     
-    // Proceso para venta individual
     const saleDate = document.getElementById("saleDate").value;
     const saleAmount = parseFloat(document.getElementById("saleAmount").value);
     if (!saleDate || isNaN(saleAmount)) {
@@ -567,38 +686,8 @@
     }
   }
   
-  function saveSaleType() {
-    const typeLabelInput = document.getElementById("saleTypeLabel");
-    const typeColorInput = document.getElementById("saleTypeColor");
-    const label = typeLabelInput.value.trim();
-    const color = typeColorInput.value;
-    if (!label) {
-      alert("Ingrese un nombre para el tipo de venta.");
-      return;
-    }
-    const generatedId = label.toLowerCase().replace(/\s+/g, "_");
-    const exists = saleTypes.some(t => t.id === generatedId);
-    if (exists) {
-      alert("Ya existe un tipo de venta con ese nombre.");
-      return;
-    }
-    db.collection("saleTypes").add({ id: generatedId, label, color })
-      .then(() => {
-        loadSaleTypes();
-        loadSalesData();
-        const saleTypeModalEl = document.getElementById("saleTypeModal");
-        const saleTypeModal = bootstrap.Modal.getInstance(saleTypeModalEl);
-        saleTypeModal.hide();
-        document.getElementById("saleTypeForm").reset();
-        document.activeElement.blur();
-      })
-      .catch((error) => {
-        console.error("Error al guardar el tipo de venta:", error);
-      });
-  }
-  
   /* ====================================================
-     CRUD PARA TIPOS DE VENTA: MODIFICAR (EDITAR/ELIMINAR)
+     CRUD DE TIPOS DE VENTA: MODIFICAR (Modal de Modificar Tipos y Categorías)
      ==================================================== */
   function renderModifySaleTypes() {
     const container = document.getElementById("modifySaleTypesContainer");
@@ -609,11 +698,11 @@
       
       const span = document.createElement("span");
       span.textContent = type.label;
-      span.style.color = type.color;
+      span.style.color = "#000";
       span.style.flexGrow = "1";
       
       const btnEdit = document.createElement("button");
-      btnEdit.className = "btn btn-sm btn-primary me-2";
+      btnEdit.className = "btn btn-sm btn-secondary me-2";
       btnEdit.innerHTML = '<i class="fa-solid fa-pencil"></i>';
       btnEdit.onclick = () => { editSaleType(type); };
       
@@ -629,54 +718,75 @@
     });
   }
   
-  function editSaleType(type) {
-    const newLabel = prompt("Editar nombre del tipo de venta:", type.label);
-    if (newLabel !== null && newLabel.trim() !== "") {
-      const newColor = prompt("Editar color del tipo de venta (valor HEX):", type.color);
-      if (newColor !== null && newColor.trim() !== "") {
-        db.collection("saleTypes").doc(type.id).update({
-          label: newLabel,
-          color: newColor
-        })
-        .then(() => {
-          loadSaleTypes();
-          renderModifySaleTypes();
-        })
-        .catch((error) => { console.error("Error al actualizar tipo de venta:", error); });
-      }
-    }
-  }
-  
-  function deleteSaleType(typeId) {
-    if (confirm("¿Está seguro de eliminar este tipo de venta?")) {
-      db.collection("saleTypes").doc(typeId).delete()
-        .then(() => {
-          loadSaleTypes();
-          renderModifySaleTypes();
-        })
-        .catch((error) => { console.error("Error al eliminar tipo de venta:", error); });
-    }
-  }
-  
   /* ====================================================
-     FUNCIÓN PARA TOGGLE DE INGRESO MASIVO EN VENTAS
+     CRUD DE CATEGORÍAS DE VENTA
      ==================================================== */
-  function toggleBulkInput(isBulk) {
-    const individualContainer = document.getElementById("individualInputContainer");
-    const bulkContainer = document.getElementById("bulkInputContainer");
-    if (isBulk) {
-      individualContainer.style.display = "none";
-      bulkContainer.style.display = "block";
-      // Eliminar atributos "required" de los inputs individuales
-      document.getElementById("saleDate").removeAttribute("required");
-      document.getElementById("saleAmount").removeAttribute("required");
-    } else {
-      individualContainer.style.display = "block";
-      bulkContainer.style.display = "none";
-      // Restaurar el atributo "required"
-      document.getElementById("saleDate").setAttribute("required", "true");
-      document.getElementById("saleAmount").setAttribute("required", "true");
+  function renderModifyCategoriesContainer() {
+    const container = document.getElementById("modifyCategoriesContainer");
+    container.innerHTML = "";
+    saleCategories.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(cat => {
+      const div = document.createElement("div");
+      div.className = "d-flex align-items-center mb-2";
+      
+      const span = document.createElement("span");
+      span.textContent = cat.label;
+      span.style.flexGrow = "1";
+      span.style.color = "#000";
+      
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "btn btn-sm btn-secondary me-2";
+      btnEdit.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+      btnEdit.onclick = () => { editCategory(cat); };
+      
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "btn btn-sm btn-danger";
+      btnDelete.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDelete.onclick = () => { deleteCategory(cat.id); };
+      
+      div.appendChild(span);
+      div.appendChild(btnEdit);
+      div.appendChild(btnDelete);
+      container.appendChild(div);
+    });
+  }
+  
+  function addCategory() {
+    const label = prompt("Ingrese el nombre de la nueva categoría:");
+    if(label && label.trim() !== "") {
+       db.collection("saleCategories").add({ label: label.trim(), order: Date.now() })
+         .then(() => {
+           loadSaleCategories();
+           renderModifyCategoriesContainer();
+         })
+         .catch(err => console.error("Error al agregar categoría:", err));
     }
+  }
+  
+  function editCategory(category) {
+    const newLabel = prompt("Editar categoría:", category.label);
+    if(newLabel && newLabel.trim() !== "") {
+      db.collection("saleCategories").doc(category.id).update({ label: newLabel.trim() })
+        .then(() => {
+           loadSaleCategories();
+           renderModifyCategoriesContainer();
+        })
+        .catch(err => console.error("Error al editar categoría:", err));
+    }
+  }
+  
+  function deleteCategory(categoryId) {
+    if(confirm("¿Está seguro de eliminar esta categoría?")) {
+       db.collection("saleCategories").doc(categoryId).delete()
+         .then(() => {
+           loadSaleCategories();
+           renderModifyCategoriesContainer();
+         })
+         .catch(err => console.error("Error al eliminar categoría:", err));
+    }
+  }
+  
+  function openAddCategoryModal() {
+    addCategory();
   }
   
   /* ====================================================
@@ -690,7 +800,7 @@
     chartFilterMonth.innerHTML =
       '<option value="">Seleccione Mes</option>' +
       '<option value="1">Enero</option>' +
-      '<option value="2" selected>Febrero</option>' +
+      '<option value="2">Febrero</option>' +
       '<option value="3">Marzo</option>' +
       '<option value="4">Abril</option>' +
       '<option value="5">Mayo</option>' +
@@ -701,8 +811,10 @@
       '<option value="10">Octubre</option>' +
       '<option value="11">Noviembre</option>' +
       '<option value="12">Diciembre</option>';
+    
     loadSaleTypes();
     loadSalesData();
+    loadSaleCategories();
     document.getElementById("dashboardContent").style.display = "none";
   };
   
