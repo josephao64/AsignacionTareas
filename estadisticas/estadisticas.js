@@ -51,7 +51,7 @@
         snapshot.forEach((doc) => {
           saleTypes.push({ ...doc.data(), id: doc.id });
         });
-        renderSaleTypeSelector();
+        renderSaleTypeSelector();       // <-- Muestra el <select> de categorías en el Dashboard
         renderDetailedSaleTypeSelector();
         renderModifySaleTypes();
       })
@@ -81,30 +81,36 @@
         });
         renderSaleTypeCategoryOptions();
         renderModifyCategoriesContainer();
-        renderSaleTypeSelector(); // Actualiza el dashboard con las categorías
+        renderSaleTypeSelector(); // Carga las categorías en el <select> del dashboard
       })
       .catch((error) => { console.error("Error al cargar saleCategories:", error); });
   }
   
   /* ====================================================
-     RENDERIZACIÓN DEL SELECTOR DE TIPOS DE VENTA POR CATEGORÍAS (Dashboard)
+     RENDERIZACIÓN DEL SELECTOR (SELECT) DE CATEGORÍAS (Dashboard)
      ==================================================== */
   function renderSaleTypeSelector() {
-    const container = document.getElementById("saleTypeSelector");
-    container.innerHTML = "";
+    // 1. Referencias a los elementos en HTML
+    const categorySelect = document.getElementById("categorySelect");
+    const typeContainer = document.getElementById("typeButtonsContainer");
   
-    // Agrupar por categoría: las categorías existentes y "Sin Categoría"
+    // 2. Limpiamos
+    categorySelect.innerHTML = "";
+    typeContainer.innerHTML = "";
+  
+    // 3. Opción por defecto
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.textContent = "Seleccione una Categoría...";
+    categorySelect.appendChild(defaultOpt);
+  
+    // 4. Agrupar los tipos por categoría
     let groups = {};
     saleCategories.forEach(cat => {
-      groups[cat.id] = {
-        label: cat.label,
-        saleTypes: []
-      };
+      groups[cat.id] = { label: cat.label, saleTypes: [] };
     });
-    groups["unassigned"] = {
-      label: "Sin Categoría",
-      saleTypes: []
-    };
+    // Agregar "unassigned" si hay tipos sin categoría
+    groups["unassigned"] = { label: "Sin Categoría", saleTypes: [] };
   
     saleTypes.forEach(type => {
       let groupId = type.category ? type.category : "unassigned";
@@ -115,52 +121,66 @@
       }
     });
   
-    // Ordenar las categorías (alfabéticamente) y colocar "Sin Categoría" al final
-    let groupKeys = Object.keys(groups).filter(key => key !== "unassigned").sort((a, b) => {
-      return groups[a].label.localeCompare(groups[b].label);
-    });
+    // 5. Ordenar categorías y poner "unassigned" al final
+    let groupKeys = Object.keys(groups)
+      .filter(key => key !== "unassigned")
+      .sort((a, b) => groups[a].label.localeCompare(groups[b].label));
     groupKeys.push("unassigned");
   
-    // Por cada categoría, crear un botón que muestre la lista de tipos al pulsarlo
+    // 6. Crear una <option> por cada categoría
     groupKeys.forEach(key => {
-      const group = groups[key];
-      const groupContainer = document.createElement("div");
-      groupContainer.className = "mb-3";
+      const grp = groups[key];
+      const option = document.createElement("option");
+      option.value = key;            // el id interno (catId o "unassigned")
+      option.textContent = grp.label;
+      categorySelect.appendChild(option);
+    });
+  }
   
-      // Botón de la categoría (inicialmente se muestra solo el botón)
-      const categoryBtn = document.createElement("button");
-      categoryBtn.className = "btn btn-primary mb-2 w-100 text-start";
-      categoryBtn.textContent = group.label;
-      
-      // Contenedor para los tipos de venta (inicialmente oculto)
-      const saleTypesContainer = document.createElement("div");
-      saleTypesContainer.style.display = "none";
-      saleTypesContainer.className = "d-flex flex-wrap gap-2";
+  /**
+   * onCategoryChange(categoryId): se llama cuando el select de categoría cambia
+   * Muestra los botones de tipos de venta que pertenezcan a esa categoría
+   */
+  function onCategoryChange(categoryId) {
+    const typeContainer = document.getElementById("typeButtonsContainer");
+    typeContainer.innerHTML = "";
   
-      // Al pulsar, se despliega/oculta la lista de tipos
-      categoryBtn.onclick = function() {
-        saleTypesContainer.style.display = (saleTypesContainer.style.display === "none") ? "flex" : "none";
-      };
+    if (!categoryId) {
+      // No se eligió nada, no mostramos nada
+      return;
+    }
   
-      group.saleTypes.forEach(type => {
-        const typeBtn = document.createElement("button");
-        typeBtn.className = "btn";
-        typeBtn.style.backgroundColor = type.color;
-        typeBtn.style.borderColor = type.color;
-        typeBtn.style.color = "#000";
-        typeBtn.textContent = type.label;
-        typeBtn.onclick = () => { setActiveSaleType(type.id); };
-        saleTypesContainer.appendChild(typeBtn);
-      });
+    // Filtrar los tipos que correspondan a esa categoría (o unassigned)
+    let matchingTypes = saleTypes.filter(t => {
+      return (t.category || "unassigned") === categoryId;
+    });
   
-      groupContainer.appendChild(categoryBtn);
-      groupContainer.appendChild(saleTypesContainer);
-      container.appendChild(groupContainer);
+    if (matchingTypes.length === 0) {
+      const msg = document.createElement("p");
+      msg.textContent = "No hay tipos de venta en esta categoría.";
+      typeContainer.appendChild(msg);
+      return;
+    }
+  
+    // Crear un botón para cada tipo
+    matchingTypes.forEach(type => {
+      const btn = document.createElement("button");
+      btn.className = "btn type-btn";
+      btn.style.backgroundColor = type.color;
+      btn.style.borderColor = type.color;
+      btn.style.color = "#000";
+      btn.textContent = type.label;
+  
+      // Al pulsar el botón de tipo, activamos setActiveSaleType
+      btn.onclick = () => { setActiveSaleType(type.id); };
+  
+      typeContainer.appendChild(btn);
     });
   }
   
   /* ====================================================
      RENDERIZAR OPCIONES DE CATEGORÍA EN EL MODAL de Tipo de Venta
+     (CRUD de tipos: se usa en saleTypeModal)
      ==================================================== */
   function renderSaleTypeCategoryOptions() {
     const select = document.getElementById("saleTypeCategory");
@@ -170,12 +190,14 @@
     optDefault.value = "";
     optDefault.textContent = "Sin Categoría";
     select.appendChild(optDefault);
-    saleCategories.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(cat => {
-      const opt = document.createElement("option");
-      opt.value = cat.id;
-      opt.textContent = cat.label;
-      select.appendChild(opt);
-    });
+    saleCategories
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.label;
+        select.appendChild(opt);
+      });
   }
   
   /* ====================================================
@@ -272,11 +294,18 @@
     });
   }
   
+  /**
+   * setActiveSaleType: Al seleccionar un tipo de venta (en la lista del dashboard
+   * o en la lista de "Ventas Detalladas"), establecemos este tipo como activo,
+   * mostramos el dashboardContent y cargamos datos.
+   */
   function setActiveSaleType(typeId) {
     activeSaleType = typeId;
+    document.getElementById("dashboardContent").style.display = "block";
+    // Recargamos la sección de tipos en Detalladas (si se usa)
     renderSaleTypeSelector();
     renderDetailedSaleTypeSelector();
-    document.getElementById("dashboardContent").style.display = "block";
+    
     updateDailySalesChart();
     updateIndicators();
     loadSalesDetailed();

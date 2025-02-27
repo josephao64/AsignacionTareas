@@ -14,7 +14,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- Firebase (versión compat para facilitar la integración) -->
+    <!-- Firebase (versión compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-firestore-compat.js"></script>
     <!-- Custom CSS -->
@@ -59,13 +59,22 @@
         <!-- Dashboard Section -->
         <section id="dashboardSection" class="my-4">
           <h1>Dashboard de Ventas Diarias</h1>
-
+          
           <!-- Card: Seleccionar Tipo de Venta por Categorías -->
           <div class="card mb-4">
-            <div class="card-header">Seleccione Tipo de Venta</div>
-            <div class="card-body" id="saleTypeSelector">
-              <!-- Aquí se generarán los botones de cada categoría.
-                   Los botones que contienen los tipos de venta estarán ocultos hasta pulsar la categoría. -->
+            <div class="card-header">Seleccione Categoría y luego el Tipo de Venta</div>
+            <div class="card-body">
+              <!-- Selección de Categoría -->
+              <div class="mb-3">
+                <label for="categorySelect" class="form-label">Categoría:</label>
+                <select id="categorySelect" class="form-select" onchange="onCategoryChange(this.value)">
+                  <!-- Opciones de categoría generadas vía JS -->
+                </select>
+              </div>
+              <!-- Contenedor de Botones de Tipos de Venta -->
+              <div id="typeButtonsContainer" class="mt-3">
+                <!-- Aquí se generan dinámicamente los botones de tipo de venta -->
+              </div>
             </div>
           </div>
 
@@ -275,7 +284,6 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-              <!-- Campo oculto para el ID (modo edición) -->
               <input type="hidden" id="saleTypeId" value="" />
               <div class="mb-3">
                 <label for="saleTypeLabel" class="form-label">Nombre del Tipo de Venta</label>
@@ -285,11 +293,10 @@
                 <label for="saleTypeColor" class="form-label">Color</label>
                 <input type="color" id="saleTypeColor" class="form-control" value="#0000ff" required />
               </div>
-              <!-- Select para asignar categoría -->
               <div class="mb-3">
                 <label for="saleTypeCategory" class="form-label">Categoría</label>
                 <select id="saleTypeCategory" class="form-select">
-                  <!-- Se llenará dinámicamente -->
+                  <!-- Opciones generadas dinámicamente -->
                 </select>
               </div>
             </div>
@@ -311,13 +318,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <!-- Sección para modificar Tipos de Venta -->
             <div id="modifySaleTypesContainer"></div>
             <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#saleTypeModal">
               <i class="fa-solid fa-plus"></i> Agregar Nuevo Tipo
             </button>
             <hr>
-            <!-- Sección para CRUD de Categorías -->
             <h5>Categorías de Venta</h5>
             <div id="modifyCategoriesContainer"></div>
             <div class="mt-2">

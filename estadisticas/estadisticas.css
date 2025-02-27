@@ -14,12 +14,11 @@ body {
   color: #333;
 }
 
-/* Contenedor de pantalla completa */
 .container-fluid {
   padding: 0;
 }
 
-/* Estilos para el menú superior */
+/* Menú */
 .navbar {
   background-color: #ffffff;
   border-bottom: 1px solid #dee2e6;
@@ -32,7 +31,7 @@ main {
   padding: 20px;
 }
 
-/* Tarjetas (cards) */
+/* Cards */
 .card {
   border: 1px solid #dee2e6;
   border-radius: 5px;
@@ -55,15 +54,6 @@ main {
   padding: 20px;
 }
 
-/* Barra de progreso */
-.progress {
-  background-color: #e9ecef;
-}
-.progress-bar {
-  background-color: #28a745;
-  font-weight: bold;
-}
-
 /* Gráficos */
 canvas {
   background-color: #ffffff;
@@ -72,7 +62,7 @@ canvas {
   padding: 10px;
 }
 
-/* Secciones del dashboard */
+/* Secciones */
 section {
   margin-bottom: 40px;
 }
@@ -86,29 +76,15 @@ h3 {
 /* Estilos para el Dashboard */
 /* ============================= */
 
-/* Selector de tipos de venta por categorías */
-#saleTypeSelector {
-  margin-bottom: 1rem;
-}
-
-/* Botón de categoría: ocupa el ancho completo y alinea el texto a la izquierda */
-#saleTypeSelector .btn-primary {
-  width: 100%;
-  text-align: left;
-  margin-bottom: 0.5rem;
-}
-
-/* Contenedor para los botones de tipos de venta (dentro de cada categoría) */
-/* Se oculta inicialmente y se mostrará al pulsar la categoría */
-#saleTypeSelector .types-container {
-  display: none;
+/* Contenedor de tipos de venta */
+#typeButtonsContainer {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
-/* Botones de tipo de venta: se muestran con fondo (definido dinámicamente) y texto en negro */
-#saleTypeSelector .type-btn {
+/* Botones de tipo de venta */
+.type-btn {
   border-width: 2px;
   border-style: solid;
   border-radius: 5px;
@@ -117,6 +93,6 @@ h3 {
   transition: background-color 0.2s;
   color: #000;
 }
-#saleTypeSelector .type-btn:hover {
+.type-btn:hover {
   opacity: 0.9;
 }
