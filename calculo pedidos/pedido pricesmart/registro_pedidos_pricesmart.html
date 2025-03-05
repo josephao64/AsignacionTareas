@@ -379,9 +379,9 @@
                 <span class="close" onclick="cerrarModalFactura()">&times;</span>
                 <h2 id="modalTitleFactura">Agregar Factura</h2>
                 <form id="facturaForm">
-                    <label for="cadenaDatosFactura">Cadena de Datos (opcional):</label>
+                    <label for="cadenaDatosFactura">Cadena de Datos (opcional - permite múltiples facturas, una por línea):</label>
                     <textarea id="cadenaDatosFactura" placeholder="Formato: Fecha,Proveedor,Número de Factura,Total(Q)
-Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
+Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00" rows="4"></textarea>
                     <p style="font-size:14px;color:#00695c;">Si ingresas la cadena, se usarán esos datos. Deja en blanco si quieres usar los campos manuales.</p>
 
                     <label for="fechaFactura">Fecha:</label>
@@ -540,53 +540,67 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 let total = parseFloat(totalFacturaInput.value) || 0;
 
                 if (cadena !== '') {
-                    // Usar cadena de datos
-                    const campos = cadena.replace(/\r?\n|\r/g, '').split(',').map(c => c.trim());
-                    if (campos.length !== 4) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'La cadena de datos debe tener el formato: Fecha,Proveedor,Número de Factura,Total(Q)',
+                    // Procesar múltiples facturas desde la cadena de datos
+                    const lineas = cadena.split('\n').filter(linea => linea.trim() !== '');
+                    let facturasNuevas = [];
+                    for (let linea of lineas) {
+                        const campos = linea.split(',').map(c => c.trim());
+                        if (campos.length !== 4) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Cada línea debe tener el formato: Fecha,Proveedor,Número de Factura,Total(Q)',
+                            });
+                            return;
+                        }
+                        let fechaCadena = campos[0];
+                        let proveedorLinea = campos[1];
+                        let noFactLinea = campos[2];
+                        let totalCadena = parseFloat(campos[3]) || 0;
+                        
+                        // Validar formato de fecha YYYY-MM-DD
+                        const fechaParts = fechaCadena.split('-');
+                        if (fechaParts.length !== 3) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'La fecha en la cadena de datos debe ser en formato YYYY-MM-DD.',
+                            });
+                            return;
+                        }
+                        const testDate = new Date(fechaCadena);
+                        if (isNaN(testDate.getTime()) || !proveedorLinea || !noFactLinea || totalCadena <= 0) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Cadena de datos inválida en una de las líneas. Verifica la fecha y los valores.',
+                            });
+                            return;
+                        }
+                        // Asegurarse de que la fecha de la factura pertenezca al mes seleccionado
+                        if (selectedMes && fechaCadena.substr(0,7) !== selectedMes) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'La fecha de una de las facturas no coincide con el mes seleccionado.',
+                            });
+                            return;
+                        }
+                        facturasNuevas.push({
+                            id: ++lastIdFacturas,
+                            Sucursal: selectedSucursal,
+                            Fecha: fechaCadena,
+                            Proveedor: proveedorLinea,
+                            NoFactura: noFactLinea,
+                            Total: totalCadena
                         });
-                        return;
                     }
-
-                    let fechaCadena = campos[0];
-                    proveedor = campos[1];
-                    noFact = campos[2];
-                    const totalCadena = parseFloat(campos[3]) || 0;
-
-                    // Validar fecha y convertirla a YYYY-MM-DD
-                    const fechaParts = fechaCadena.split('-');
-                    if (fechaParts.length !== 3) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'La fecha en la cadena de datos debe ser YYYY-MM-DD.',
-                        });
-                        return;
-                    }
-                    const year = parseInt(fechaParts[0]);
-                    const month = parseInt(fechaParts[1]);
-                    const day = parseInt(fechaParts[2]);
-                    const testDate = new Date(year, month - 1, day);
-
-                    if (isNaN(testDate.getTime()) || !proveedor || !noFact || totalCadena <= 0) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Cadena de datos inválida. Verifica la fecha y los valores.',
-                        });
-                        return;
-                    }
-
-                    // Normalizar fecha a YYYY-MM-DD
-                    // *** MODIFICACIÓN PRINCIPAL ***
-                    // Asociar la fecha al mes seleccionado
-                    const [selectedYear, selectedMonth] = selectedMes.split('-').map(num => parseInt(num));
-                    const normalizedFecha = `${selectedYear.toString().padStart(4,'0')}-${selectedMonth.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`;
-                    fecha = normalizedFecha;
-                    total = totalCadena;
+                    facturas = facturas.concat(facturasNuevas);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Agregadas',
+                        text: 'Facturas agregadas correctamente desde la cadena de datos.',
+                    });
                 } else {
                     // Usar campos manuales
                     if (!fecha || !proveedor || !noFact || total <= 0) {
@@ -597,53 +611,30 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                         });
                         return;
                     }
-                    // Normalizar fecha en caso manual (ya viene en YYYY-MM-DD)
+                    // Normalizar fecha (ya viene en YYYY-MM-DD)
                     const fParts = fecha.split('-');
                     if (fParts.length === 3) {
-                        const fy = parseInt(fParts[0]);
-                        const fm = parseInt(fParts[1]);
-                        const fd = parseInt(fParts[2]);
-                        const normalized = `${fy.toString().padStart(4,'0')}-${fm.toString().padStart(2,'0')}-${fd.toString().padStart(2,'0')}`;
+                        const normalized = `${fParts[0].padStart(4,'0')}-${fParts[1].padStart(2,'0')}-${fParts[2].padStart(2,'0')}`;
                         fecha = normalized;
                     }
-                }
-
-                // Asegurar que la fecha pertenece al mes seleccionado
-                if (selectedMes && fecha.substr(0,7) !== selectedMes) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'La fecha de la factura no coincide con el mes seleccionado.',
-                    });
-                    return;
-                }
-
-                const isEditing = modalTitleFactura.textContent === "Editar Factura";
-                if (isEditing) {
-                    const facturaId = parseInt(facturaForm.dataset.facturaId);
-                    const facturaIndex = facturas.findIndex(f => f.id === facturaId);
-                    if (facturaIndex !== -1) {
-                        facturas[facturaIndex].Fecha = fecha;
-                        facturas[facturaIndex].Proveedor = proveedor;
-                        facturas[facturaIndex].NoFactura = noFact;
-                        facturas[facturaIndex].Total = total;
+                    if (selectedMes && fecha.substr(0,7) !== selectedMes) {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Actualizado',
-                            text: 'Factura actualizada correctamente.',
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'La fecha de la factura no coincide con el mes seleccionado.',
                         });
+                        return;
                     }
-                } else {
+                    // Agregar factura individual
                     lastIdFacturas += 1;
-                    const nuevaFactura = {
+                    facturas.push({
                         id: lastIdFacturas,
                         Sucursal: selectedSucursal,
                         Fecha: fecha,
                         Proveedor: proveedor,
                         NoFactura: noFact,
                         Total: total
-                    };
-                    facturas.push(nuevaFactura);
+                    });
                     Swal.fire({
                         icon: 'success',
                         title: 'Agregada',
@@ -688,7 +679,7 @@ Ej: 2024-12-05,Proveedor ABC,FACT-001,1500.00"></textarea>
                 const pendienteMes = (totalFacturasMes - totalPagadoMes) > 0 ? (totalFacturasMes - totalPagadoMes) : 0;
                 const epsilon = 0.01;
 
-                // COMENTAMOS/REMOVEMOS ESTA VALIDACIÓN PARA PERMITIR PAGOS MAYORES:
+                // VALIDACIÓN OPCIONAL: si se desea evitar pagos superiores al pendiente
                 /*
                 if (precioTotalPagado > (pendienteMes + epsilon)) {
                     Swal.fire({
