@@ -5,13 +5,11 @@
   <title>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</title>
   <!-- SweetAlert2 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-  
   <!-- jsPDF y jsPDF-AutoTable CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-  
   <style>
-    /* Estilos Específicos para la Página de Cierre de Mes */
+    /* Estilos para la página */
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
@@ -59,7 +57,7 @@
       background-color: white;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     .general-summary,
     .all-orders,
@@ -162,7 +160,6 @@
         gap: 10px;
       }
     }
-    /* Evitar saltos de página dentro de bloques importantes */
     .sucursal-report, .empresa-summary {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -180,7 +177,7 @@
 <body>
   <div class="container" id="cierreMesApp">
     <h1>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</h1>
-    <!-- Controles para Seleccionar Mes y Sucursal -->
+    <!-- Controles para seleccionar mes y sucursal -->
     <div class="report-controls">
       <div>
         <label for="reportMes">Selecciona el Mes:</label>
@@ -204,17 +201,15 @@
         <button id="exportarReportePDFBtn" disabled>Exportar a PDF</button>
       </div>
     </div>
-    <!-- Área para Mostrar el Reporte -->
-    <div class="report-content" id="reportContent">
-      <!-- Aquí se generará dinámicamente el reporte -->
-    </div>
+    <!-- Área para mostrar el reporte -->
+    <div class="report-content" id="reportContent"></div>
   </div>
-
+  
   <!-- SweetAlert2 JS -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <script>
-    // Datos iniciales de Sucursales (debe coincidir con el sistema de registro)
+    // Datos iniciales de sucursales (deben coincidir con el sistema de registro)
     const data = [
       { Empresa: "VIPIZZA", Sucursal: "jalapa", PizzaMensual: 3462, FingersMensual: 356 },
       { Empresa: "VIPIZZA", Sucursal: "poptun", PizzaMensual: 3992, FingersMensual: 312 },
@@ -224,7 +219,7 @@
       { Empresa: "AMERICAN PIZZA", Sucursal: "eskala", PizzaMensual: 2460, FingersMensual: 211 }
     ];
     
-    // Recuperar datos de pedidos y pagos desde localStorage
+    // Recuperar pedidos y pagos desde localStorage
     let pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
     let pagos = JSON.parse(localStorage.getItem('pagos')) || [];
     
@@ -258,7 +253,7 @@
     const exportarReportePDFBtn = document.getElementById('exportarReportePDFBtn');
     const reportContent = document.getElementById('reportContent');
     
-    // Mapeo de Sucursal a Empresa
+    // Mapeo de sucursal a empresa
     const sucursalToEmpresaMap = {};
     data.forEach(item => {
       sucursalToEmpresaMap[item.Sucursal.toLowerCase()] = item.Empresa;
@@ -270,7 +265,7 @@
       return string.charAt(0).toUpperCase() + string.slice(1);
     }
     
-    // Función para eliminar iframes (si existieran) en el reporte
+    // Función para eliminar iframes (si existieran)
     function eliminarIframes(element) {
       const iframes = element.querySelectorAll('iframe');
       iframes.forEach(iframe => iframe.remove());
@@ -293,7 +288,7 @@
       const [year, month] = mesSeleccionado.split('-');
       const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
       
-      // Filtrar pedidos según el mes y sucursal (usando .trim())
+      // Filtrar pedidos (se usan .trim() para evitar espacios extra)
       let pedidosFiltrados = pedidos.filter(pedido => {
         const pedidoDate = new Date(pedido.Fecha);
         const pedidoYear = pedidoDate.getFullYear();
@@ -304,7 +299,7 @@
         return mesCoincide && sucursalCoincide;
       });
       
-      // Filtrar pagos según el mes y sucursal
+      // Filtrar pagos
       let pagosFiltrados = pagos.filter(pago => {
         const pagoMes = pago.mes;
         const pagoSucursal = pago.Sucursal ? pago.Sucursal.trim().toLowerCase() : "";
@@ -330,20 +325,20 @@
       const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
       const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
       
-      // Calcular "Cajas Consumidas por Sucursal"
+      // Cajas consumidas por sucursal
       const cajasPorSucursal = {};
       sucursalesReport.forEach(sucursal => {
         const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
         const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'pizza')
-                                         .reduce((sum, p) => sum + p.Cantidad, 0);
+                                          .reduce((sum, p) => sum + p.Cantidad, 0);
         const fingersCount = pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'fingers')
-                                           .reduce((sum, p) => sum + p.Cantidad, 0);
+                                            .reduce((sum, p) => sum + p.Cantidad, 0);
         cajasPorSucursal[sucursal] = { pizza: pizzaCount, fingers: fingersCount };
       });
       let totalPizzaSucursal = sucursalesReport.reduce((acc, suc) => acc + (cajasPorSucursal[suc]?.pizza || 0), 0);
       let totalFingersSucursal = sucursalesReport.reduce((acc, suc) => acc + (cajasPorSucursal[suc]?.fingers || 0), 0);
       
-      // Calcular "Cajas Consumidas por Marca"
+      // Cajas consumidas por marca
       const cajasPorMarca = {};
       pedidosFiltrados.forEach(pedido => {
         const marca = pedido.Empresa ? pedido.Empresa.trim() : 'Desconocida';
@@ -359,7 +354,7 @@
       let totalPizzaMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].pizza, 0);
       let totalFingersMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].fingers, 0);
       
-      // (Opcional) Mostrar en consola para depurar
+      // (Opcional) Para depurar, imprime en consola
       console.log("Cajas por Sucursal:", cajasPorSucursal);
       console.log("Cajas por Marca:", cajasPorMarca);
       
@@ -391,9 +386,7 @@
                   <td>${cajasPorSucursal[suc].fingers}</td>
                 </tr>
               `).join('') : `
-                <tr>
-                  <td colspan="3" style="text-align: center;">No hay datos de sucursales.</td>
-                </tr>
+                <tr><td colspan="3" style="text-align: center;">No hay datos de sucursales.</td></tr>
               `}
               ${sucursalesReport.length > 0 ? `
                 <tr>
@@ -423,9 +416,7 @@
                   <td>${cajasPorMarca[marca].fingers}</td>
                 </tr>
               `).join('') : `
-                <tr>
-                  <td colspan="3" style="text-align: center;">No hay datos de marcas.</td>
-                </tr>
+                <tr><td colspan="3" style="text-align: center;">No hay datos de marcas.</td></tr>
               `}
               ${Object.keys(cajasPorMarca).length > 0 ? `
                 <tr>
@@ -463,9 +454,7 @@
                   <td>Q${pedido.PrecioTotal.toFixed(2)}</td>
                 </tr>
               `).join('') : `
-                <tr>
-                  <td colspan="7" style="text-align: center;">No hay pedidos en el mes seleccionado.</td>
-                </tr>
+                <tr><td colspan="7" style="text-align: center;">No hay pedidos en el mes seleccionado.</td></tr>
               `}
             </tbody>
           </table>
@@ -493,9 +482,7 @@
                   <td>Q${pago.precioTotalPagado.toFixed(2)}</td>
                 </tr>
               `).join('') : `
-                <tr>
-                  <td colspan="5" style="text-align: center;">No hay pagos asociados al mes seleccionado.</td>
-                </tr>
+                <tr><td colspan="5" style="text-align: center;">No hay pagos asociados al mes seleccionado.</td></tr>
               `}
             </tbody>
           </table>
@@ -503,7 +490,7 @@
         </div>
       `;
       
-      // Reporte detallado por Sucursal
+      // Reporte detallado por sucursal
       sucursalesReport.forEach(sucursal => {
         const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
         const sucursalNombre = capitalizeFirstLetter(sucursal);
@@ -561,9 +548,7 @@
                     <td>Q${pedido.PrecioTotal.toFixed(2)}</td>
                   </tr>
                 `).join('') : `
-                  <tr>
-                    <td colspan="6" style="text-align: center;">No hay pedidos para esta sucursal en el mes seleccionado.</td>
-                  </tr>
+                  <tr><td colspan="6" style="text-align: center;">No hay pedidos para esta sucursal en el mes seleccionado.</td></tr>
                 `}
               </tbody>
             </table>
@@ -586,9 +571,7 @@
                     <td>Q${pago.precioTotalPagado.toFixed(2)}</td>
                   </tr>
                 `).join('') : `
-                  <tr>
-                    <td colspan="4" style="text-align: center;">No hay pagos para esta sucursal en el mes seleccionado.</td>
-                  </tr>
+                  <tr><td colspan="4" style="text-align: center;">No hay pagos para esta sucursal en el mes seleccionado.</td></tr>
                 `}
               </tbody>
             </table>
@@ -610,15 +593,13 @@
       exportarReportePDFBtn.disabled = (pedidosFiltrados.length === 0 && pagosFiltrados.length === 0);
     }
     
-    // Función para exportar a CSV (puedes completar esta función utilizando el mismo filtrado)
+    // Función para exportar a CSV (puedes implementar el filtrado similar a la función generarReporte)
     function exportarCSV() {
-      // Aquí puedes reutilizar el filtrado de la función generarReporte para construir el CSV.
       Swal.fire("Función CSV", "Implementa el mismo filtrado y genera el CSV.");
     }
     
-    // Función para exportar el reporte a PDF usando jsPDF y AutoTable
+    // Función para exportar el reporte a PDF usando jsPDF y AutoTablesadsdaasdsdads
     async function exportarPDF() {
-      // Aquí puedes reutilizar el filtrado de la función generarReporte para generar el PDF.
       Swal.fire("Función PDF", "Implementa el mismo filtrado y genera el PDF.");
     }
     
@@ -628,3 +609,4 @@
   </script>
 </body>
 </html>
+ 
