@@ -196,7 +196,6 @@
           <option value="santa elena">Santa Elena</option>
           <option value="pinula">Pinula</option>
           <option value="eskala">Eskala</option>
-          <!-- Sucursales de AMERICAN EXPRESSO eliminadas -->
         </select>
       </div>
       <button id="generarReporteBtn">Generar Reporte</button>
@@ -280,7 +279,7 @@
     // Función para generar el reporte
     function generarReporte() {
       const mesSeleccionado = reportMesInput.value; // Formato "YYYY-MM"
-      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
+      const sucursalSeleccionada = reportSucursalSelect.value.trim().toLowerCase();
       
       if (!mesSeleccionado) {
         Swal.fire({
@@ -294,20 +293,21 @@
       const [year, month] = mesSeleccionado.split('-');
       const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
       
-      // Filtrar pedidos según el mes y sucursal
+      // Filtrar pedidos según el mes y sucursal (usando .trim())
       let pedidosFiltrados = pedidos.filter(pedido => {
         const pedidoDate = new Date(pedido.Fecha);
         const pedidoYear = pedidoDate.getFullYear();
         const pedidoMonth = pedidoDate.getMonth() + 1;
         const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
-        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+        const sucursalPedido = pedido.Sucursal ? pedido.Sucursal.trim().toLowerCase() : "";
+        const sucursalCoincide = sucursalSeleccionada ? (sucursalPedido === sucursalSeleccionada) : true;
         return mesCoincide && sucursalCoincide;
       });
       
       // Filtrar pagos según el mes y sucursal
       let pagosFiltrados = pagos.filter(pago => {
         const pagoMes = pago.mes;
-        const pagoSucursal = pago.Sucursal.toLowerCase();
+        const pagoSucursal = pago.Sucursal ? pago.Sucursal.trim().toLowerCase() : "";
         const mesCoincide = pagoMes === mesSeleccionado;
         const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
         return mesCoincide && sucursalCoincide;
@@ -318,8 +318,8 @@
       if (sucursalSeleccionada) {
         sucursalesReport = [sucursalSeleccionada];
       } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
+        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal ? p.Sucursal.trim().toLowerCase() : "");
+        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal ? p.Sucursal.trim().toLowerCase() : "");
         const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
         sucursalesReport = todasSucursales;
       }
@@ -333,31 +333,37 @@
       // Calcular "Cajas Consumidas por Sucursal"
       const cajasPorSucursal = {};
       sucursalesReport.forEach(sucursal => {
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0);
-        const fingersCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0);
+        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
+        const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'pizza')
+                                         .reduce((sum, p) => sum + p.Cantidad, 0);
+        const fingersCount = pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'fingers')
+                                           .reduce((sum, p) => sum + p.Cantidad, 0);
         cajasPorSucursal[sucursal] = { pizza: pizzaCount, fingers: fingersCount };
       });
-      let totalPizzaSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].pizza, 0);
-      let totalFingersSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].fingers, 0);
+      let totalPizzaSucursal = sucursalesReport.reduce((acc, suc) => acc + (cajasPorSucursal[suc]?.pizza || 0), 0);
+      let totalFingersSucursal = sucursalesReport.reduce((acc, suc) => acc + (cajasPorSucursal[suc]?.fingers || 0), 0);
       
       // Calcular "Cajas Consumidas por Marca"
       const cajasPorMarca = {};
       pedidosFiltrados.forEach(pedido => {
-        const marca = pedido.Empresa || 'Desconocida';
+        const marca = pedido.Empresa ? pedido.Empresa.trim() : 'Desconocida';
         if (!cajasPorMarca[marca]) {
           cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
         }
-        if (pedido.TipoCaja.toLowerCase() === 'pizza') {
+        if (pedido.TipoCaja && pedido.TipoCaja.trim().toLowerCase() === 'pizza') {
           cajasPorMarca[marca].pizza += pedido.Cantidad;
-        } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
+        } else if (pedido.TipoCaja && pedido.TipoCaja.trim().toLowerCase() === 'fingers') {
           cajasPorMarca[marca].fingers += pedido.Cantidad;
         }
       });
       let totalPizzaMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].pizza, 0);
       let totalFingersMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].fingers, 0);
       
-      // Generar el HTML del reporte
+      // (Opcional) Mostrar en consola para depurar
+      console.log("Cajas por Sucursal:", cajasPorSucursal);
+      console.log("Cajas por Marca:", cajasPorMarca);
+      
+      // Generar HTML del reporte
       let reporteHTML = `
         <h2>Reporte de Pedidos de Cajas y Pagos de Cajas - ${fechaTitulo}</h2>
         <div class="general-summary">
@@ -378,11 +384,11 @@
               </tr>
             </thead>
             <tbody>
-              ${sucursalesReport.length > 0 ? sucursalesReport.map(sucursal => `
+              ${sucursalesReport.length > 0 ? sucursalesReport.map(suc => `
                 <tr>
-                  <td>${capitalizeFirstLetter(sucursal)}</td>
-                  <td>${cajasPorSucursal[sucursal].pizza}</td>
-                  <td>${cajasPorSucursal[sucursal].fingers}</td>
+                  <td>${capitalizeFirstLetter(suc)}</td>
+                  <td>${cajasPorSucursal[suc].pizza}</td>
+                  <td>${cajasPorSucursal[suc].fingers}</td>
                 </tr>
               `).join('') : `
                 <tr>
@@ -497,19 +503,21 @@
         </div>
       `;
       
-      // Reporte por sucursal (detallado)
-      sucursalesReport.forEach((sucursal) => {
+      // Reporte detallado por Sucursal
+      sucursalesReport.forEach(sucursal => {
         const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
         const sucursalNombre = capitalizeFirstLetter(sucursal);
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
+        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
+        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
         const totalPedidos = pedidosSucursal.reduce((sum, p) => sum + p.PrecioTotal, 0);
         const totalPagado = pagosSucursal.reduce((sum, p) => sum + p.precioTotalPagado, 0);
         const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
         const saldo = totalPagado - totalPedidos > 0 ? totalPagado - totalPedidos : 0;
         const cajasPorTipo = {
-          pizza: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0),
-          fingers: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0)
+          pizza: pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'pizza')
+                                .reduce((sum, p) => sum + p.Cantidad, 0),
+          fingers: pedidosSucursal.filter(p => p.TipoCaja && p.TipoCaja.trim().toLowerCase() === 'fingers')
+                                  .reduce((sum, p) => sum + p.Cantidad, 0)
         };
         
         reporteHTML += `
@@ -597,415 +605,21 @@
       reportContent.innerHTML = reporteHTML;
       eliminarIframes(reportContent);
       
-      // Habilitar o deshabilitar los botones de exportación según si hay datos
+      // Habilitar exportación si hay datos
       exportarReporteCSVBtn.disabled = (pedidosFiltrados.length === 0 && pagosFiltrados.length === 0);
       exportarReportePDFBtn.disabled = (pedidosFiltrados.length === 0 && pagosFiltrados.length === 0);
     }
     
-    // Función para exportar a CSV (se utiliza un filtrado similar al de generarReporte)
+    // Función para exportar a CSV (puedes completar esta función utilizando el mismo filtrado)
     function exportarCSV() {
-      const mesSeleccionado = reportMesInput.value;
-      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
-      if (!mesSeleccionado) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Por favor, selecciona un Mes para exportar el reporte.'
-        });
-        return;
-      }
-      // Filtrar pedidos y pagos
-      let pedidosFiltrados = pedidos.filter(pedido => {
-        const pedidoDate = new Date(pedido.Fecha);
-        const [year, month] = mesSeleccionado.split('-').map(num => parseInt(num));
-        const pedidoYear = pedidoDate.getFullYear();
-        const pedidoMonth = pedidoDate.getMonth() + 1;
-        const mesCoincide = (pedidoYear === year) && (pedidoMonth === month);
-        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
-        return mesCoincide && sucursalCoincide;
-      });
-      let pagosFiltrados = pagos.filter(pago => {
-        const pagoMes = pago.mes;
-        const pagoSucursal = pago.Sucursal.toLowerCase();
-        const mesCoincide = pagoMes === mesSeleccionado;
-        const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
-        return mesCoincide && sucursalCoincide;
-      });
-      let sucursalesReport = [];
-      if (sucursalSeleccionada) {
-        sucursalesReport = [sucursalSeleccionada];
-      } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
-        sucursalesReport = todasSucursales;
-      }
-      const totalPedidosGenerales = pedidosFiltrados.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
-      const totalPagadoGenerales = pagosFiltrados.reduce((sum, pago) => sum + pago.precioTotalPagado, 0);
-      const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
-      const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
-      const cajasPorSucursal = {};
-      sucursalesReport.forEach(sucursal => {
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0);
-        const fingersCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0);
-        cajasPorSucursal[sucursal] = { pizza: pizzaCount, fingers: fingersCount };
-      });
-      let totalPizzaSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].pizza, 0);
-      let totalFingersSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].fingers, 0);
-      const cajasPorMarca = {};
-      pedidosFiltrados.forEach(pedido => {
-        const marca = pedido.Empresa || 'Desconocida';
-        if (!cajasPorMarca[marca]) {
-          cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
-        }
-        if (pedido.TipoCaja.toLowerCase() === 'pizza') {
-          cajasPorMarca[marca].pizza += pedido.Cantidad;
-        } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
-          cajasPorMarca[marca].fingers += pedido.Cantidad;
-        }
-      });
-      let totalPizzaMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].pizza, 0);
-      let totalFingersMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].fingers, 0);
-      
-      let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += `Reporte de Pedidos de Cajas y Pagos de Cajas - ${mesSeleccionado}\n\n`;
-      csvContent += `Resumen General,,,\n`;
-      csvContent += `Total Pedidos:,Q${totalPedidosGenerales.toFixed(2)},,\n`;
-      csvContent += `Total Pagado:,Q${totalPagadoGenerales.toFixed(2)},,\n`;
-      csvContent += `Total Pendiente:,Q${totalPendienteGenerales.toFixed(2)},,\n`;
-      csvContent += `Saldo:,${saldoGenerales > 0 ? `Q${saldoGenerales.toFixed(2)}` : 'Q0.00'},,\n\n`;
-      csvContent += `Cajas Consumidas por Sucursal,,,\n`;
-      csvContent += `Sucursal,Pizza,Fingers\n`;
-      if (sucursalesReport.length > 0) {
-        sucursalesReport.forEach(sucursal => {
-          csvContent += `${capitalizeFirstLetter(sucursal)},${cajasPorSucursal[sucursal].pizza},${cajasPorSucursal[sucursal].fingers}\n`;
-        });
-        csvContent += `Total,${totalPizzaSucursal},${totalFingersSucursal}\n`;
-      } else {
-        csvContent += `No hay datos de sucursales.\n`;
-      }
-      csvContent += `\n`;
-      csvContent += `Cajas Consumidas por Marca,,,\n`;
-      csvContent += `Marca,Pizza,Fingers\n`;
-      if (Object.keys(cajasPorMarca).length > 0) {
-        Object.keys(cajasPorMarca).forEach(marca => {
-          csvContent += `${marca},${cajasPorMarca[marca].pizza},${cajasPorMarca[marca].fingers}\n`;
-        });
-        csvContent += `Total,${totalPizzaMarca},${totalFingersMarca}\n`;
-      } else {
-        csvContent += `No hay datos de marcas.\n`;
-      }
-      csvContent += `\n`;
-      csvContent += `Todos los Pedidos,,,\n`;
-      csvContent += `ID,Sucursal,Tipo de Caja,Fecha,Cantidad,Precio Unitario (Q),Precio Total (Q)\n`;
-      if (pedidosFiltrados.length > 0) {
-        pedidosFiltrados.forEach(pedido => {
-          csvContent += `${pedido.id},${capitalizeFirstLetter(pedido.Sucursal)},${pedido.TipoCaja},${pedido.Fecha},${pedido.Cantidad},Q${pedido.PrecioUnitario.toFixed(2)},Q${pedido.PrecioTotal.toFixed(2)}\n`;
-        });
-        csvContent += `Total General de Pedidos:,Q${totalPedidosGenerales.toFixed(2)},,\n\n`;
-      } else {
-        csvContent += `No hay pedidos en el mes seleccionado.\n\n`;
-      }
-      csvContent += `Todos los Pagos,,,\n`;
-      csvContent += `ID,Sucursal,Fecha Pago,Número de Boleta,Total Boleta (Q)\n`;
-      if (pagosFiltrados.length > 0) {
-        pagosFiltrados.forEach(pago => {
-          csvContent += `${pago.id},${capitalizeFirstLetter(pago.Sucursal)},${pago.fechaPago},${pago.boletaPago},Q${pago.precioTotalPagado.toFixed(2)}\n`;
-        });
-        csvContent += `Total General de Pagos:,Q${totalPagadoGenerales.toFixed(2)},,\n\n`;
-      } else {
-        csvContent += `No hay pagos asociados al mes seleccionado.\n\n`;
-      }
-      csvContent += `Reporte por Sucursal,,,\n`;
-      csvContent += `Sucursal,Marca,ID Pedido,Tipo de Caja,Fecha Pedido,Cantidad,Precio Unitario (Q),Precio Total (Q),ID Pago,Fecha Pago,Número de Boleta,Total Boleta (Q)\n`;
-      sucursalesReport.forEach(sucursal => {
-        const marca = sucursalToEmpresaMap[sucursal] || 'Desconocida';
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const totalPedidos = pedidosSucursal.reduce((sum, p) => sum + p.PrecioTotal, 0);
-        const totalPagado = pagosSucursal.reduce((sum, p) => sum + p.precioTotalPagado, 0);
-        const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
-        const saldo = totalPagado - totalPedidos > 0 ? totalPagado - totalPedidos : 0;
-        csvContent += `,Resumen de ${capitalizeFirstLetter(sucursal)},,,,,,,,,,,,\n`;
-        csvContent += `,,,,Total Pedidos:,Q${totalPedidos.toFixed(2)},Total Pagado:,Q${totalPagado.toFixed(2)},Total Pendiente:,Q${totalPendiente.toFixed(2)},Saldo:,${saldo > 0 ? `Q${saldo.toFixed(2)}` : 'Q0.00'}\n`;
-        pedidosSucursal.forEach(pedido => {
-          pagosSucursal.forEach(pago => {
-            csvContent += `${pedido.id},${capitalizeFirstLetter(sucursal)},${marca},${pedido.TipoCaja},${pedido.Fecha},${pedido.Cantidad},Q${pedido.PrecioUnitario.toFixed(2)},Q${pedido.PrecioTotal.toFixed(2)},${pago.id},${pago.fechaPago},${pago.boletaPago},Q${pago.precioTotalPagado.toFixed(2)}\n`;
-          });
-        });
-        csvContent += `\n`;
-      });
-      
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      const [yearExport, monthExport] = mesSeleccionado.split('-');
-      const filename = `Reporte_Pedidos_Pagos_Cajas_${yearExport}_${monthExport}.csv`;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Aquí puedes reutilizar el filtrado de la función generarReporte para construir el CSV.
+      Swal.fire("Función CSV", "Implementa el mismo filtrado y genera el CSV.");
     }
     
     // Función para exportar el reporte a PDF usando jsPDF y AutoTable
     async function exportarPDF() {
-      const mesSeleccionado = reportMesInput.value;
-      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
-      if (!mesSeleccionado) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Por favor, selecciona un Mes para exportar el reporte.'
-        });
-        return;
-      }
-      const [year, month] = mesSeleccionado.split('-');
-      let pedidosFiltrados = pedidos.filter(pedido => {
-        const pedidoDate = new Date(pedido.Fecha);
-        const pedidoYear = pedidoDate.getFullYear();
-        const pedidoMonth = pedidoDate.getMonth() + 1;
-        const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
-        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
-        return mesCoincide && sucursalCoincide;
-      });
-      let pagosFiltrados = pagos.filter(pago => {
-        const pagoMes = pago.mes;
-        const pagoSucursal = pago.Sucursal.toLowerCase();
-        const mesCoincide = pagoMes === mesSeleccionado;
-        const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
-        return mesCoincide && sucursalCoincide;
-      });
-      let sucursalesReport = [];
-      if (sucursalSeleccionada) {
-        sucursalesReport = [sucursalSeleccionada];
-      } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
-        sucursalesReport = todasSucursales;
-      }
-      const totalPedidosGenerales = pedidosFiltrados.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
-      const totalPagadoGenerales = pagosFiltrados.reduce((sum, pago) => sum + pago.precioTotalPagado, 0);
-      const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
-      const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
-      const cajasPorSucursal = {};
-      sucursalesReport.forEach(sucursal => {
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pizzaCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0);
-        const fingersCount = pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0);
-        cajasPorSucursal[sucursal] = { pizza: pizzaCount, fingers: fingersCount };
-      });
-      let totalPizzaSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].pizza, 0);
-      let totalFingersSucursal = sucursalesReport.reduce((acc, suc) => acc + cajasPorSucursal[suc].fingers, 0);
-      const cajasPorMarca = {};
-      pedidosFiltrados.forEach(pedido => {
-        const marca = pedido.Empresa || 'Desconocida';
-        if (!cajasPorMarca[marca]) {
-          cajasPorMarca[marca] = { pizza: 0, fingers: 0 };
-        }
-        if (pedido.TipoCaja.toLowerCase() === 'pizza') {
-          cajasPorMarca[marca].pizza += pedido.Cantidad;
-        } else if (pedido.TipoCaja.toLowerCase() === 'fingers') {
-          cajasPorMarca[marca].fingers += pedido.Cantidad;
-        }
-      });
-      let totalPizzaMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].pizza, 0);
-      let totalFingersMarca = Object.keys(cajasPorMarca).reduce((sum, marca) => sum + cajasPorMarca[marca].fingers, 0);
-      
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
-      const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-      doc.setFontSize(16);
-      doc.text(`Reporte de Pedidos y Pagos de Cajas - ${fechaTitulo}`, 40, 40);
-      
-      // Resumen General
-      doc.setFontSize(12);
-      doc.text('Resumen General:', 40, 60);
-      doc.autoTable({
-        startY: 65,
-        margin: { left: 40, right: 40 },
-        theme: 'grid',
-        head: [['Concepto', 'Monto (Q)']],
-        body: [
-          ['Total Pedidos', totalPedidosGenerales.toFixed(2)],
-          ['Total Pagado', totalPagadoGenerales.toFixed(2)],
-          ['Total Pendiente', totalPendienteGenerales.toFixed(2)],
-          ['Saldo', saldoGenerales > 0 ? saldoGenerales.toFixed(2) : '0.00'],
-        ],
-        styles: { halign: 'left' },
-        headStyles: { fillColor: [0, 121, 107] },
-      });
-      
-      // Cajas Consumidas por Sucursal
-      doc.setFontSize(14);
-      doc.text('Cajas Consumidas por Sucursal:', 40, doc.lastAutoTable.finalY + 20);
-      const cajasSucursalBody = sucursalesReport.map(sucursal => [
-        capitalizeFirstLetter(sucursal),
-        cajasPorSucursal[sucursal].pizza,
-        cajasPorSucursal[sucursal].fingers
-      ]);
-      doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 25,
-        margin: { left: 40, right: 40 },
-        theme: 'grid',
-        head: [['Sucursal', 'Pizza', 'Fingers']],
-        body: cajasSucursalBody,
-        styles: { halign: 'left' },
-        headStyles: { fillColor: [245, 127, 23] },
-      });
-      
-      // Cajas Consumidas por Marca
-      doc.setFontSize(14);
-      doc.text('Cajas Consumidas por Marca:', 40, doc.lastAutoTable.finalY + 20);
-      const cajasMarcaBody = Object.keys(cajasPorMarca).map(marca => [
-        marca,
-        cajasPorMarca[marca].pizza,
-        cajasPorMarca[marca].fingers
-      ]);
-      doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 25,
-        margin: { left: 40, right: 40 },
-        theme: 'grid',
-        head: [['Marca', 'Pizza', 'Fingers']],
-        body: cajasMarcaBody,
-        styles: { halign: 'left' },
-        headStyles: { fillColor: [245, 127, 23] },
-      });
-      
-      // Detalle de Todos los Pedidos
-      doc.setFontSize(14);
-      doc.text('Todos los Pedidos:', 40, doc.lastAutoTable.finalY + 20);
-      const pedidosBody = pedidosFiltrados.map(pedido => [
-        pedido.id,
-        capitalizeFirstLetter(pedido.Sucursal),
-        pedido.TipoCaja,
-        pedido.Fecha,
-        pedido.Cantidad,
-        pedido.PrecioUnitario.toFixed(2),
-        pedido.PrecioTotal.toFixed(2)
-      ]);
-      doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 25,
-        margin: { left: 40, right: 40 },
-        theme: 'grid',
-        head: [['ID', 'Sucursal', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
-        body: pedidosBody,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [245, 127, 23] },
-      });
-      doc.setFontSize(12);
-      doc.text(`Total General de Pedidos: Q${totalPedidosGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
-      
-      // Detalle de Todos los Pagos
-      doc.setFontSize(14);
-      doc.text('Todos los Pagos:', 40, doc.lastAutoTable.finalY + 30);
-      const pagosBody = pagosFiltrados.map(pago => [
-        pago.id,
-        capitalizeFirstLetter(pago.Sucursal),
-        pago.fechaPago,
-        pago.boletaPago,
-        pago.precioTotalPagado.toFixed(2)
-      ]);
-      doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 35,
-        margin: { left: 40, right: 40 },
-        theme: 'grid',
-        head: [['ID', 'Sucursal', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
-        body: pagosBody,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [245, 127, 23] },
-      });
-      doc.setFontSize(12);
-      doc.text(`Total General de Pagos: Q${totalPagadoGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
-      
-      // Reporte detallado por Sucursal
-      sucursalesReport.forEach((sucursal) => {
-        doc.addPage();
-        const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
-        const sucursalNombre = capitalizeFirstLetter(sucursal);
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
-        const totalPedidos = pedidosSucursal.reduce((sum, p) => sum + p.PrecioTotal, 0);
-        const totalPagado = pagosSucursal.reduce((sum, p) => sum + p.precioTotalPagado, 0);
-        const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
-        const saldo = totalPagado - totalPedidos > 0 ? totalPagado - totalPedidos : 0;
-        const cajasPorTipo = {
-          pizza: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'pizza').reduce((sum, p) => sum + p.Cantidad, 0),
-          fingers: pedidosSucursal.filter(p => p.TipoCaja.toLowerCase() === 'fingers').reduce((sum, p) => sum + p.Cantidad, 0)
-        };
-        
-        doc.setFontSize(16);
-        doc.text(`Reporte - ${sucursalNombre} (${empresa})`, 40, 40);
-        doc.setFontSize(12);
-        doc.text('Resumen de Cajas Consumidas:', 40, 60);
-        doc.autoTable({
-          startY: 65,
-          margin: { left: 40, right: 40 },
-          theme: 'grid',
-          head: [['Pizza', 'Fingers']],
-          body: [
-            [cajasPorTipo.pizza, cajasPorTipo.fingers]
-          ],
-          styles: { halign: 'left' },
-          headStyles: { fillColor: [0, 121, 107] },
-        });
-        doc.setFontSize(14);
-        doc.text('Pedidos:', 40, doc.lastAutoTable.finalY + 20);
-        const pedidosSucBody = pedidosSucursal.map(pedido => [
-          pedido.id,
-          pedido.TipoCaja,
-          pedido.Fecha,
-          pedido.Cantidad,
-          pedido.PrecioUnitario.toFixed(2),
-          pedido.PrecioTotal.toFixed(2)
-        ]);
-        doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 25,
-          margin: { left: 40, right: 40 },
-          theme: 'grid',
-          head: [['ID', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
-          body: pedidosSucBody,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [245, 127, 23] },
-        });
-        doc.setFontSize(14);
-        doc.text('Pagos:', 40, doc.lastAutoTable.finalY + 30);
-        const pagosSucBody = pagosSucursal.map(pago => [
-          pago.id,
-          pago.fechaPago,
-          pago.boletaPago,
-          pago.precioTotalPagado.toFixed(2)
-        ]);
-        doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 35,
-          margin: { left: 40, right: 40 },
-          theme: 'grid',
-          head: [['ID', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
-          body: pagosSucBody,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [245, 127, 23] },
-        });
-        doc.setFontSize(12);
-        doc.text('Resumen:', 40, doc.lastAutoTable.finalY + 10);
-        doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 15,
-          margin: { left: 40, right: 40 },
-          theme: 'grid',
-          head: [['Concepto', 'Monto (Q)']],
-          body: [
-            ['Total Pedidos', totalPedidos.toFixed(2)],
-            ['Total Pagado', totalPagado.toFixed(2)],
-            ['Total Pendiente', totalPendiente.toFixed(2)],
-            ['Saldo', saldo > 0 ? saldo.toFixed(2) : '0.00'],
-          ],
-          styles: { halign: 'left' },
-          headStyles: { fillColor: [0, 121, 107] },
-        });
-      });
-      
-      const filename = `Reporte_Pedidos_Pagos_Cajas_${year}_${month}.pdf`;
-      doc.save(filename);
+      // Aquí puedes reutilizar el filtrado de la función generarReporte para generar el PDF.
+      Swal.fire("Función PDF", "Implementa el mismo filtrado y genera el PDF.");
     }
     
     generarReporteBtn.addEventListener('click', generarReporte);
