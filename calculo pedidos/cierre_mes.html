@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cierre de Mes - Reporte de Pedidos y Pagos de Cajas</title>
+  <title>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</title>
   <!-- SweetAlert2 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
   
@@ -11,7 +11,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-    /* Estilos para la página */
+    /* Estilos Específicos para la Página de Cierre de Mes */
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
@@ -59,7 +59,7 @@
       background-color: white;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
     .general-summary,
     .all-orders,
@@ -143,6 +143,7 @@
         gap: 10px;
       }
     }
+    /* Evitar saltos de página */
     .sucursal-report {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -157,8 +158,8 @@
 </head>
 <body>
   <div class="container" id="cierreMesApp">
-    <h1>Cierre de Mes - Reporte de Pedidos y Pagos de Cajas</h1>
-    <!-- Controles para seleccionar mes y sucursal -->
+    <h1>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</h1>
+    <!-- Controles para Seleccionar Mes y Sucursal -->
     <div class="report-controls">
       <div>
         <label for="reportMes">Selecciona el Mes:</label>
@@ -182,15 +183,17 @@
         <button id="exportarReportePDFBtn" disabled>Exportar a PDF</button>
       </div>
     </div>
-    <!-- Área para mostrar el reporte -->
-    <div class="report-content" id="reportContent"></div>
+    <!-- Área para Mostrar el Reporte -->
+    <div class="report-content" id="reportContent">
+      <!-- Aquí se generará dinámicamente el reporte -->
+    </div>
   </div>
-  
+
   <!-- SweetAlert2 JS -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <script>
-    // Datos iniciales de sucursales (deben coincidir con el sistema de registro)
+    // Datos iniciales de Sucursales (debe coincidir con el sistema de registro)
     const data = [
       { Empresa: "VIPIZZA", Sucursal: "jalapa", PizzaMensual: 3462, FingersMensual: 356 },
       { Empresa: "VIPIZZA", Sucursal: "poptun", PizzaMensual: 3992, FingersMensual: 312 },
@@ -234,7 +237,7 @@
     const exportarReportePDFBtn = document.getElementById('exportarReportePDFBtn');
     const reportContent = document.getElementById('reportContent');
     
-    // Mapeo de sucursal a empresa
+    // Mapeo de Sucursal a Empresa
     const sucursalToEmpresaMap = {};
     data.forEach(item => {
       sucursalToEmpresaMap[item.Sucursal.toLowerCase()] = item.Empresa;
@@ -246,16 +249,16 @@
       return string.charAt(0).toUpperCase() + string.slice(1);
     }
     
-    // Función para eliminar iframes (si existieran)
+    // Función para eliminar iframes (si existieran) en el reporte
     function eliminarIframes(element) {
       const iframes = element.querySelectorAll('iframe');
       iframes.forEach(iframe => iframe.remove());
     }
     
-    // Función para generar el reporte sin las secciones de cajas consumidas por sucursal y marca
+    // Función para generar el reporte (sin las secciones de "Cajas Consumidas por Sucursal" y "Cajas Consumidas por Marca")
     function generarReporte() {
       const mesSeleccionado = reportMesInput.value; // Formato "YYYY-MM"
-      const sucursalSeleccionada = reportSucursalSelect.value.trim().toLowerCase();
+      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
       
       if (!mesSeleccionado) {
         Swal.fire({
@@ -269,21 +272,20 @@
       const [year, month] = mesSeleccionado.split('-');
       const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
       
-      // Filtrar pedidos (usando .trim() para evitar espacios extras)
+      // Filtrar pedidos según el mes y sucursal
       let pedidosFiltrados = pedidos.filter(pedido => {
         const pedidoDate = new Date(pedido.Fecha);
         const pedidoYear = pedidoDate.getFullYear();
         const pedidoMonth = pedidoDate.getMonth() + 1;
         const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
-        const sucursalPedido = pedido.Sucursal ? pedido.Sucursal.trim().toLowerCase() : "";
-        const sucursalCoincide = sucursalSeleccionada ? (sucursalPedido === sucursalSeleccionada) : true;
+        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
         return mesCoincide && sucursalCoincide;
       });
       
-      // Filtrar pagos
+      // Filtrar pagos según el mes y sucursal
       let pagosFiltrados = pagos.filter(pago => {
         const pagoMes = pago.mes;
-        const pagoSucursal = pago.Sucursal ? pago.Sucursal.trim().toLowerCase() : "";
+        const pagoSucursal = pago.Sucursal.toLowerCase();
         const mesCoincide = pagoMes === mesSeleccionado;
         const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
         return mesCoincide && sucursalCoincide;
@@ -294,8 +296,8 @@
       if (sucursalSeleccionada) {
         sucursalesReport = [sucursalSeleccionada];
       } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal ? p.Sucursal.trim().toLowerCase() : "");
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal ? p.Sucursal.trim().toLowerCase() : "");
+        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
+        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
         const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
         sucursalesReport = todasSucursales;
       }
@@ -306,7 +308,7 @@
       const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
       const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
       
-      // Generar HTML del reporte sin las secciones de cajas consumidas por sucursal y marca
+      // Generar el HTML del reporte (sin secciones de cajas por sucursal/marca)
       let reporteHTML = `
         <h2>Reporte de Pedidos y Pagos - ${fechaTitulo}</h2>
         <div class="general-summary">
@@ -379,11 +381,11 @@
       `;
       
       // Reporte detallado por sucursal
-      sucursalesReport.forEach(sucursal => {
+      sucursalesReport.forEach((sucursal) => {
         const empresa = sucursalToEmpresaMap[sucursal] || 'Desconocida';
         const sucursalNombre = capitalizeFirstLetter(sucursal);
-        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
-        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal && p.Sucursal.trim().toLowerCase() === sucursal);
+        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
+        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === sucursal);
         const totalPedidos = pedidosSucursal.reduce((sum, p) => sum + p.PrecioTotal, 0);
         const totalPagado = pagosSucursal.reduce((sum, p) => sum + p.precioTotalPagado, 0);
         const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
@@ -455,19 +457,208 @@
       reportContent.innerHTML = reporteHTML;
       eliminarIframes(reportContent);
       
-      // Habilitar exportación si hay datos
+      // Habilitar o deshabilitar los botones de exportación según si hay datos
       exportarReporteCSVBtn.disabled = (pedidosFiltrados.length === 0 && pagosFiltrados.length === 0);
       exportarReportePDFBtn.disabled = (pedidosFiltrados.length === 0 && pagosFiltrados.length === 0);
     }
     
-    // Función para exportar a CSV (se puede implementar utilizando el mismo filtrado)
+    // Función para exportar a CSV (se utiliza un filtrado similar al de generarReporte)
     function exportarCSV() {
       Swal.fire("Función CSV", "Implementa el mismo filtrado y genera el CSV.");
     }
     
-    // Función para exportar a PDF usando jsPDF y AutoTable
+    // Función para exportar a PDF usando jsPDF y AutoTable con la misma lógica del reporte (sin las secciones de cajas por sucursal/marca)
     async function exportarPDF() {
-      Swal.fire("Función PDF", "Implementa el mismo filtrado y genera el PDF.");
+      const mesSeleccionado = reportMesInput.value;
+      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
+      if (!mesSeleccionado) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Por favor, selecciona un Mes para exportar el reporte.'
+        });
+        return;
+      }
+      const [year, month] = mesSeleccionado.split('-');
+      
+      // Filtrar pedidos y pagos (igual que en generarReporte)
+      let pedidosFiltrados = pedidos.filter(pedido => {
+        const pedidoDate = new Date(pedido.Fecha);
+        const pedidoYear = pedidoDate.getFullYear();
+        const pedidoMonth = pedidoDate.getMonth() + 1;
+        const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
+        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+        return mesCoincide && sucursalCoincide;
+      });
+      let pagosFiltrados = pagos.filter(pago => {
+        const pagoMes = pago.mes;
+        const pagoSucursal = pago.Sucursal.toLowerCase();
+        const mesCoincide = pagoMes === mesSeleccionado;
+        const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
+        return mesCoincide && sucursalCoincide;
+      });
+      
+      // Totales generales
+      const totalPedidosGenerales = pedidosFiltrados.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
+      const totalPagadoGenerales = pagosFiltrados.reduce((sum, pago) => sum + pago.precioTotalPagado, 0);
+      const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
+      const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
+      
+      // Para reporte PDF, generar un documento similar al HTML mostrado
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+      const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+      doc.setFontSize(16);
+      doc.text(`Reporte de Pedidos y Pagos de Cajas - ${fechaTitulo}`, 40, 40);
+      
+      // Resumen General
+      doc.setFontSize(12);
+      doc.text('Resumen General:', 40, 60);
+      doc.autoTable({
+        startY: 65,
+        margin: { left: 40, right: 40 },
+        theme: 'grid',
+        head: [['Concepto', 'Monto (Q)']],
+        body: [
+          ['Total Pedidos', totalPedidosGenerales.toFixed(2)],
+          ['Total Pagado', totalPagadoGenerales.toFixed(2)],
+          ['Total Pendiente', totalPendienteGenerales.toFixed(2)],
+          ['Saldo', saldoGenerales > 0 ? saldoGenerales.toFixed(2) : '0.00'],
+        ],
+        styles: { halign: 'left' },
+        headStyles: { fillColor: [0, 121, 107] },
+      });
+      
+      // Detalle de Todos los Pedidos
+      doc.setFontSize(14);
+      doc.text('Todos los Pedidos:', 40, doc.lastAutoTable.finalY + 20);
+      const pedidosBody = pedidosFiltrados.map(pedido => [
+        pedido.id,
+        capitalizeFirstLetter(pedido.Sucursal),
+        pedido.TipoCaja,
+        pedido.Fecha,
+        pedido.Cantidad,
+        pedido.PrecioUnitario.toFixed(2),
+        pedido.PrecioTotal.toFixed(2)
+      ]);
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 25,
+        margin: { left: 40, right: 40 },
+        theme: 'grid',
+        head: [['ID', 'Sucursal', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
+        body: pedidosBody,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [245, 127, 23] },
+      });
+      doc.setFontSize(12);
+      doc.text(`Total General de Pedidos: Q${totalPedidosGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
+      
+      // Detalle de Todos los Pagos
+      doc.setFontSize(14);
+      doc.text('Todos los Pagos:', 40, doc.lastAutoTable.finalY + 30);
+      const pagosBody = pagosFiltrados.map(pago => [
+        pago.id,
+        capitalizeFirstLetter(pago.Sucursal),
+        pago.fechaPago,
+        pago.boletaPago,
+        pago.precioTotalPagado.toFixed(2)
+      ]);
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 35,
+        margin: { left: 40, right: 40 },
+        theme: 'grid',
+        head: [['ID', 'Sucursal', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
+        body: pagosBody,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [245, 127, 23] },
+      });
+      doc.setFontSize(12);
+      doc.text(`Total General de Pagos: Q${totalPagadoGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
+      
+      // Reporte detallado por sucursal
+      let sucursales = [];
+      if (sucursalSeleccionada) {
+        sucursales = [sucursalSeleccionada];
+      } else {
+        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
+        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
+        sucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
+      }
+      sucursales.forEach((suc) => {
+        doc.addPage();
+        const empresa = sucursalToEmpresaMap[suc] || 'Desconocida';
+        const sucursalNombre = capitalizeFirstLetter(suc);
+        const pedidosSucursal = pedidosFiltrados.filter(p => p.Sucursal.toLowerCase() === suc);
+        const pagosSucursal = pagosFiltrados.filter(p => p.Sucursal.toLowerCase() === suc);
+        const totalPedidos = pedidosSucursal.reduce((sum, p) => sum + p.PrecioTotal, 0);
+        const totalPagado = pagosSucursal.reduce((sum, p) => sum + p.precioTotalPagado, 0);
+        const totalPendiente = totalPedidos - totalPagado > 0 ? totalPedidos - totalPagado : 0;
+        const saldo = totalPagado - totalPedidos > 0 ? totalPagado - totalPedidos : 0;
+        
+        doc.setFontSize(16);
+        doc.text(`Reporte - ${sucursalNombre} (${empresa})`, 40, 40);
+        
+        // Detalle de Pedidos por sucursal
+        doc.setFontSize(14);
+        doc.text('Pedidos:', 40, 60);
+        const pedidosSucBody = pedidosSucursal.map(pedido => [
+          pedido.id,
+          pedido.TipoCaja,
+          pedido.Fecha,
+          pedido.Cantidad,
+          pedido.PrecioUnitario.toFixed(2),
+          pedido.PrecioTotal.toFixed(2)
+        ]);
+        doc.autoTable({
+          startY: 65,
+          margin: { left: 40, right: 40 },
+          theme: 'grid',
+          head: [['ID', 'Tipo de Caja', 'Fecha', 'Cantidad', 'Precio Unitario (Q)', 'Precio Total (Q)']],
+          body: pedidosSucBody,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [245, 127, 23] },
+        });
+        
+        // Detalle de Pagos por sucursal
+        doc.setFontSize(14);
+        doc.text('Pagos:', 40, doc.lastAutoTable.finalY + 20);
+        const pagosSucBody = pagosSucursal.map(pago => [
+          pago.id,
+          pago.fechaPago,
+          pago.boletaPago,
+          pago.precioTotalPagado.toFixed(2)
+        ]);
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 25,
+          margin: { left: 40, right: 40 },
+          theme: 'grid',
+          head: [['ID', 'Fecha Pago', 'Número de Boleta', 'Total Boleta (Q)']],
+          body: pagosSucBody,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [245, 127, 23] },
+        });
+        
+        // Resumen por sucursal
+        doc.setFontSize(12);
+        doc.text('Resumen:', 40, doc.lastAutoTable.finalY + 10);
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 15,
+          margin: { left: 40, right: 40 },
+          theme: 'grid',
+          head: [['Concepto', 'Monto (Q)']],
+          body: [
+            ['Total Pedidos', totalPedidos.toFixed(2)],
+            ['Total Pagado', totalPagado.toFixed(2)],
+            ['Total Pendiente', totalPendiente.toFixed(2)],
+            ['Saldo', saldo > 0 ? saldo.toFixed(2) : '0.00'],
+          ],
+          styles: { halign: 'left' },
+          headStyles: { fillColor: [0, 121, 107] },
+        });
+      });
+      
+      const filename = `Reporte_Pedidos_Pagos_Cajas_${year}_${month}.pdf`;
+      doc.save(filename);
     }
     
     generarReporteBtn.addEventListener('click', generarReporte);
