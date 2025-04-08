@@ -154,28 +154,56 @@
       break-before: auto;
       page-break-before: auto;
     }
+    /* Estilos para los checkboxes de sucursales */
+    #reportSucursalContainer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    #reportSucursalContainer > div {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
   </style>
 </head>
 <body>
   <div class="container" id="cierreMesApp">
     <h1>Cierre de Mes - Reporte de Pedidos de Cajas y Pagos de Cajas</h1>
-    <!-- Controles para Seleccionar Mes y Sucursal -->
+    <!-- Controles para Seleccionar Mes y Sucursales -->
     <div class="report-controls">
       <div>
         <label for="reportMes">Selecciona el Mes:</label>
         <input type="month" id="reportMes">
       </div>
-      <div>
-        <label for="reportSucursal">Selecciona la Sucursal:</label>
-        <select id="reportSucursal">
-          <option value="">Todas las Sucursales</option>
-          <option value="jalapa">Jalapa</option>
-          <option value="poptun">Poptún</option>
-          <option value="zacapa">Zacapa</option>
-          <option value="santa elena">Santa Elena</option>
-          <option value="pinula">Pinula</option>
-          <option value="eskala">Eskala</option>
-        </select>
+      <div id="reportSucursalContainer">
+        <label>Selecciona las Sucursales:</label>
+        <div>
+          <input type="checkbox" id="sucursal_jalapa" name="reportSucursalCheckbox" value="jalapa" checked>
+          <label for="sucursal_jalapa">Jalapa</label>
+        </div>
+        <div>
+          <input type="checkbox" id="sucursal_poptun" name="reportSucursalCheckbox" value="poptun" checked>
+          <label for="sucursal_poptun">Poptún</label>
+        </div>
+        <div>
+          <input type="checkbox" id="sucursal_zacapa" name="reportSucursalCheckbox" value="zacapa" checked>
+          <label for="sucursal_zacapa">Zacapa</label>
+        </div>
+        <div>
+          <input type="checkbox" id="sucursal_santaelena" name="reportSucursalCheckbox" value="santa elena" checked>
+          <label for="sucursal_santaelena">Santa Elena</label>
+        </div>
+        <div>
+          <input type="checkbox" id="sucursal_pinula" name="reportSucursalCheckbox" value="pinula" checked>
+          <label for="sucursal_pinula">Pinula</label>
+        </div>
+        <div>
+          <input type="checkbox" id="sucursal_eskala" name="reportSucursalCheckbox" value="eskala" checked>
+          <label for="sucursal_eskala">Eskala</label>
+        </div>
       </div>
       <button id="generarReporteBtn">Generar Reporte</button>
       <div class="export-buttons">
@@ -231,7 +259,6 @@
     
     // Elementos del DOM
     const reportMesInput = document.getElementById('reportMes');
-    const reportSucursalSelect = document.getElementById('reportSucursal');
     const generarReporteBtn = document.getElementById('generarReporteBtn');
     const exportarReporteCSVBtn = document.getElementById('exportarReporteCSVBtn');
     const exportarReportePDFBtn = document.getElementById('exportarReportePDFBtn');
@@ -255,10 +282,17 @@
       iframes.forEach(iframe => iframe.remove());
     }
     
+    // Función para obtener las sucursales seleccionadas mediante checkboxes
+    function obtenerSucursalesSeleccionadas() {
+      const checkboxes = document.querySelectorAll('input[name="reportSucursalCheckbox"]:checked');
+      const selected = Array.from(checkboxes).map(checkbox => checkbox.value.toLowerCase());
+      return selected;
+    }
+    
     // Función para generar el reporte (sin las secciones de "Cajas Consumidas por Sucursal" y "Cajas Consumidas por Marca")
     function generarReporte() {
       const mesSeleccionado = reportMesInput.value; // Formato "YYYY-MM"
-      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
+      const sucursalesSeleccionadas = obtenerSucursalesSeleccionadas();
       
       if (!mesSeleccionado) {
         Swal.fire({
@@ -272,35 +306,29 @@
       const [year, month] = mesSeleccionado.split('-');
       const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
       
-      // Filtrar pedidos según el mes y sucursal
+      // Filtrar pedidos según mes y sucursales seleccionadas
       let pedidosFiltrados = pedidos.filter(pedido => {
         const pedidoDate = new Date(pedido.Fecha);
         const pedidoYear = pedidoDate.getFullYear();
         const pedidoMonth = pedidoDate.getMonth() + 1;
         const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
-        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+        const sucursalCoincide = sucursalesSeleccionadas.length > 0 ?
+          sucursalesSeleccionadas.includes(pedido.Sucursal.toLowerCase()) : true;
         return mesCoincide && sucursalCoincide;
       });
       
-      // Filtrar pagos según el mes y sucursal
+      // Filtrar pagos según mes y sucursales seleccionadas
       let pagosFiltrados = pagos.filter(pago => {
-        const pagoMes = pago.mes;
+        const mesCoincide = pago.mes === mesSeleccionado;
         const pagoSucursal = pago.Sucursal.toLowerCase();
-        const mesCoincide = pagoMes === mesSeleccionado;
-        const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
+        const sucursalCoincide = sucursalesSeleccionadas.length > 0 ?
+          sucursalesSeleccionadas.includes(pagoSucursal) : true;
         return mesCoincide && sucursalCoincide;
       });
       
-      // Determinar las sucursales a reportar
-      let sucursalesReport = [];
-      if (sucursalSeleccionada) {
-        sucursalesReport = [sucursalSeleccionada];
-      } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const todasSucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
-        sucursalesReport = todasSucursales;
-      }
+      // Para el reporte detallado se usan las sucursales seleccionadas
+      let sucursalesReport = sucursalesSeleccionadas.length > 0 ? sucursalesSeleccionadas :
+        [...new Set([...pedidosFiltrados.map(p => p.Sucursal.toLowerCase()), ...pagosFiltrados.map(p => p.Sucursal.toLowerCase())])];
       
       // Totales generales
       const totalPedidosGenerales = pedidosFiltrados.reduce((sum, pedido) => sum + pedido.PrecioTotal, 0);
@@ -467,10 +495,11 @@
       Swal.fire("Función CSV", "Implementa el mismo filtrado y genera el CSV.");
     }
     
-    // Función para exportar a PDF usando jsPDF y AutoTable con la misma lógica del reporte (sin las secciones de cajas por sucursal/marca)
+    // Función para exportar a PDF usando jsPDF y AutoTable con la misma lógica del reporte
     async function exportarPDF() {
       const mesSeleccionado = reportMesInput.value;
-      const sucursalSeleccionada = reportSucursalSelect.value.toLowerCase();
+      const sucursalesSeleccionadas = obtenerSucursalesSeleccionadas();
+      
       if (!mesSeleccionado) {
         Swal.fire({
           icon: 'error',
@@ -487,14 +516,14 @@
         const pedidoYear = pedidoDate.getFullYear();
         const pedidoMonth = pedidoDate.getMonth() + 1;
         const mesCoincide = (pedidoYear === parseInt(year)) && (pedidoMonth === parseInt(month));
-        const sucursalCoincide = sucursalSeleccionada ? (pedido.Sucursal.toLowerCase() === sucursalSeleccionada) : true;
+        const sucursalCoincide = sucursalesSeleccionadas.length > 0 ?
+          sucursalesSeleccionadas.includes(pedido.Sucursal.toLowerCase()) : true;
         return mesCoincide && sucursalCoincide;
       });
       let pagosFiltrados = pagos.filter(pago => {
-        const pagoMes = pago.mes;
-        const pagoSucursal = pago.Sucursal.toLowerCase();
-        const mesCoincide = pagoMes === mesSeleccionado;
-        const sucursalCoincide = sucursalSeleccionada ? (pagoSucursal === sucursalSeleccionada) : true;
+        const mesCoincide = pago.mes === mesSeleccionado;
+        const sucursalCoincide = sucursalesSeleccionadas.length > 0 ?
+          sucursalesSeleccionadas.includes(pago.Sucursal.toLowerCase()) : true;
         return mesCoincide && sucursalCoincide;
       });
       
@@ -504,7 +533,6 @@
       const totalPendienteGenerales = totalPedidosGenerales - totalPagadoGenerales > 0 ? totalPedidosGenerales - totalPagadoGenerales : 0;
       const saldoGenerales = totalPagadoGenerales - totalPedidosGenerales > 0 ? totalPagadoGenerales - totalPedidosGenerales : 0;
       
-      // Para reporte PDF, generar un documento similar al HTML mostrado
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const fechaTitulo = new Date(year, month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
@@ -576,14 +604,8 @@
       doc.text(`Total General de Pagos: Q${totalPagadoGenerales.toFixed(2)}`, 40, doc.lastAutoTable.finalY + 10);
       
       // Reporte detallado por sucursal
-      let sucursales = [];
-      if (sucursalSeleccionada) {
-        sucursales = [sucursalSeleccionada];
-      } else {
-        const sucursalesPedidos = pedidosFiltrados.map(p => p.Sucursal.toLowerCase());
-        const sucursalesPagos = pagosFiltrados.map(p => p.Sucursal.toLowerCase());
-        sucursales = [...new Set([...sucursalesPedidos, ...sucursalesPagos])];
-      }
+      let sucursales = sucursalesSeleccionadas.length > 0 ? sucursalesSeleccionadas : 
+        [...new Set([...pedidosFiltrados.map(p => p.Sucursal.toLowerCase()), ...pagosFiltrados.map(p => p.Sucursal.toLowerCase())])];
       sucursales.forEach((suc) => {
         doc.addPage();
         const empresa = sucursalToEmpresaMap[suc] || 'Desconocida';
