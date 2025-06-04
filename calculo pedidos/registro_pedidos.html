@@ -390,22 +390,12 @@
         <span class="close" onclick="cerrarModalPedido()">&times;</span>
         <h2 id="modalTitlePedido">Agregar Pedido</h2>
         <form id="pedidoForm">
-          <!-- Se eliminó la selección de Empresa -->
+          <!-- Empresa y Sucursal ya no se piden aquí; se obtienen desde selectedSucursal -->
           <label for="tipoCajaPedido">Tipo de Caja:</label>
           <select id="tipoCajaPedido" required>
             <option value="">Selecciona un tipo</option>
             <option value="Pizza">Pizza</option>
             <option value="Fingers">Fingers</option>
-          </select>
-          <label for="sucursalPedido">Sucursal:</label>
-          <select id="sucursalPedido" required>
-            <option value="">Selecciona una Sucursal</option>
-            <option value="jalapa">Jalapa</option>
-            <option value="poptun">Poptún</option>
-            <option value="zacapa">Zacapa</option>
-            <option value="santa elena">Santa Elena</option>
-            <option value="pinula">Pinula</option>
-            <option value="eskala">Eskala</option>
           </select>
           <label for="fechaPedido">Fecha:</label>
           <input type="date" id="fechaPedido" required>
@@ -445,6 +435,16 @@
   <!-- SweetAlert2 JS -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
+    // Datos iniciales de Sucursales
+    const data = [
+      { Empresa: "VIPIZZA", Sucursal: "jalapa", PizzaMensual: 3462, FingersMensual: 356 },
+      { Empresa: "VIPIZZA", Sucursal: "poptun", PizzaMensual: 3992, FingersMensual: 312 },
+      { Empresa: "VIPIZZA", Sucursal: "zacapa", PizzaMensual: 5706, FingersMensual: 611 },
+      { Empresa: "AMERICAN PIZZA", Sucursal: "santa elena", PizzaMensual: 5893, FingersMensual: 287 },
+      { Empresa: "AMERICAN PIZZA", Sucursal: "pinula", PizzaMensual: 4639, FingersMensual: 379 },
+      { Empresa: "AMERICAN PIZZA", Sucursal: "eskala", PizzaMensual: 2460, FingersMensual: 211 }
+    ];
+    
     // Inicialización de datos
     let pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
     let pagos = JSON.parse(localStorage.getItem('pagos')) || [];
@@ -479,16 +479,17 @@
     
     // Pedidos
     const tipoCajaSelectPedido = document.getElementById('tipoCajaPedido');
-    const sucursalSelectPedido = document.getElementById('sucursalSelectPedido') || document.getElementById('sucursalPedido');
     const fechaPedidoInput = document.getElementById('fechaPedido');
     const cantidadInputPedido = document.getElementById('cantidadPedido');
     const precioUnitarioInputPedido = document.getElementById('precioUnitarioPedido');
     const precioTotalInputPedido = document.getElementById('precioTotalPedido');
+    const pedidoCadenaInput = document.getElementById('pedidoCadena');
     
     // Pagos
     const fechaPagoInput = document.getElementById('fechaPago');
     const boletaPagoInput = document.getElementById('boletaPago');
     const precioTotalPagadoInputPago = document.getElementById('precioTotalPagado');
+    const pagoCadenaInput = document.getElementById('pagoCadena');
     
     // Filtros y Búsqueda Pedidos
     const searchInputPedidos = document.getElementById('searchInputPedidos');
@@ -513,26 +514,32 @@
     const totalPendienteEl = document.getElementById('totalPendiente');
     const saldoEl = document.getElementById('saldo');
     
-    // Evento para detectar si se ingresa cadena en pedidos y quitar "required" de los otros campos
-    const pedidoCadenaInput = document.getElementById('pedidoCadena');
+    // Actualizar Precio Total automáticamente en Pedido
+    function actualizarPrecioTotalPedido() {
+      const cantidad = parseInt(cantidadInputPedido.value) || 0;
+      const precioUnitario = parseFloat(precioUnitarioInputPedido.value) || 0;
+      const precioTotal = cantidad * precioUnitario;
+      precioTotalInputPedido.value = precioTotal.toFixed(8);
+    }
+    cantidadInputPedido.addEventListener('input', actualizarPrecioTotalPedido);
+    precioUnitarioInputPedido.addEventListener('input', actualizarPrecioTotalPedido);
+    
+    // Evento para detectar si se ingresa cadena en pedidos y quitar "required" de los campos individuales
     pedidoCadenaInput.addEventListener('input', function() {
       if (pedidoCadenaInput.value.trim() !== '') {
         tipoCajaSelectPedido.removeAttribute('required');
-        sucursalSelectPedido.removeAttribute('required');
         fechaPedidoInput.removeAttribute('required');
         cantidadInputPedido.removeAttribute('required');
         precioUnitarioInputPedido.removeAttribute('required');
       } else {
         tipoCajaSelectPedido.setAttribute('required', '');
-        sucursalSelectPedido.setAttribute('required', '');
         fechaPedidoInput.setAttribute('required', '');
         cantidadInputPedido.setAttribute('required', '');
         precioUnitarioInputPedido.setAttribute('required', '');
       }
     });
     
-    // Evento para detectar si se ingresa cadena en pagos y quitar "required" de los otros campos
-    const pagoCadenaInput = document.getElementById('pagoCadena');
+    // Evento para detectar si se ingresa cadena en pagos y quitar "required" de los campos individuales
     pagoCadenaInput.addEventListener('input', function() {
       if (pagoCadenaInput.value.trim() !== '') {
         fechaPagoInput.removeAttribute('required');
@@ -560,7 +567,6 @@
       modalTitlePedido.textContent = "Agregar Pedido";
       pedidoModal.style.display = "block";
     }
-    
     function cerrarModalPedido() {
       pedidoModal.style.display = "none";
     }
@@ -589,51 +595,31 @@
       modalTitlePago.textContent = "Registrar Pago";
       pagoModal.style.display = "block";
     }
-    
     function cerrarModalPago() {
       pagoModal.style.display = "none";
     }
     
-    // Cerrar los modales al hacer clic fuera
+    // Cerrar modales si se hace clic fuera
     window.onclick = function(event) {
-      if (event.target === pedidoModal) {
+      if (event.target == pedidoModal) {
         cerrarModalPedido();
       }
-      if (event.target === pagoModal) {
+      if (event.target == pagoModal) {
         cerrarModalPago();
       }
     };
     
-    // Calcular Precio Total automáticamente en Pedido
-    function actualizarPrecioTotalPedido() {
-      const cantidad = parseInt(cantidadInputPedido.value) || 0;
-      const precioUnitario = parseFloat(precioUnitarioInputPedido.value) || 0;
-      const precioTotal = cantidad * precioUnitario;
-      precioTotalInputPedido.value = precioTotal.toFixed(8);
-    }
-    
-    cantidadInputPedido.addEventListener('input', actualizarPrecioTotalPedido);
-    precioUnitarioInputPedido.addEventListener('input', actualizarPrecioTotalPedido);
-    
-    // Función para determinar Empresa según Sucursal
-    function obtenerEmpresaPorSucursal(sucursal) {
-      const vipizza = ["jalapa", "poptun", "zacapa"];
-      const american = ["pinula", "santa elena", "eskala"];
-      if (vipizza.includes(sucursal)) return "VIPIZZA";
-      if (american.includes(sucursal)) return "AMERICAN PIZZA";
-      return "";
-    }
-    
-    // Manejar el envío del formulario para agregar/editar Pedido
+    // Manejar envío del formulario para agregar/editar Pedido
     pedidoForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const cadenaPedido = pedidoCadenaInput.value.trim();
       let pedidosAgregadosDesdeCadena = false;
+    
       if (cadenaPedido !== '') {
-        const lineas = cadenaPedido.split('\n').filter(linea => línea.trim() !== '');
+        const lineas = cadenaPedido.split('\n').filter(linea => linea.trim() !== '');
         for (let linea of lineas) {
           const partes = linea.split(',');
-          // Ahora esperamos 4 valores: TipoCaja, Fecha, Cantidad, PrecioUnitario
+          // Esperamos 4 valores: TipoCaja, Fecha, Cantidad, PrecioUnitario
           if (partes.length !== 4) {
             Swal.fire({
               icon: 'error',
@@ -647,17 +633,18 @@
           let cantidad = parseInt(partes[2].trim());
           let precioUnitario = parseFloat(partes[3].trim());
           let precioTotal = cantidad * precioUnitario;
-          let empresa = obtenerEmpresaPorSucursal(selectedSucursal);
-          // Validamos todos los campos (empresa deriva de selectedSucursal)
-          if (!tipoCaja || !fecha || cantidad <= 0 || precioUnitario <= 0 || !selectedSucursal || !empresa) {
+          // Validamos campos y que haya sucursal seleccionada
+          if (!tipoCaja || !fecha || cantidad <= 0 || precioUnitario <= 0 || !selectedSucursal) {
             Swal.fire({
               icon: 'error',
               title: 'Error',
-              text: 'Verifica que cada línea tenga todos los campos correctamente y que una sucursal válida esté seleccionada.'
+              text: 'Verifica que cada línea tenga los campos correctamente y que una sucursal esté seleccionada.'
             });
             return;
           }
           lastIdPedidos += 1;
+          const empresa = (["jalapa","poptun","zacapa"].includes(selectedSucursal)
+                           ? "VIPIZZA" : "AMERICAN PIZZA");
           const nuevoPedido = {
             id: lastIdPedidos,
             Empresa: empresa,
@@ -680,29 +667,30 @@
           });
         }
       } else {
+        // Ingreso individual
         let tipoCaja = tipoCajaSelectPedido.value;
-        let sucursal = sucursalSelectPedido.value;
         let fecha = fechaPedidoInput.value;
         let cantidad = parseInt(cantidadInputPedido.value) || 0;
         let precioUnitario = parseFloat(precioUnitarioInputPedido.value) || 0;
         let precioTotal = parseFloat(precioTotalInputPedido.value) || 0;
-        let empresa = obtenerEmpresaPorSucursal(sucursal);
-        if (!tipoCaja || !sucursal || !fecha || cantidad <= 0 || precioUnitario <= 0 || !empresa) {
+        if (!tipoCaja || !fecha || cantidad <= 0 || precioUnitario <= 0 || !selectedSucursal) {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Por favor, completa todos los campos correctamente y asegura que la sucursal sea válida.'
+            text: 'Por favor, completa todos los campos correctamente y asegúrate de que una sucursal esté seleccionada.'
           });
           return;
         }
+        const empresa = (["jalapa","poptun","zacapa"].includes(selectedSucursal)
+                         ? "VIPIZZA" : "AMERICAN PIZZA");
         const isEditing = modalTitlePedido.textContent === "Editar Pedido";
         if (isEditing) {
           const pedidoId = parseInt(pedidoForm.dataset.pedidoId);
           const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
           if (pedidoIndex !== -1) {
             pedidos[pedidoIndex].Empresa = empresa;
+            pedidos[pedidoIndex].Sucursal = selectedSucursal;
             pedidos[pedidoIndex].TipoCaja = tipoCaja;
-            pedidos[pedidoIndex].Sucursal = sucursal;
             pedidos[pedidoIndex].Fecha = fecha;
             pedidos[pedidoIndex].Cantidad = cantidad;
             pedidos[pedidoIndex].PrecioUnitario = precioUnitario;
@@ -718,7 +706,7 @@
           const nuevoPedido = {
             id: lastIdPedidos,
             Empresa: empresa,
-            Sucursal: sucursal,
+            Sucursal: selectedSucursal,
             TipoCaja: tipoCaja,
             Fecha: fecha,
             Cantidad: cantidad,
@@ -741,14 +729,14 @@
       cerrarModalPedido();
     });
     
-    // Manejar el envío del formulario para agregar/editar Pago
+    // Manejar envío del formulario para agregar/editar Pago
     pagoForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const mesPago = document.getElementById('filterMesInicial').value;
       const cadenaPago = pagoCadenaInput.value.trim();
       let pagosAgregadosDesdeCadena = false;
       if (cadenaPago !== '') {
-        const lineas = cadenaPago.split('\n').filter(linea => línea.trim() !== '');
+        const lineas = cadenaPago.split('\n').filter(linea => linea.trim() !== '');
         for (let linea of lineas) {
           const partes = linea.split(',');
           if (partes.length !== 3) {
@@ -762,11 +750,11 @@
           const fechaPago = partes[0].trim();
           const boletaPago = partes[1].trim();
           const precioTotalPagado = parseFloat(partes[2].trim());
-          if (!fechaPago || !boletaPago || precioTotalPagado <= 0 || !mesPago) {
+          if (!fechaPago || !boletaPago || precioTotalPagado <= 0 || !mesPago || !selectedSucursal) {
             Swal.fire({
               icon: 'error',
               title: 'Error',
-              text: 'Verifica que cada línea tenga todos los campos correctamente y que el Mes Inicial esté seleccionado.'
+              text: 'Verifica que cada línea tenga todos los campos correctamente, que el Mes Inicial esté seleccionado y que una sucursal esté seleccionada.'
             });
             return;
           }
@@ -793,11 +781,11 @@
         const fechaPago = fechaPagoInput.value;
         const boletaPago = boletaPagoInput.value.trim();
         const precioTotalPagado = parseFloat(precioTotalPagadoInputPago.value) || 0;
-        if (!fechaPago || !boletaPago || precioTotalPagado <= 0 || !mesPago) {
+        if (!fechaPago || !boletaPago || precioTotalPagado <= 0 || !mesPago || !selectedSucursal) {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Por favor, completa todos los campos correctamente y asegúrate de que el Mes Inicial esté seleccionado.'
+            text: 'Por favor, completa todos los campos correctamente, asegúrate de que el Mes Inicial y la sucursal estén seleccionados.'
           });
           return;
         }
@@ -922,7 +910,7 @@
       totalPrecioPedidosEl.textContent = `Q${Math.round(totalPrecio)}`;
     }
     
-    // Mostrar los pagos en la tabla y actualizar el resumen (sin redondear, mostrando decimales)
+    // Mostrar los pagos en la tabla y actualizar el resumen (sin redondear)
     function mostrarPagos() {
       let pagosFiltrados = [...pagos];
       if (selectedSucursal !== '') {
@@ -1011,7 +999,7 @@
       }
     }
     
-    // Función para filtrar por Sucursal de manera global
+    // Filtrar por Sucursal de manera global
     function filtrarPorSucursal(sucursal, buttonSeleccionado) {
       selectedSucursal = sucursal.toLowerCase();
       actualizarBotonesSucursal(buttonSeleccionado);
@@ -1021,7 +1009,7 @@
       mostrarPagos();
     }
     
-    // Función para actualizar la apariencia de los botones de sucursal
+    // Actualizar apariencia de botones de sucursal
     function actualizarBotonesSucursal(buttonSeleccionado) {
       const botones = document.querySelectorAll('.sucursal-btn');
       botones.forEach(btn => {
@@ -1030,7 +1018,7 @@
       buttonSeleccionado.classList.add('active');
     }
     
-    // Resetear los filtros de Pedidos
+    // Resetear filtros de Pedidos
     resetFiltersPedidos.addEventListener('click', function() {
       searchInputPedidos.value = '';
       filterTipoCajaPedidos.value = '';
@@ -1040,7 +1028,7 @@
       mostrarPedidos(selectedSucursal);
     });
     
-    // Resetear los filtros de Pagos
+    // Resetear filtros de Pagos
     resetFiltersPagos.addEventListener('click', function() {
       searchInputPagos.value = '';
       filterFechaDesdePagos.value = '';
@@ -1049,13 +1037,13 @@
       mostrarPagos();
     });
     
-    // Función para editar un Pedido
+    // Editar un Pedido
     function editarPedido(id) {
       const pedido = pedidos.find(p => p.id === id);
       if (pedido) {
         modalTitlePedido.textContent = "Editar Pedido";
+        // Asignar valores al modal
         tipoCajaSelectPedido.value = pedido.TipoCaja;
-        sucursalSelectPedido.value = pedido.Sucursal;
         fechaPedidoInput.value = pedido.Fecha;
         cantidadInputPedido.value = pedido.Cantidad;
         precioUnitarioInputPedido.value = pedido.PrecioUnitario;
@@ -1065,7 +1053,7 @@
       }
     }
     
-    // Función para eliminar un Pedido
+    // Eliminar un Pedido
     function eliminarPedido(id) {
       Swal.fire({
         title: '¿Estás seguro?',
@@ -1090,12 +1078,7 @@
       });
     }
     
-    // Función para capitalizar la primera letra
-    function capitalizeFirstLetter(string) {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-    
-    // Función para editar un Pago
+    // Editar un Pago
     function editarPago(id) {
       const pago = pagos.find(p => p.id === id);
       if (pago) {
@@ -1108,7 +1091,7 @@
       }
     }
     
-    // Función para eliminar un Pago
+    // Eliminar un Pago
     function eliminarPago(id) {
       Swal.fire({
         title: '¿Estás seguro?',
@@ -1133,7 +1116,7 @@
       });
     }
     
-    // Función para filtrar por Mes Inicial
+    // Filtrar por Mes Inicial
     const filterMesInicial = document.getElementById('filterMesInicial');
     filterMesInicial.addEventListener('change', function() {
       const mesSeleccionado = filterMesInicial.value;
@@ -1146,7 +1129,7 @@
       }
     });
     
-    // Función para realizar el cierre de mes
+    // Realizar cierre de mes
     function realizarCierreMes() {
       if (!selectedSucursal || selectedSucursal === '') {
         Swal.fire({
@@ -1167,6 +1150,11 @@
         return;
       }
       window.open(`cierre_mes.html?sucursal=${selectedSucursal}&mes=${mesSeleccionado}`, '_blank');
+    }
+    
+    // Capitalizar primera letra
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
     }
     
     // Inicializar las tablas al cargar la página
