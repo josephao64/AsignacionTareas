@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const calendarEl      = document.getElementById('calendar');
   const yearViewEl      = document.getElementById('year-view');
 
-  // Tasks tab
   const filterMonthInput = document.getElementById('task-filter-month');
   const generatePdfBtn   = document.getElementById('generate-pdf');
   const taskListEl       = document.getElementById('task-list');
@@ -44,20 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const alertTimeSelect  = document.getElementById('task-alert-time');
   const colorInput       = document.getElementById('task-color');
 
-  // State
   let branches = [], tasks = [];
 
-  // Helper: lookup branch name
   function branchNameById(id) {
     const b = branches.find(x => x.id === id);
     return b ? b.name : '';
   }
 
-  // Current date for "today"
   const today = new Date();
   const todayDs = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-  // Display tasks due today on load (DOM alert)
   function renderTodayTasks() {
     const due = tasks.filter(t => {
       const diff = Math.floor((new Date(todayDs) - new Date(t.date)) / (1000*60*60*24));
@@ -73,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (due.length) {
       alertEl.innerHTML =
         '<strong>Tareas de hoy:</strong><ul>' +
-        due.map(t => `<li>${t.title}</li>`).join('') +
+        due.map(t => `<li>${t.title} (${branchNameById(t.branchId)})</li>`).join('') +
         '</ul>';
     } else {
       alertEl.innerHTML = '<strong>Tareas de hoy:</strong> No hay tareas pendientes.';
@@ -81,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.container').prepend(alertEl);
   }
 
-  // Send a browser notification for today's tasks (auto-close + only pending)
   function notifyTodayTasks() {
     if (!("Notification" in window) || Notification.permission !== 'granted') return;
     const due = tasks.filter(t => {
@@ -91,17 +85,15 @@ document.addEventListener('DOMContentLoaded', () => {
         && !t.completedDates.includes(todayDs);
     });
     if (due.length) {
-      const titles = due.map(t => t.title).join(', ');
+      const titles = due.map(t => `${t.title} (${branchNameById(t.branchId)})`).join(', ');
       const n = new Notification('Tareas de hoy', { body: titles });
       setTimeout(() => n.close(), 5000);
     }
   }
 
-  // Calendar state
   let currentMonth = today.getMonth();
   let currentYear  = today.getFullYear();
 
-  // Notification offsets
   const ALERT_OFFSETS = {
     "Al momento":       0,
     "10 minutos antes": 10*60*1000,
@@ -110,34 +102,28 @@ document.addEventListener('DOMContentLoaded', () => {
     "3 días antes":     3*24*60*60*1000
   };
 
-  // Request notification permission
   if (Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  // Init month filter
   filterMonthInput.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
   filterMonthInput.addEventListener('change', renderTaskTable);
 
-  // Toggle alert options
   alertCheck.addEventListener('change', () => {
     alertOptions.style.display = alertCheck.checked ? 'block' : 'none';
   });
 
-  // Switch view
   viewSelect.addEventListener('change', () => {
     document.getElementById('calendar-container').style.display = viewSelect.value === 'month' ? 'block' : 'none';
     yearViewEl.style.display = viewSelect.value === 'year' ? 'grid' : 'none';
     renderAll();
   });
 
-  // Nav buttons
   prevMonthBtn.onclick = () => { currentMonth = (currentMonth + 11) % 12; if (currentMonth===11) currentYear--; renderAll(); };
   nextMonthBtn.onclick = () => { currentMonth = (currentMonth + 1) % 12;  if (currentMonth===0)  currentYear++; renderAll(); };
   prevYearBtn.onclick  = () => { currentYear--; renderAll(); };
   nextYearBtn.onclick  = () => { currentYear++; renderAll(); };
 
-  // Firestore listeners
   onSnapshot(query(collection(db,'branches'), orderBy('createdAt')), snap => {
     branches = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderBranches();
@@ -157,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleAllNotifications();
   });
 
-  // BRANCH CRUD
   branchForm.addEventListener('submit', async e=>{
     e.preventDefault();
     const name = branchNameInput.value.trim();
@@ -172,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
     bootstrap.Modal.getInstance(document.getElementById('branchModal')).hide();
   });
 
-  // TASK CRUD
   taskForm.addEventListener('submit', async e=>{
     e.preventDefault();
     const data = {
@@ -248,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const span=document.createElement('span');
         const done=t.completedDates.includes(ds);
         span.className='task-title'+(done?' completed':'');
-        span.textContent=t.title;
+        span.textContent=`${t.title} (${branchNameById(t.branchId)})`;
         span.style.backgroundColor=t.color;
         span.onclick=async e=>{
           e.stopPropagation();
@@ -279,6 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
           return diff>=0 && (t.repeatDays===0?t.date===ds:diff%t.repeatDays===0);
         });
         const td=document.createElement('div'); td.className='day'+(has?' has-task':''); td.textContent=d;
+        if(has){
+          td.title=tasks.filter(t=>{
+            const diff=Math.floor((new Date(ds)-new Date(t.date))/(1000*60*60*24));
+            return diff>=0 && (t.repeatDays===0?t.date===ds:diff%t.repeatDays===0);
+          }).map(t=>`${t.title} (${branchNameById(t.branchId)})`).join('\n');
+        }
         daysEl.append(td);
       }
       yearViewEl.append(sm);
@@ -303,7 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
           info.innerHTML=`
             <strong style="background:${t.color};padding:2px 6px;border-radius:4px;">
               ${t.title}
-            </strong><br/><small>${ds}</small>
+            </strong><br/>
+            <small>${ds}</small><br/>
+            <small>Sucursal: ${branchNameById(t.branchId)}</small>
           `;
           const actions=document.createElement('div');
           const done=t.completedDates.includes(ds);
@@ -338,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Schedule per-task notifications
   function scheduleNotification(t, ds){
     if(!t.alert||t.completedDates.includes(ds)) return;
     const [yr,mo,da]=ds.split('-').map(n=>parseInt(n,10));
@@ -371,12 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // PDF generation
   generatePdfBtn.addEventListener('click',async()=>{
     const { jsPDF }=window.jspdf;
     const pdf=new jsPDF();
 
-    // Tasks table with branch column
     const [yr,mo]=filterMonthInput.value.split('-');
     pdf.setFontSize(16); pdf.text(`Tareas - ${yr}-${mo}`,20,30);
     pdf.setFontSize(12);
@@ -400,7 +389,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     pdf.autoTable({ startY:40, head:[cols], body:rows, styles:{fontSize:10} });
 
-    // Calendar screenshot
     pdf.addPage('a4','landscape');
     pdf.setFontSize(16); pdf.text(`Calendario - ${yr}-${mo}`,20,30);
     const calTabEl=document.querySelector('[data-bs-target="#tabCalendar"]');
@@ -419,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
     pdf.save(`Reporte_${yr}-${mo}.pdf`);
   });
 
-  // Initial render
   renderAll();
   renderTaskTable();
 });
