@@ -215,11 +215,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!taskTableBody) return;
     taskTableBody.innerHTML = '';
 
-    // calcular rango semana actual
+    // calcular rango semana actual (lunes a domingo)
     const hoy = new Date();
-    const d = hoy.getDay();
+    const dia = hoy.getDay(); // 0 domingo, 1 lunes...
+    const diffLunes = (dia + 6) % 7; // lunes->0, domingo->6
     const semanaInicio = new Date(hoy);
-    semanaInicio.setDate(hoy.getDate() - ((d + 6) % 7));
+    semanaInicio.setDate(hoy.getDate() - diffLunes);
     semanaInicio.setHours(0,0,0,0);
     const semanaFin = new Date(semanaInicio);
     semanaFin.setDate(semanaInicio.getDate() + 6);
@@ -227,18 +228,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // actualizar resumen usuarios
     Object.keys(userStatsEls).forEach(user => {
-      const count = tareas.filter(t =>
-        t.responsable.includes(user)
-        && (t.estado==='No Iniciado' || t.estado==='En Progreso')
-        && new Date(t.fechaEstimada) >= semanaInicio
-        && new Date(t.fechaEstimada) <= semanaFin
-      ).length;
+      const count = tareas.filter(t => {
+        // parsear fechaEstimada como local midnight
+        const [y,m,d] = t.fechaEstimada.split('-').map(n=>parseInt(n,10));
+        const fecha = new Date(y, m-1, d);
+        return t.responsable.includes(user)
+          && (t.estado==='No Iniciado' || t.estado==='En Progreso')
+          && fecha >= semanaInicio
+          && fecha <= semanaFin;
+      }).length;
       userStatsEls[user].textContent = count;
     });
 
     // filtrar tareas según controles
     let lista = tareas.filter(t => {
-      const fecha = new Date(t.fechaEstimada);
+      // parsear fechaEstimada como local midnight
+      const [y,m,d] = t.fechaEstimada.split('-').map(n=>parseInt(n,10));
+      const fecha = new Date(y, m-1, d);
+
       if (filterSemana.checked && (fecha < semanaInicio || fecha > semanaFin)) return false;
       if (filterTipo.value && t.tipo !== filterTipo.value) return false;
       if (filterResponsable.value && !t.responsable.includes(filterResponsable.value)) return false;
@@ -256,8 +263,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // orden
     switch(sortOrder.value) {
-      case 'fechaEstimadaAsc': lista.sort((a,b)=>new Date(a.fechaEstimada)-new Date(b.fechaEstimada)); break;
-      case 'fechaEstimadaDesc': lista.sort((a,b)=>new Date(b.fechaEstimada)-new Date(a.fechaEstimada)); break;
+      case 'fechaEstimadaAsc': lista.sort((a,b)=>{
+          const [ay,am,ad] = a.fechaEstimada.split('-').map(n=>parseInt(n,10));
+          const [by,bm,bd] = b.fechaEstimada.split('-').map(n=>parseInt(n,10));
+          return new Date(ay,am-1,ad) - new Date(by,bm-1,bd);
+        }); break;
+      case 'fechaEstimadaDesc': lista.sort((a,b)=>{
+          const [ay,am,ad] = a.fechaEstimada.split('-').map(n=>parseInt(n,10));
+          const [by,bm,bd] = b.fechaEstimada.split('-').map(n=>parseInt(n,10));
+          return new Date(by,bm-1,bd) - new Date(ay,am-1,ad);
+        }); break;
       case 'fechaCreacionAsc': lista.sort((a,b)=>new Date(a.fechaCreacion)-new Date(b.fechaCreacion)); break;
       case 'fechaCreacionDesc': lista.sort((a,b)=>new Date(b.fechaCreacion)-new Date(a.fechaCreacion)); break;
       default: lista.sort((a,b)=>prioridadEstado[a.estado]-prioridadEstado[b.estado]);

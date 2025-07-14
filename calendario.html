@@ -18,52 +18,39 @@
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="mb-0">Gestión de Sucursales, Calendario y Tareas</h1>
-      <a href="index.html" class="btn btn-outline-primary">
-        ⬅ Inicio
-      </a>
+      <a href="index.html" class="btn btn-outline-primary">⬅ Inicio</a>
     </div>
 
-    <!-- Pestañas Principales -->
     <ul class="nav nav-tabs mb-3" role="tablist">
       <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabBranches">
-          Sucursales
-        </button>
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabBranches">Sucursales</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabCalendar">
-          Calendario
-        </button>
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCalendar">Calendario</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTasks">
-          Tareas
-        </button>
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTasks">Tareas</button>
       </li>
     </ul>
 
     <div class="tab-content">
-      <!-- Sucursales -->
-      <div class="tab-pane fade show active" id="tabBranches">
-        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#branchModal">
-          + Sucursal
-        </button>
+      <div class="tab-pane fade" id="tabBranches">
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#branchModal">+ Sucursal</button>
         <ul id="branches-list" class="list-group"></ul>
       </div>
 
-      <!-- Calendario -->
-      <div class="tab-pane fade" id="tabCalendar">
+      <div class="tab-pane fade show active" id="tabCalendar">
         <div class="d-flex align-items-center mb-3">
           <label class="me-2 mb-0">Ver:</label>
           <select id="view-select" class="form-select w-auto me-4">
             <option value="month" selected>Mes</option>
             <option value="year">Año</option>
           </select>
-          <button id="prevYear"  class="btn btn-sm btn-outline-secondary me-1">« Año</button>
+          <button id="prevYear" class="btn btn-sm btn-outline-secondary me-1">« Año</button>
           <button id="prevMonth" class="btn btn-sm btn-outline-secondary me-1">‹ Mes</button>
           <span id="calendar-title" class="mx-2 fw-bold"></span>
           <button id="nextMonth" class="btn btn-sm btn-outline-secondary ms-1">Mes ›</button>
-          <button id="nextYear"  class="btn btn-sm btn-outline-secondary ms-1">Año »</button>
+          <button id="nextYear" class="btn btn-sm btn-outline-secondary ms-1">Año »</button>
         </div>
         <div id="calendar-container">
           <div id="calendar" class="mb-4"></div>
@@ -71,19 +58,26 @@
         </div>
       </div>
 
-      <!-- Tareas -->
       <div class="tab-pane fade" id="tabTasks">
-        <div class="d-flex mb-3">
-          <button class="btn btn-success me-3" data-bs-toggle="modal" data-bs-target="#taskModal">
-            + Tarea
-          </button>
-          <div>
-            <label for="task-filter-month" class="form-label me-2">Filtrar mes:</label>
+        <div class="d-flex mb-3 align-items-center">
+          <button class="btn btn-success me-3" data-bs-toggle="modal" data-bs-target="#taskModal">+ Tarea</button>
+          <div class="me-3 d-flex align-items-center">
+            <label for="task-filter-month" class="form-label me-2 mb-0">Mes:</label>
             <input type="month" id="task-filter-month" class="form-control d-inline-block w-auto"/>
           </div>
-          <button id="generate-pdf" class="btn btn-outline-dark ms-auto">
-            📄 Generar PDF
-          </button>
+          <div class="me-3 d-flex align-items-center">
+            <label for="task-filter-date" class="form-label me-2 mb-0">Fecha:</label>
+            <input type="date" id="task-filter-date" class="form-control d-inline-block w-auto"/>
+          </div>
+          <div class="me-3 d-flex align-items-center">
+            <label for="task-filter-status" class="form-label me-2 mb-0">Estado:</label>
+            <select id="task-filter-status" class="form-select d-inline-block w-auto">
+              <option value="all" selected>Todo</option>
+              <option value="completed">Completadas</option>
+              <option value="pending">Pendientes</option>
+            </select>
+          </div>
+          <button id="generate-pdf" class="btn btn-outline-dark ms-auto">📄 Generar PDF</button>
         </div>
         <ul id="task-list" class="list-group"></ul>
       </div>
@@ -154,32 +148,67 @@
               <option value="1 día antes">1 día antes</option>
               <option value="3 días antes">3 días antes</option>
             </select>
-            <label for="task-color" class="form-label">Color de la casilla:</label>
-            <input type="color" id="task-color" class="form-control form-control-color"/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Color de la casilla:</label>
+            <div id="color-palette">
+              <label class="color-option"><input type="radio" name="task-color" value="#FFCDD2"/><span class="color-swatch" style="background:#FFCDD2"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#C8E6C9"/><span class="color-swatch" style="background:#C8E6C9"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#BBDEFB"/><span class="color-swatch" style="background:#BBDEFB"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#FFF9C4"/><span class="color-swatch" style="background:#FFF9C4"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#D1C4E9"/><span class="color-swatch" style="background:#D1C4E9"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#FFE0B2"/><span class="color-swatch" style="background:#FFE0B2"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#DCEDC8"/><span class="color-swatch" style="background:#DCEDC8"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#B3E5FC"/><span class="color-swatch" style="background:#B3E5FC"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#F0F4C3"/><span class="color-swatch" style="background:#F0F4C3"></span></label>
+              <label class="color-option"><input type="radio" name="task-color" value="#E1BEE7"/><span class="color-swatch" style="background:#E1BEE7"></span></label>
+            </div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="task-accept"/>
+            <label class="form-check-label" for="task-accept">Acepto las modificaciones</label>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Guardar</button>
+          <button type="submit" id="task-save-btn" class="btn btn-success" disabled>Guardar</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- jsPDF AutoTable plugin -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-  <!-- html2canvas for calendar screenshot -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Modal: Notas de la Tarea -->
+  <div class="modal fade" id="notesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form id="notes-form" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Notas de la Tarea</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="notes-task-id"/>
+          <input type="hidden" id="notes-task-date"/>
+          <div id="existing-notes"></div>
+          <div class="mb-3">
+            <label for="new-note" class="form-label">Nueva nota</label>
+            <textarea id="new-note" class="form-control" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="add-note-btn" class="btn btn-primary">Agregar nota</button>
+          <button type="button" id="add-note-complete-btn" class="btn btn-success">Nota y completar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-  <!-- Firebase config & calendar logic -->
+  <!-- JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="calendar.js"></script>
-
-  <!-- Bootstrap JS -->
-  <script 
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

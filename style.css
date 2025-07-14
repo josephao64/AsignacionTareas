@@ -1,3 +1,5 @@
+/* style.css */
+
 /* Global */
 body {
   font-family: sans-serif;
@@ -11,9 +13,37 @@ body {
   padding: 20px;
 }
 
-/* Today's tasks alert */
-#today-alert {
-  margin-bottom: 1rem;
+/* Highlight today's date */
+.day.today {
+  border: 2px solid #007bff;
+}
+
+/* Color palette */
+#color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.color-option input {
+  display: none;
+}
+.color-swatch {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.color-option input:checked + .color-swatch {
+  outline: 3px solid #000;
+}
+
+/* Existing notes */
+#existing-notes .note-item {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Tabs */
@@ -135,14 +165,11 @@ body {
   margin-bottom: 1rem;
 }
 
-/* Month filter input */
-#task-filter-month {
+/* Month / date / status filters */
+#task-filter-month,
+#task-filter-date,
+#task-filter-status {
   max-width: 150px;
-}
-
-/* Hide calendar container when not in calendar tab */
-.tab-pane:not(#tabCalendar) #calendar-container {
-  display: none;
 }
 
 /* Buttons */
