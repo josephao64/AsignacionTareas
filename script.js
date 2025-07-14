@@ -30,6 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const estadoCheckboxes = Array.from(document.querySelectorAll('#filterEstadoCheckboxes input[type="checkbox"]'));
   const responsableCheckboxesContainer = document.getElementById('responsableCheckboxes');
 
+  // Summary elementos
+  const userStatsEls = {
+    JOSE: document.getElementById('pending-JOSE'),
+    MARINA: document.getElementById('pending-MARINA'),
+    JOSEPH: document.getElementById('pending-JOSEPH'),
+    DAVID: document.getElementById('pending-DAVID'),
+  };
+
   // Datos y estado
   const usuarios = [
     { username: 'admin', password: '1', isAdmin: true },
@@ -48,7 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Funciones de Login
   function initLogin() {
     usuarios.forEach(u => usernameSelect.add(new Option(u.username.toUpperCase(), u.username)));
-    if (usuarioActual) Swal.fire({ icon:'success', title:'Bienvenido', text:usuarioActual.username.toUpperCase(), timer:1500, showConfirmButton:false });
+    if (usuarioActual) {
+      Swal.fire({ icon:'success', title:'Bienvenido', text:usuarioActual.username.toUpperCase(), timer:1500, showConfirmButton:false });
+    }
     toggleLoginUI();
   }
   function toggleLoginUI() {
@@ -196,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filterFechaHasta.value = '';
     if(filterSemana) filterSemana.checked = true;
     sortOrder.value = 'estadoOrden';
-    estadoCheckboxes.forEach((ch,i)=> ch.checked = i<3 );
+    estadoCheckboxes.forEach((ch,i)=> ch.checked = i<2 ); // no iniciado y en progreso
     actualizarTabla();
     Swal.fire({ icon:'info', timer:1500, showConfirmButton:false });
   }
@@ -206,23 +216,30 @@ document.addEventListener('DOMContentLoaded', () => {
     taskTableBody.innerHTML = '';
 
     // calcular rango semana actual
-    let semanaInicio, semanaFin;
-    if (filterSemana && filterSemana.checked) {
-      const hoy = new Date();
-      const d = hoy.getDay();
-      semanaInicio = new Date(hoy);
-      semanaInicio.setDate(hoy.getDate() - ((d + 6) % 7));
-      semanaInicio.setHours(0,0,0,0);
-      semanaFin = new Date(semanaInicio);
-      semanaFin.setDate(semanaInicio.getDate() + 6);
-      semanaFin.setHours(23,59,59,999);
-    }
+    const hoy = new Date();
+    const d = hoy.getDay();
+    const semanaInicio = new Date(hoy);
+    semanaInicio.setDate(hoy.getDate() - ((d + 6) % 7));
+    semanaInicio.setHours(0,0,0,0);
+    const semanaFin = new Date(semanaInicio);
+    semanaFin.setDate(semanaInicio.getDate() + 6);
+    semanaFin.setHours(23,59,59,999);
 
+    // actualizar resumen usuarios
+    Object.keys(userStatsEls).forEach(user => {
+      const count = tareas.filter(t =>
+        t.responsable.includes(user)
+        && (t.estado==='No Iniciado' || t.estado==='En Progreso')
+        && new Date(t.fechaEstimada) >= semanaInicio
+        && new Date(t.fechaEstimada) <= semanaFin
+      ).length;
+      userStatsEls[user].textContent = count;
+    });
+
+    // filtrar tareas según controles
     let lista = tareas.filter(t => {
       const fecha = new Date(t.fechaEstimada);
-      if (filterSemana && filterSemana.checked) {
-        if (fecha < semanaInicio || fecha > semanaFin) return false;
-      }
+      if (filterSemana.checked && (fecha < semanaInicio || fecha > semanaFin)) return false;
       if (filterTipo.value && t.tipo !== filterTipo.value) return false;
       if (filterResponsable.value && !t.responsable.includes(filterResponsable.value)) return false;
       if (filterFechaDesde.value && t.fechaEstimada < filterFechaDesde.value) return false;
@@ -237,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
+    // orden
     switch(sortOrder.value) {
       case 'fechaEstimadaAsc': lista.sort((a,b)=>new Date(a.fechaEstimada)-new Date(b.fechaEstimada)); break;
       case 'fechaEstimadaDesc': lista.sort((a,b)=>new Date(b.fechaEstimada)-new Date(a.fechaEstimada)); break;
@@ -245,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
       default: lista.sort((a,b)=>prioridadEstado[a.estado]-prioridadEstado[b.estado]);
     }
 
+    // render tabla
     lista.forEach(t => {
       const tr = document.createElement('tr');
       tr.dataset.id = t.id;

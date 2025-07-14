@@ -150,6 +150,7 @@
     </style>
 </head>
 <body>
+    <!-- Menú al inicio -->
     <div class="header">
         <button id="openLoginBtn" class="login-btn">Iniciar Sesión</button>
         <button id="serviciosBtn" class="login-btn" onclick="location.href='servicios/servicios.html'">Servicios</button>
@@ -159,6 +160,17 @@
         <button id="calendarBtn" class="login-btn" onclick="location.href='calendario.html'">Agenda</button>
         <button id="reportesVentasBtn" class="login-btn" onclick="location.href='estadisticas/index.html'">Reportes de Ventas</button>
         <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+    </div>
+
+    <!-- Resumen de tareas pendientes esta semana -->
+    <div id="userStats" class="container">
+        <h2>Resumen de tareas pendientes esta semana</h2>
+        <ul id="userStatsList">
+            <li>JOSE: <span id="pending-JOSE">0</span> tareas</li>
+            <li>MARINA: <span id="pending-MARINA">0</span> tareas</li>
+            <li>JOSEPH: <span id="pending-JOSEPH">0</span> tareas</li>
+            <li>DAVID: <span id="pending-DAVID">0</span> tareas</li>
+        </ul>
     </div>
 
     <div id="loginModal" class="modal-login">
