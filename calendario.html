@@ -83,6 +83,10 @@
       <div class="tab-pane fade" id="tabTasks">
         <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
           <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#taskModal">+ Tarea</button>
+
+          <!-- Gestionar categorías -->
+          <button id="manage-categories" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#categoryModal">⚙ Categorías</button>
+
           <div class="d-flex align-items-center">
             <label for="task-filter-month" class="form-label me-2 mb-0">Mes:</label>
             <input type="month" id="task-filter-month" class="form-control d-inline-block w-auto"/>
@@ -99,6 +103,15 @@
               <option value="pending">Pendientes</option>
             </select>
           </div>
+
+          <!-- Filtro por categoría -->
+          <div class="d-flex align-items-center">
+            <label for="task-filter-category" class="form-label me-2 mb-0">Categoría:</label>
+            <select id="task-filter-category" class="form-select d-inline-block w-auto">
+              <option value="all" selected>Todas</option>
+            </select>
+          </div>
+
           <button id="generate-pdf" class="btn btn-outline-dark ms-auto">📄 Generar PDF</button>
         </div>
         <ul id="task-list" class="list-group"></ul>
@@ -142,26 +155,39 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="task-id"/>
+
           <div class="mb-3">
             <label for="task-branch" class="form-label">Sucursal</label>
             <select id="task-branch" class="form-select" required>
               <option value="" disabled selected>Selecciona sucursal</option>
             </select>
           </div>
+
           <div class="mb-3">
             <label for="task-title" class="form-label">Título</label>
             <input type="text" id="task-title" class="form-control" required/>
           </div>
+
           <div class="mb-3">
             <label for="task-date" class="form-label">Fecha</label>
             <input type="date" id="task-date" class="form-control" required/>
           </div>
+
           <div class="mb-3">
             <label for="task-repeat" class="form-label">Repetir cada X días</label>
             <input type="number" id="task-repeat" min="0" value="0" class="form-control"/>
           </div>
 
-          <!-- PALETA ESTÁTICA (swatches visibles sin JS) -->
+          <!-- Categoría de la tarea -->
+          <div class="mb-3">
+            <label for="task-category" class="form-label">Categoría</label>
+            <select id="task-category" class="form-select">
+              <option value="" selected>Sin categoría</option>
+            </select>
+            <small class="text-muted">Gestiona categorías desde el botón “⚙ Categorías”.</small>
+          </div>
+
+          <!-- Paleta de color de casilla (STATIC swatches visibles) -->
           <div class="mb-3">
             <label class="form-label">Color de la casilla:</label>
             <div id="color-palette" class="d-flex flex-wrap gap-2">
@@ -228,6 +254,52 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: CRUD Categorías -->
+  <div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="category-form">
+          <div class="modal-header">
+            <h5 class="modal-title">Categorías</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="category-id"/>
+
+            <div class="mb-3">
+              <label for="category-name" class="form-label">Nombre</label>
+              <input type="text" id="category-name" class="form-control" placeholder="Ej. Mantenimiento" required/>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Color de la categoría</label>
+              <div id="category-color-palette" class="d-flex flex-wrap gap-2">
+                <label class="color-option"><input type="radio" name="category-color" value="#FFD166" checked/><span class="color-swatch" style="background:#FFD166"></span></label>
+                <label class="color-option"><input type="radio" name="category-color" value="#06D6A0"/><span class="color-swatch" style="background:#06D6A0"></span></label>
+                <label class="color-option"><input type="radio" name="category-color" value="#118AB2"/><span class="color-swatch" style="background:#118AB2"></span></label>
+                <label class="color-option"><input type="radio" name="category-color" value="#EF476F"/><span class="color-swatch" style="background:#EF476F"></span></label>
+                <label class="color-option"><input type="radio" name="category-color" value="#8338EC"/><span class="color-swatch" style="background:#8338EC"></span></label>
+                <label class="color-option"><input type="radio" name="category-color" value="#8D99AE"/><span class="color-swatch" style="background:#8D99AE"></span></label>
+              </div>
+            </div>
+
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary">Guardar categoría</button>
+            </div>
+
+            <hr class="my-3"/>
+
+            <h6 class="mb-2">Lista de categorías</h6>
+            <ul id="categories-list" class="list-group"></ul>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 

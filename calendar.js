@@ -14,12 +14,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ======= DOM =======
+  // ======= DOM (Sucursales) =======
   const branchForm        = document.getElementById('branch-form');
   const branchIdInput     = document.getElementById('branch-id');
   const branchNameInput   = document.getElementById('branch-name');
   const branchesList      = document.getElementById('branches-list');
 
+  // ======= DOM (Calendario) =======
   const viewSelect        = document.getElementById('view-select');
   const prevMonthBtn      = document.getElementById('prevMonth');
   const nextMonthBtn      = document.getElementById('nextMonth');
@@ -31,12 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const yearViewEl        = document.getElementById('year-view');
   const listViewEl        = document.getElementById('list-view');
 
+  // ======= DOM (Filtros tareas) =======
   const filterMonthInput   = document.getElementById('task-filter-month');
   const filterDateInput    = document.getElementById('task-filter-date');
   const filterStatusSelect = document.getElementById('task-filter-status');
+  const filterCategorySelect = document.getElementById('task-filter-category');
   const generatePdfBtn     = document.getElementById('generate-pdf');
   const taskListEl         = document.getElementById('task-list');
 
+  // ======= DOM (Formulario tarea) =======
   const taskForm           = document.getElementById('task-form');
   const taskIdInput        = document.getElementById('task-id');
   const branchSelect       = document.getElementById('task-branch');
@@ -46,10 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const alertCheck         = document.getElementById('task-alert');
   const alertOptions       = document.getElementById('alert-options');
   const alertTimeSelect    = document.getElementById('task-alert-time');
-  const colorPalette       = document.getElementById('color-palette');
   const acceptCheck        = document.getElementById('task-accept');
   const saveTaskBtn        = document.getElementById('task-save-btn');
+  const taskCategorySelect = document.getElementById('task-category');
 
+  // ======= DOM (Notas) =======
   const notesModalEl       = document.getElementById('notesModal');
   const existingNotesEl    = document.getElementById('existing-notes');
   const notesTaskIdInput   = document.getElementById('notes-task-id');
@@ -58,16 +63,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const addNoteBtn         = document.getElementById('add-note-btn');
   const addNoteCompleteBtn = document.getElementById('add-note-complete-btn');
 
+  // ======= DOM (Categorías) =======
+  const categoryForm       = document.getElementById('category-form');
+  const categoryIdInput    = document.getElementById('category-id');
+  const categoryNameInput  = document.getElementById('category-name');
+  const categoriesListEl   = document.getElementById('categories-list');
+
+  // ======= DOM (Toasts) =======
   const toastHost          = document.getElementById('toastHost');
 
   // ======= STATE =======
-  let branches = [], tasks = [];
+  let branches = [];
+  let tasks    = [];
+  let categories = [];
 
   const today   = new Date();
   const todayDs = dsFromDate(today);
-  let currentMonth = today.getMonth(), currentYear = today.getFullYear();
+  let currentMonth = today.getMonth();
+  let currentYear  = today.getFullYear();
 
-  const COLORS = [
+  // Swatches de color de tarea (los radios están en el HTML)
+  const TASK_COLORS = [
     '#FFCDD2','#C8E6C9','#BBDEFB','#FFF9C4','#D1C4E9',
     '#FFE0B2','#DCEDC8','#B3E5FC','#F0F4C3','#E1BEE7'
   ];
@@ -86,7 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function monthLabel(y, m){
     return new Date(y, m, 1).toLocaleDateString('es', { month:'long', year:'numeric' })
-      .replace(' de ', ' ').replace(/^./, s => s.toUpperCase());
+      .replace(' de ', ' ')
+      .replace(/^./, s => s.toUpperCase());
   }
   function showToast(msg, variant='primary'){
     const el = document.createElement('div');
@@ -104,8 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
     t.show();
     el.addEventListener('hidden.bs.toast', () => el.remove());
   }
+  function branchNameById(id){
+    const b = branches.find(x => x.id === id);
+    return b ? b.name : '';
+  }
+  function categoryById(id){
+    return categories.find(c => c.id === id) || null;
+  }
 
-  // ======= PERMISOS DE NOTIFICACIÓN =======
+  // ======= NOTIFICATION PERMISSION =======
   if ("Notification" in window) {
     if (Notification.permission === 'default') {
       Notification.requestPermission().then(p => {
@@ -115,11 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ======= INIT FILTERS =======
+  // ======= FILTERS INIT =======
   filterMonthInput.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
   filterMonthInput.addEventListener('change', renderTaskTable);
   filterDateInput.addEventListener('change', renderTaskTable);
   filterStatusSelect.addEventListener('change', renderTaskTable);
+  filterCategorySelect?.addEventListener('change', renderTaskTable);
 
   // ======= UI HANDLERS =======
   alertCheck.addEventListener('change', () => {
@@ -129,28 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveTaskBtn.disabled = !acceptCheck.checked;
   });
 
-  // Paleta de colores (dinámica) al abrir el modal de tareas
-  const taskModalEl = document.getElementById('taskModal');
-  taskModalEl.addEventListener('show.bs.modal', () => {
-    if (!colorPalette) return;
-    if (!colorPalette.dataset.loaded) {
-      colorPalette.innerHTML = '';
-      COLORS.forEach((hex, i) => {
-        const id = `color_${hex.replace('#','')}`;
-        const label = document.createElement('label');
-        label.className = 'color-option';
-        label.innerHTML = `
-          <input type="radio" name="task-color" id="${id}" value="${hex}" ${i===0?'checked':''}/>
-          <span class="color-swatch" title="${hex}" style="background:${hex}"></span>`;
-        colorPalette.append(label);
-      });
-      colorPalette.dataset.loaded = '1';
-    }
-  });
-
   viewSelect.addEventListener('change', () => {
     const v = viewSelect.value;
-    // Mostrar / ocultar vistas
     weekdayHeaderEl.style.display = v === 'month' ? 'grid' : 'none';
     calendarEl.style.display     = v === 'month' ? 'grid' : 'none';
     yearViewEl.style.display     = v === 'year'  ? 'grid' : 'none';
@@ -178,13 +183,23 @@ document.addEventListener('DOMContentLoaded', () => {
     populateBranchSelect();
   });
 
+  onSnapshot(query(collection(db,'categories'), orderBy('createdAt')), snap => {
+    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    populateCategorySelects();
+    renderCategories();
+    // refrescar vistas que muestran chips de categoría
+    renderAll();
+    renderTaskTable();
+  });
+
   onSnapshot(query(collection(db,'tasks'), orderBy('createdAt')), snap => {
     tasks = snap.docs.map(d => ({
       id: d.id,
       ...d.data(),
       completedDates: d.data().completedDates || [],
       color: d.data().color || '#ffffff',
-      notes: d.data().notes || []
+      notes: d.data().notes || [],
+      categoryId: d.data().categoryId || '' // puede ser ''
     }));
     renderAll();
     renderTaskTable();
@@ -214,6 +229,120 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ======= CRUD CATEGORY =======
+  categoryForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = categoryNameInput.value.trim();
+    const color = document.querySelector('input[name="category-color"]:checked')?.value || '#FFD166';
+    if (!name) { showToast('Ingresa un nombre de categoría.', 'warning'); return; }
+
+    // evitar duplicado por nombre (case-insensitive)
+    const dup = categories.some(c => c.name.trim().toLowerCase() === name.toLowerCase() && c.id !== categoryIdInput.value);
+    if (dup) { showToast('Ya existe una categoría con ese nombre.', 'info'); return; }
+
+    try {
+      if (categoryIdInput.value) {
+        await updateDoc(doc(db,'categories', categoryIdInput.value), { name, color });
+        showToast('Categoría actualizada ✅', 'success');
+      } else {
+        await addDoc(collection(db,'categories'), { name, color, createdAt: Date.now() });
+        showToast('Categoría creada ✅', 'success');
+      }
+      categoryIdInput.value = '';
+      categoryNameInput.value = '';
+    } catch (err) {
+      console.error(err);
+      showToast('Error al guardar la categoría.', 'danger');
+    }
+  });
+
+  function renderCategories(){
+    if (!categoriesListEl) return;
+    categoriesListEl.innerHTML = '';
+    if (!categories.length) {
+      categoriesListEl.innerHTML = '<li class="list-group-item text-muted">Aún no hay categorías.</li>';
+      return;
+    }
+    categories.forEach(c => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+      li.innerHTML = `
+        <span class="cat-badge">
+          <span class="cat-dot" style="background:${c.color}"></span>
+          <span>${c.name}</span>
+        </span>
+        <span></span>
+      `;
+      const actions = li.lastElementChild;
+
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn btn-sm btn-outline-primary me-2';
+      btnEdit.textContent = '✏️';
+      btnEdit.onclick = () => {
+        categoryIdInput.value = c.id;
+        categoryNameInput.value = c.name;
+        // marcar color
+        const radio = document.querySelector(`input[name="category-color"][value="${c.color}"]`);
+        if (radio) radio.checked = true;
+      };
+
+      const btnDel = document.createElement('button');
+      btnDel.className = 'btn btn-sm btn-danger';
+      btnDel.textContent = '🗑';
+      btnDel.onclick = async () => {
+        if (!confirm('¿Eliminar esta categoría?')) return;
+        try {
+          // Si hay tareas que la usan, las dejamos sin categoría
+          const used = tasks.filter(t => t.categoryId === c.id);
+          if (used.length) {
+            const ok = confirm(`Esta categoría está asignada a ${used.length} tarea(s). Se quitará de ellas. ¿Continuar?`);
+            if (!ok) return;
+            await Promise.all(used.map(t => updateDoc(doc(db,'tasks',t.id), { categoryId: '' })));
+          }
+          await deleteDoc(doc(db,'categories', c.id));
+          showToast('Categoría eliminada.', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Error al eliminar la categoría.', 'danger');
+        }
+      };
+
+      actions.append(btnEdit, btnDel);
+      categoriesListEl.append(li);
+    });
+  }
+
+  function populateCategorySelects(){
+    // Select de filtro en pestaña Tareas
+    if (filterCategorySelect) {
+      const current = filterCategorySelect.value || 'all';
+      filterCategorySelect.innerHTML = '<option value="all">Todas</option>';
+      categories.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        filterCategorySelect.append(o);
+      });
+      // restaurar selección
+      const exists = [...filterCategorySelect.options].some(op => op.value === current);
+      filterCategorySelect.value = exists ? current : 'all';
+    }
+
+    // Select de categoría en modal de Tarea
+    if (taskCategorySelect) {
+      const selected = taskCategorySelect.value;
+      taskCategorySelect.innerHTML = '<option value="" selected>Sin categoría</option>';
+      categories.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        taskCategorySelect.append(o);
+      });
+      // Restaurar si había un valor
+      if (selected && categories.some(c => c.id === selected)) {
+        taskCategorySelect.value = selected;
+      }
+    }
+  }
+
   // ======= CRUD TASK =======
   taskForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -223,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const vTitle  = titleInput.value.trim();
     const vDate   = dateInput.value;
     const vRepeat = Number.isFinite(parseInt(repeatInput.value,10)) ? parseInt(repeatInput.value,10) : -1;
+    const vCatId  = taskCategorySelect?.value || '';
 
     if (!vBranch) { showToast('Selecciona una sucursal.', 'warning'); return; }
     if (!vTitle)  { showToast('Escribe un título.', 'warning'); return; }
@@ -243,7 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const selectedColor = document.querySelector('input[name="task-color"]:checked')?.value || COLORS[0];
+    // Color elegido
+    const selectedColor = document.querySelector('input[name="task-color"]:checked')?.value || TASK_COLORS[0];
 
     const data = {
       branchId: vBranch,
@@ -253,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert: alertCheck.checked,
       alertTime: alertTimeSelect.value,
       color: selectedColor,
-      // si se edita no reseteamos completadas/notas
+      categoryId: vCatId || '',
       ...(taskIdInput.value ? {} : { completedDates: [], notes: [] }),
       createdAt: Date.now()
     };
@@ -326,12 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ======= RENDER HELPERS =======
-  function branchNameById(id) {
-    const b = branches.find(x => x.id === id);
-    return b ? b.name : '';
-  }
-
+  // ======= RENDER HOY =======
   function renderTodayTasks() {
     const due = tasks.filter(t => {
       const diff = Math.floor((new Date(todayDs) - new Date(t.date)) / (1000*60*60*24));
@@ -347,7 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
     alertEl.id = 'today-alert';
     alertEl.className = 'alert alert-info alert-dismissible fade show';
     alertEl.innerHTML = due.length
-      ? '<strong>Tareas de hoy:</strong><ul class="mb-0">' + due.map(t => `<li>${t.title} (${branchNameById(t.branchId)})</li>`).join('') + '</ul>'
+      ? '<strong>Tareas de hoy:</strong><ul class="mb-0">' + due.map(t => {
+          const cat = categoryById(t.categoryId);
+          const catLabel = cat ? ` — ${cat.name}` : '';
+          return `<li>${t.title} (${branchNameById(t.branchId)}${catLabel})</li>`;
+        }).join('') + '</ul>'
       : '<strong>Tareas de hoy:</strong> No hay tareas pendientes.';
     alertEl.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
 
@@ -365,12 +495,16 @@ document.addEventListener('DOMContentLoaded', () => {
         !t.completedDates.includes(todayDs);
     });
     if (due.length) {
-      const titles = due.map(t => `${t.title} (${branchNameById(t.branchId)})`).join(', ');
+      const titles = due.map(t => {
+        const cat = categoryById(t.categoryId);
+        return `${t.title} (${branchNameById(t.branchId)})${cat ? ' — '+cat.name : ''}`;
+      }).join(', ');
       const n = new Notification('Tareas de hoy', { body: titles });
       setTimeout(() => n.close(), 5000);
     }
   }
 
+  // ======= RENDER BRANCHES =======
   function renderBranches() {
     branchesList.innerHTML = '';
     branches.forEach(b => {
@@ -379,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.textContent = b.name;
 
       const edit = document.createElement('button');
-      edit.className = 'btn btn-sm btn-outline-primary me-1';
+      edit.className = 'btn btn-sm btn-outline-primary me-2';
       edit.textContent = '✏️';
       edit.onclick = () => {
         branchIdInput.value   = b.id;
@@ -405,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
       branchesList.append(li);
     });
   }
-
   function populateBranchSelect() {
     branchSelect.innerHTML = `<option value="" disabled selected>Selecciona sucursal</option>`;
     branches.forEach(b => {
@@ -416,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ======= RENDER ROOT =======
   function renderAll() {
     const v = viewSelect.value;
     if (v === 'month') renderMonth();
@@ -468,9 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const span = document.createElement('span');
         const done = t.completedDates.includes(ds);
         span.className = 'task-title' + (done ? ' completed' : '');
+        const cat = categoryById(t.categoryId);
         const label = `${t.title} (${branchNameById(t.branchId)})`;
         span.textContent = label;
-        span.title = label;
+        span.title = cat ? `${label} — ${cat.name}` : label;
         span.style.backgroundColor = t.color;
         span.onclick = () => openNotesModal(t, ds);
         tasksWrap.append(span);
@@ -483,7 +618,10 @@ document.addEventListener('DOMContentLoaded', () => {
         more.textContent = `+${hidden} más`;
         more.title = dayTasks
           .slice(MAX_PER_DAY)
-          .map(t => `${t.title} (${branchNameById(t.branchId)})`)
+          .map(t => {
+            const cat = categoryById(t.categoryId);
+            return `${t.title} (${branchNameById(t.branchId)})${cat ? ' — '+cat.name : ''}`;
+          })
           .join('\n');
         tasksWrap.append(more);
       }
@@ -530,7 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
               const diff = Math.floor((new Date(ds) - new Date(t.date)) / (1000*60*60*24));
               return diff >= 0 && (t.repeatDays === 0 ? t.date === ds : diff % t.repeatDays === 0);
             })
-            .map(t => `${t.title} (${branchNameById(t.branchId)})`)
+            .map(t => {
+              const cat = categoryById(t.categoryId);
+              return `${t.title} (${branchNameById(t.branchId)})${cat ? ' — '+cat.name : ''}`;
+            })
             .join('\n');
         }
         daysEl.append(td);
@@ -539,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ======= VISTA LISTA =======
+  // ======= VISTA LISTA (en pestaña Calendario) =======
   function renderList() {
     listViewEl.innerHTML = '';
     weekdayHeaderEl.style.display = 'none';
@@ -554,9 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <th style="width:120px;">Fecha</th>
           <th style="width:220px;">Sucursal</th>
+          <th style="width:220px;">Categoría</th>
           <th>Tarea</th>
           <th style="width:120px;">Estado</th>
-          <th style="width:140px;">Acciones</th>
+          <th style="width:160px;">Acciones</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -574,13 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       dayTasks.forEach(t => {
         const done = t.completedDates.includes(ds);
+        const cat  = categoryById(t.categoryId);
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><span class="badge text-bg-light">${ds}</span></td>
           <td>${branchNameById(t.branchId)}</td>
-          <td>
-            <span class="badge" style="background:${t.color};border:1px solid rgba(0,0,0,.05)">${t.title}</span>
-          </td>
+          <td>${cat ? `<span class="cat-badge"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</span>` : '<span class="text-muted">—</span>'}</td>
+          <td><span class="badge" style="background:${t.color};border:1px solid rgba(0,0,0,.05)">${t.title}</span></td>
           <td>${done ? 'Completada' : 'Pendiente'}</td>
           <td class="text-nowrap"></td>
         `;
@@ -622,6 +764,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // marcar color
           const radio = document.querySelector(`input[name="task-color"][value="${t.color}"]`);
           if (radio) radio.checked = true;
+          // categoría
+          if (taskCategorySelect) taskCategorySelect.value = t.categoryId || '';
           acceptCheck.checked = false; saveTaskBtn.disabled = true;
           new bootstrap.Modal(document.getElementById('taskModal')).show();
         };
@@ -647,14 +791,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!tbody.children.length) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="5" class="text-center text-muted py-4">Sin tareas en este mes.</td>`;
+      tr.innerHTML = `<td colspan="6" class="text-center text-muted py-4">Sin tareas en este mes.</td>`;
       tbody.append(tr);
     }
 
     listViewEl.append(table);
   }
 
-  // ======= LISTA TAREAS (pestaña Tareas) =======
+  // ======= LISTA DE TAREAS (pestaña Tareas) =======
   function renderTaskTable() {
     taskListEl.innerHTML = '';
     if (tasks.length === 0) {
@@ -664,6 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedMonth = filterMonthInput.value;
     const selectedDate  = filterDateInput.value;
     const statusFilter  = filterStatusSelect.value;
+    const categoryFilter = filterCategorySelect?.value || 'all';
     let dsList = [];
 
     if (selectedDate) {
@@ -687,6 +832,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const done = t.completedDates.includes(ds);
         if (statusFilter === 'completed' && !done) return;
         if (statusFilter === 'pending' && done) return;
+        if (categoryFilter !== 'all' && t.categoryId !== categoryFilter) return;
+
+        const cat = categoryById(t.categoryId);
 
         const li = document.createElement('li');
         li.className = 'list-group-item d-flex justify-content-between align-items-center';
@@ -694,7 +842,9 @@ document.addEventListener('DOMContentLoaded', () => {
         info.innerHTML = `
           <strong style="background:${t.color};padding:2px 6px;border-radius:4px;">
             ${t.title}
-          </strong><br/>
+          </strong>
+          ${cat ? `<span class="ms-2 cat-badge"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</span>` : ''}
+          <br/>
           <small>${ds}</small><br/>
           <small>Sucursal: ${branchNameById(t.branchId)}</small><br/>
           <small>Estado: ${done?'Completada':'Pendiente'}</small>
@@ -710,7 +860,9 @@ document.addEventListener('DOMContentLoaded', () => {
               completedDates: done ? arrayRemove(ds) : arrayUnion(ds)
             });
             showToast(done ? 'Marcado como pendiente.' : 'Marcado como completado.', 'success');
-            renderAll(); renderTaskTable(); renderTodayTasks();
+            renderAll();
+            renderTaskTable();
+            renderTodayTasks();
           } catch (err) {
             console.error(err);
             showToast('Error al cambiar estado.', 'danger');
@@ -734,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alertCheck.checked  = t.alert;
           alertOptions.style.display = t.alert ? 'block' : 'none';
           alertTimeSelect.value = t.alertTime;
+          taskCategorySelect.value = t.categoryId || '';
           const radio = document.querySelector(`input[name="task-color"][value="${t.color}"]`);
           if (radio) radio.checked = true;
           acceptCheck.checked = false; saveTaskBtn.disabled = true;
@@ -793,7 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pdf.setFontSize(16);
     pdf.text(`Tareas - ${yr}-${mo}`, 20, 30);
     pdf.setFontSize(12);
-    const cols = ['Sucursal','Tarea','Estado'], rows = [];
+    const cols = ['Sucursal','Categoría','Tarea','Estado'], rows = [];
     const dim = new Date(yr, mo, 0).getDate();
     tasks.forEach(t => {
       const base = new Date(t.date);
@@ -803,10 +956,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (diff < 0) continue;
         if (!(t.repeatDays===0 ? t.date===ds : diff%t.repeatDays===0)) continue;
         const done = t.completedDates.includes(ds);
+        const cat = categoryById(t.categoryId);
         rows.push([
           branchNameById(t.branchId),
+          cat ? cat.name : '—',
           `${t.title} (${ds})`,
-          done?'Completada':'Pendiente'
+          done ? 'Completada' : 'Pendiente'
         ]);
       }
     });
