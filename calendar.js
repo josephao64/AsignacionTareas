@@ -77,17 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
   filterDateInput.addEventListener('change', renderTaskTable);
   filterStatusSelect.addEventListener('change', renderTaskTable);
 
-  alertCheck.addEventListener('change', () => {
-    alertOptions.style.display = alertCheck.checked ? 'block' : 'none';
-  });
-
-  acceptCheck.addEventListener('change', () => {
-    saveTaskBtn.disabled = !acceptCheck.checked;
-  });
-
+  // ✅ al cambiar vista, mostramos/ocultamos sólo cada vista (no el contenedor)
   viewSelect.addEventListener('change', () => {
-    calendarEl.parentElement.style.display = viewSelect.value === 'month' ? 'block' : 'none';
-    yearViewEl.style.display = viewSelect.value === 'year' ? 'grid' : 'none';
+    const isMonth = viewSelect.value === 'month';
+    calendarEl.style.display = isMonth ? 'block' : 'none';
+    yearViewEl.style.display = isMonth ? 'none' : 'grid';
     renderAll();
   });
 
@@ -285,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewSelect.value === 'month' ? renderMonth() : renderYear();
   }
 
+  /* 🔧 VISTA MENSUAL: celdas con altura fija y tareas truncadas + indicador "+N más" */
   function renderMonth() {
     calendarEl.innerHTML = '';
     const firstDay    = new Date(currentYear, currentMonth, 1).getDay();
@@ -296,30 +291,57 @@ document.addEventListener('DOMContentLoaded', () => {
       e.className = 'day empty';
       calendarEl.append(e);
     }
+
+    const MAX_PER_DAY = 2; // mantenemos 2 visibles para no saturar
+
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const dayTasks = tasks.filter(t => {
         const diff = Math.floor((new Date(ds) - new Date(t.date)) / (1000*60*60*24));
         return diff >= 0 && (t.repeatDays === 0 ? t.date === ds : diff % t.repeatDays === 0);
       });
+
       const cell = document.createElement('div');
       cell.className =
         'day' +
         (dayTasks.length ? ' has-task' : '') +
         (ds === todayDs ? ' today' : '');
+
       const dv = document.createElement('div');
       dv.className = 'date';
       dv.textContent = d;
-      cell.append(dv);
-      dayTasks.slice(0,2).forEach(t => {
+
+      // contenedor de tareas que recorta el exceso
+      const tasksWrap = document.createElement('div');
+      tasksWrap.className = 'tasks';
+
+      const toShow = dayTasks.slice(0, MAX_PER_DAY);
+      toShow.forEach(t => {
         const span = document.createElement('span');
         const done = t.completedDates.includes(ds);
         span.className = 'task-title' + (done ? ' completed' : '');
-        span.textContent = `${t.title} (${branchNameById(t.branchId)})`;
+        const label = `${t.title} (${branchNameById(t.branchId)})`;
+        span.textContent = label;
+        span.title = label; // tooltip nativo
         span.style.backgroundColor = t.color;
         span.onclick = () => openNotesModal(t, ds);
-        cell.append(span);
+        tasksWrap.append(span);
       });
+
+      // si hay más tareas, mostramos contador "+N más"
+      const hidden = dayTasks.length - toShow.length;
+      if (hidden > 0) {
+        const more = document.createElement('span');
+        more.className = 'more-tasks';
+        more.textContent = `+${hidden} más`;
+        more.title = dayTasks
+          .slice(MAX_PER_DAY)
+          .map(t => `${t.title} (${branchNameById(t.branchId)})`)
+          .join('\n');
+        tasksWrap.append(more);
+      }
+
+      cell.append(dv, tasksWrap);
       calendarEl.append(cell);
     }
   }
@@ -342,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         daysEl.append(e);
       }
       for (let d = 1; d <= dm; d++) {
-        const ds  = `${currentYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'00')}`;
+        const ds  = `${currentYear}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; // fix '0'
         const has = tasks.some(t => {
           const diff = Math.floor((new Date(ds) - new Date(t.date)) / (1000*60*60*24));
           return diff >= 0 && (t.repeatDays === 0 ? t.date === ds : diff % t.repeatDays === 0);
@@ -382,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const [fY,fM] = selectedMonth.split('-').map(n => parseInt(n,10));
       const dim = new Date(fY, fM, 0).getDate();
       for (let d = 1; d <= dim; d++) {
-        dsList.push(`${fY}-${String(fM).padStart(2,'00')}-${String(d).padStart(2,'00')}`);
+        dsList.push(`${fY}-${String(fM).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
       }
     } else {
       dsList = [todayDs];
@@ -411,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         const actions = document.createElement('div');
 
-        // Botón para modificar estado
         const cb = document.createElement('button');
         cb.className = 'btn btn-sm me-2';
         cb.textContent = done ? '✅' : '⬜';

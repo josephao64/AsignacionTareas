@@ -11,13 +11,13 @@
     rel="stylesheet"
   />
 
-  <!-- Tu CSS -->
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css"/>
 </head>
-<body class="p-4">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">Gestión de Sucursales, Calendario y Tareas</h1>
+<body class="p-3 p-md-4">
+  <div class="container-fluid"> <!-- full width -->
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
+      <h1 class="mb-3 mb-lg-0">Gestión de Sucursales, Calendario y Tareas</h1>
       <a href="index.html" class="btn btn-outline-primary">⬅ Inicio</a>
     </div>
 
@@ -34,42 +34,60 @@
     </ul>
 
     <div class="tab-content">
+      <!-- Sucursales -->
       <div class="tab-pane fade" id="tabBranches">
         <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#branchModal">+ Sucursal</button>
         <ul id="branches-list" class="list-group"></ul>
       </div>
 
+      <!-- Calendario -->
       <div class="tab-pane fade show active" id="tabCalendar">
-        <div class="d-flex align-items-center mb-3">
-          <label class="me-2 mb-0">Ver:</label>
-          <select id="view-select" class="form-select w-auto me-4">
-            <option value="month" selected>Mes</option>
-            <option value="year">Año</option>
-          </select>
-          <button id="prevYear" class="btn btn-sm btn-outline-secondary me-1">« Año</button>
-          <button id="prevMonth" class="btn btn-sm btn-outline-secondary me-1">‹ Mes</button>
-          <span id="calendar-title" class="mx-2 fw-bold"></span>
-          <button id="nextMonth" class="btn btn-sm btn-outline-secondary ms-1">Mes ›</button>
-          <button id="nextYear" class="btn btn-sm btn-outline-secondary ms-1">Año »</button>
+        <div class="calendar-toolbar d-flex flex-wrap align-items-center mb-3">
+          <div class="d-flex align-items-center me-3 mb-2 mb-sm-0">
+            <label class="me-2 mb-0">Ver:</label>
+            <select id="view-select" class="form-select form-select-sm w-auto">
+              <option value="month" selected>Mes</option>
+              <option value="year">Año</option>
+            </select>
+          </div>
+
+          <div class="btn-group btn-group-sm me-3 mb-2 mb-sm-0" role="group">
+            <button id="prevYear"  class="btn btn-outline-secondary">« Año</button>
+            <button id="prevMonth" class="btn btn-outline-secondary">‹ Mes</button>
+            <button id="nextMonth" class="btn btn-outline-secondary">Mes ›</button>
+            <button id="nextYear"  class="btn btn-outline-secondary">Año »</button>
+          </div>
+
+          <span id="calendar-title" class="calendar-title flex-grow-1 text-center fw-bold"></span>
         </div>
-        <div id="calendar-container">
-          <div id="calendar" class="mb-4"></div>
+
+        <div id="calendar-container" class="calendar-container">
+          <!-- Encabezado de días (estático, se alinea con el grid de #calendar) -->
+          <div id="weekday-header" class="weekday-header">
+            <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
+          </div>
+
+          <!-- Vista mensual -->
+          <div id="calendar" class="calendar-grid mb-4"></div>
+
+          <!-- Vista anual -->
           <div id="year-view" class="year-container mb-4" style="display:none;"></div>
         </div>
       </div>
 
+      <!-- Tareas -->
       <div class="tab-pane fade" id="tabTasks">
-        <div class="d-flex mb-3 align-items-center">
-          <button class="btn btn-success me-3" data-bs-toggle="modal" data-bs-target="#taskModal">+ Tarea</button>
-          <div class="me-3 d-flex align-items-center">
+        <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#taskModal">+ Tarea</button>
+          <div class="d-flex align-items-center">
             <label for="task-filter-month" class="form-label me-2 mb-0">Mes:</label>
             <input type="month" id="task-filter-month" class="form-control d-inline-block w-auto"/>
           </div>
-          <div class="me-3 d-flex align-items-center">
+          <div class="d-flex align-items-center">
             <label for="task-filter-date" class="form-label me-2 mb-0">Fecha:</label>
             <input type="date" id="task-filter-date" class="form-control d-inline-block w-auto"/>
           </div>
-          <div class="me-3 d-flex align-items-center">
+          <div class="d-flex align-items-center">
             <label for="task-filter-status" class="form-label me-2 mb-0">Estado:</label>
             <select id="task-filter-status" class="form-select d-inline-block w-auto">
               <option value="all" selected>Todo</option>

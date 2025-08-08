@@ -1,200 +1,220 @@
-/* style.css */
+/* ====== Variables de tamaño (fáciles de tunear) ====== */
+:root{
+  --cal-gap: 10px;
+  --day-min-w: 180px;     /* ancho mínimo de cada día (más grande = más horizontal) */
+  --day-row-h: 130px;     /* altura por fila */
+  --day-row-h-lg: 150px;  /* altura por fila en pantallas grandes */
+}
 
 /* Global */
 body {
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: #f8f9fa;
+  background: #f6f8fb;
 }
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-/* Highlight today's date */
-.day.today {
-  border: 2px solid #007bff;
+.container-fluid {
+  padding-left: clamp(16px, 3vw, 40px);
+  padding-right: clamp(16px, 3vw, 40px);
 }
 
-/* Color palette */
-#color-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.color-option input {
-  display: none;
-}
-.color-swatch {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.color-option input:checked + .color-swatch {
-  outline: 3px solid #000;
+/* Título centrado en toolbar */
+.calendar-title{
+  min-width: 180px;
 }
 
-/* Existing notes */
-#existing-notes .note-item {
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.5rem;
+/* Toolbar */
+.calendar-toolbar .btn-group > .btn {
+  min-width: 80px;
 }
 
-/* Tabs */
-.nav-tabs .nav-link {
-  cursor: pointer;
-}
-.nav-tabs .nav-link.active {
-  background-color: #e9ecef;
-}
+/* Listas y tabs */
+.nav-tabs .nav-link { cursor: pointer; }
+.nav-tabs .nav-link.active { background-color: #eef2f7; }
 
 /* Branches list */
 #branches-list .list-group-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
 }
 
-/* Calendar controls */
-#calendar-title {
-  min-width: 100px;
-  text-align: center;
-  font-weight: bold;
+/* ====== Calendario (vista mensual) ====== */
+.calendar-container{
+  /* hace que todo el bloque respire a lo ancho */
+  width: 100%;
 }
 
-/* Monthly calendar */
-#calendar {
+/* Encabezado de días (se alinea con el grid de #calendar) */
+.weekday-header{
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  margin-top: 10px;
+  grid-template-columns: repeat(7, minmax(var(--day-min-w), 1fr));
+  gap: var(--cal-gap);
+  padding: 0 2px;
+  margin-bottom: 6px;
+  user-select: none;
+  font-weight: 600;
+  color: #334155;
 }
-.day {
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 6px;
-  min-height: 80px;
-  position: relative;
-}
-.day.empty {
-  background: #e9ecef;
-  border-style: dashed;
-  cursor: default;
-}
-.day .date {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-.day.has-task {
-  background: #fff8e1;
+.weekday-header > div{
+  text-align: center;
+  background: #eef2f7;
+  border: 1px solid #dbe1ea;
+  border-radius: 6px;
+  padding: 6px 0;
 }
 
-/* Task titles in calendar */
-.task-title {
+/* Grid de días a TODO lo ancho */
+#calendar{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(var(--day-min-w), 1fr));
+  gap: var(--cal-gap);
+  width: 100%;
+
+  /* filas de altura fija para que no crezcan por contenido */
+  grid-auto-rows: var(--day-row-h);
+}
+
+/* Día */
+.day{
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 10px;
+  padding: 8px;
+  position: relative;
+
+  display: grid;
+  grid-template-rows: auto 1fr; /* fecha arriba, tareas ocupan el resto */
+  overflow: hidden;
+  transition: box-shadow .15s ease, transform .05s ease;
+}
+.day:hover{
+  box-shadow: 0 6px 18px rgba(21,31,56,.06);
+}
+.day.empty{
+  background: #f1f5f9;
+  border-style: dashed;
+}
+.day .date{
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+  letter-spacing: .2px;
+}
+.day.today{
+  outline: 2px solid #0d6efd;
+  outline-offset: -2px;
+}
+
+/* Tareas dentro del día */
+.day .tasks{
+  overflow: hidden;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+.task-title{
   display: block;
-  font-size: 0.85em;
-  margin-top: 2px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  color: #000;
+  font-size: .9rem;
+  padding: 3px 6px;
+  border-radius: 6px;
+  color: #0b1324;
+  background: #fefefe;
+  border: 1px solid rgba(27, 31, 59, 0.06);
   cursor: pointer;
+
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  line-height: 1.25;
 }
-.task-title.completed {
+.task-title.completed{
   text-decoration: line-through;
-  opacity: 0.6;
+  opacity: .6;
 }
 
-/* Yearly calendar */
-.year-container {
+/* Indicador de más tareas */
+.more-tasks{
+  display: inline-block;
+  font-size: .8rem;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px dashed #93a3b8;
+  background: #f3f6fb;
+  color: #334155;
+  cursor: default;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Marcamos día con tareas */
+.day.has-task{ background: #fffdf3; }
+
+/* ====== Vista anual (más ancha y fluida) ====== */
+.year-container{
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
 }
-.small-calendar {
+.small-calendar{
   background: #fff;
-  border: 1px solid #ccc;
-  padding: 8px;
+  border: 1px solid #e1e7ef;
+  border-radius: 10px;
+  padding: 10px;
 }
-.small-calendar .month-name {
+.small-calendar .month-name{
   text-align: center;
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #1f2937;
 }
-.small-calendar .days {
+.small-calendar .days{
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: 4px;
 }
-.small-calendar .day {
-  width: 20px;
-  height: 20px;
-  font-size: 0.7em;
+.small-calendar .day{
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  height: 24px;
+  font-size: .75rem;
   padding: 2px;
   text-align: center;
 }
-.small-calendar .day.empty {
-  background: #e9ecef;
+.small-calendar .day.empty{
+  background: #eef2f7;
   border-style: dashed;
 }
 
-/* Tasks tab controls */
-#tabTasks .mb-3 {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+/* ====== Filtros y lista de tareas ====== */
+#tabTasks .mb-3,
+#tabTasks .d-flex.gap-3{
+  display: flex; align-items: center; gap: 1rem;
+}
+#task-list .list-group-item{
+  display: flex; justify-content: space-between; align-items: center;
 }
 
-/* Task list */
-#task-list .list-group-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* ====== PDF (tabla) ====== */
+.report-table table{
+  border-collapse: collapse; width: 100%; margin-top: 10px;
 }
+.report-table th, .report-table td{
+  border: 1px solid #cbd5e1; padding: 6px; font-size: .9rem;
+}
+.report-table th{ background: #eef2f7; }
 
-/* Modal form spacing */
-.modal-body .mb-3 {
-  margin-bottom: 1rem;
+/* ====== Responsive ====== */
+@media (min-width: 1400px){
+  :root{ --day-row-h: var(--day-row-h-lg); }
 }
-
-/* Month / date / status filters */
-#task-filter-month,
-#task-filter-date,
-#task-filter-status {
-  max-width: 150px;
+@media (max-width: 992px){
+  :root{ --day-min-w: 140px; --day-row-h: 120px; }
 }
-
-/* Buttons */
-.btn-sm {
-  line-height: 1;
-}
-
-/* Completed state */
-.completed {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-/* PDF table styling */
-.report-table table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-top: 10px;
-}
-.report-table th,
-.report-table td {
-  border: 1px solid #999;
-  padding: 4px;
-  font-size: 0.85em;
-}
-.report-table th {
-  background: #e9ecef;
+@media (max-width: 576px){
+  :root{ --day-min-w: 110px; --day-row-h: 100px; }
+  .weekday-header { font-size: .9rem; }
 }
