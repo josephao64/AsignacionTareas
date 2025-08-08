@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body class="p-3 p-md-4">
-  <div class="container-fluid"> <!-- full width -->
+  <div class="container-fluid">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
       <h1 class="mb-3 mb-lg-0">Gestión de Sucursales, Calendario y Tareas</h1>
       <a href="index.html" class="btn btn-outline-primary">⬅ Inicio</a>
@@ -48,6 +48,7 @@
             <select id="view-select" class="form-select form-select-sm w-auto">
               <option value="month" selected>Mes</option>
               <option value="year">Año</option>
+              <option value="list">Lista</option>
             </select>
           </div>
 
@@ -62,7 +63,7 @@
         </div>
 
         <div id="calendar-container" class="calendar-container">
-          <!-- Encabezado de días (estático, se alinea con el grid de #calendar) -->
+          <!-- Encabezado de días -->
           <div id="weekday-header" class="weekday-header">
             <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
           </div>
@@ -72,6 +73,9 @@
 
           <!-- Vista anual -->
           <div id="year-view" class="year-container mb-4" style="display:none;"></div>
+
+          <!-- Vista lista -->
+          <div id="list-view" class="mb-4" style="display:none;"></div>
         </div>
       </div>
 
@@ -101,6 +105,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Host para Toasts -->
+  <div id="toastHost" class="position-fixed top-0 end-0 p-3" style="z-index:1080;"></div>
 
   <!-- Modal: Registrar / Editar Sucursal -->
   <div class="modal fade" id="branchModal" tabindex="-1" aria-hidden="true">
@@ -153,6 +160,10 @@
             <label for="task-repeat" class="form-label">Repetir cada X días</label>
             <input type="number" id="task-repeat" min="0" value="0" class="form-control"/>
           </div>
+          <div class="mb-3">
+            <label class="form-label">Color de la casilla:</label>
+            <div id="color-palette" class="d-flex flex-wrap gap-2"></div>
+          </div>
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="task-alert"/>
             <label class="form-check-label" for="task-alert">Recibir notificación</label>
@@ -166,21 +177,6 @@
               <option value="1 día antes">1 día antes</option>
               <option value="3 días antes">3 días antes</option>
             </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Color de la casilla:</label>
-            <div id="color-palette">
-              <label class="color-option"><input type="radio" name="task-color" value="#FFCDD2"/><span class="color-swatch" style="background:#FFCDD2"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#C8E6C9"/><span class="color-swatch" style="background:#C8E6C9"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#BBDEFB"/><span class="color-swatch" style="background:#BBDEFB"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#FFF9C4"/><span class="color-swatch" style="background:#FFF9C4"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#D1C4E9"/><span class="color-swatch" style="background:#D1C4E9"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#FFE0B2"/><span class="color-swatch" style="background:#FFE0B2"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#DCEDC8"/><span class="color-swatch" style="background:#DCEDC8"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#B3E5FC"/><span class="color-swatch" style="background:#B3E5FC"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#F0F4C3"/><span class="color-swatch" style="background:#F0F4C3"></span></label>
-              <label class="color-option"><input type="radio" name="task-color" value="#E1BEE7"/><span class="color-swatch" style="background:#E1BEE7"></span></label>
-            </div>
           </div>
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="task-accept"/>
