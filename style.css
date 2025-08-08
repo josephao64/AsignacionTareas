@@ -1,4 +1,4 @@
-/* ====== Variables de tamaño (fáciles de tunear) ====== */
+/* ====== Variables de tamaño (ajustables) ====== */
 :root{
   --cal-gap: 10px;
   --day-min-w: 180px;     /* ancho mínimo de cada día (más grande = más horizontal) */
@@ -24,11 +24,9 @@ body {
 }
 
 /* Toolbar */
-.calendar-toolbar .btn-group > .btn {
-  min-width: 80px;
-}
+.calendar-toolbar .btn-group > .btn { min-width: 80px; }
 
-/* Listas y tabs */
+/* Tabs */
 .nav-tabs .nav-link { cursor: pointer; }
 .nav-tabs .nav-link.active { background-color: #eef2f7; }
 
@@ -38,12 +36,9 @@ body {
 }
 
 /* ====== Calendario (vista mensual) ====== */
-.calendar-container{
-  /* hace que todo el bloque respire a lo ancho */
-  width: 100%;
-}
+.calendar-container{ width: 100%; }
 
-/* Encabezado de días (se alinea con el grid de #calendar) */
+/* Encabezado de días (alineado al grid) */
 .weekday-header{
   display: grid;
   grid-template-columns: repeat(7, minmax(var(--day-min-w), 1fr));
@@ -68,9 +63,7 @@ body {
   grid-template-columns: repeat(7, minmax(var(--day-min-w), 1fr));
   gap: var(--cal-gap);
   width: 100%;
-
-  /* filas de altura fija para que no crezcan por contenido */
-  grid-auto-rows: var(--day-row-h);
+  grid-auto-rows: var(--day-row-h); /* altura fija */
 }
 
 /* Día */
@@ -82,7 +75,7 @@ body {
   position: relative;
 
   display: grid;
-  grid-template-rows: auto 1fr; /* fecha arriba, tareas ocupan el resto */
+  grid-template-rows: auto 1fr; /* fecha arriba, tareas abajo */
   overflow: hidden;
   transition: box-shadow .15s ease, transform .05s ease;
 }
@@ -127,10 +120,7 @@ body {
   max-width: 100%;
   line-height: 1.25;
 }
-.task-title.completed{
-  text-decoration: line-through;
-  opacity: .6;
-}
+.task-title.completed{ text-decoration: line-through; opacity: .6; }
 
 /* Indicador de más tareas */
 .more-tasks{
@@ -152,7 +142,7 @@ body {
 /* Marcamos día con tareas */
 .day.has-task{ background: #fffdf3; }
 
-/* ====== Vista anual (más ancha y fluida) ====== */
+/* ====== Vista anual ====== */
 .year-container{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -191,21 +181,27 @@ body {
 
 /* ====== Filtros y lista de tareas ====== */
 #tabTasks .mb-3,
-#tabTasks .d-flex.gap-3{
-  display: flex; align-items: center; gap: 1rem;
-}
-#task-list .list-group-item{
-  display: flex; justify-content: space-between; align-items: center;
-}
+#tabTasks .d-flex.gap-3{ display: flex; align-items: center; gap: 1rem; }
+#task-list .list-group-item{ display: flex; justify-content: space-between; align-items: center; }
 
 /* ====== PDF (tabla) ====== */
-.report-table table{
-  border-collapse: collapse; width: 100%; margin-top: 10px;
-}
-.report-table th, .report-table td{
-  border: 1px solid #cbd5e1; padding: 6px; font-size: .9rem;
-}
+.report-table table{ border-collapse: collapse; width: 100%; margin-top: 10px; }
+.report-table th, .report-table td{ border: 1px solid #cbd5e1; padding: 6px; font-size: .9rem; }
 .report-table th{ background: #eef2f7; }
+
+/* ====== PALETA DE COLORES (swatches visibles) ====== */
+#color-palette{ display:flex; flex-wrap:wrap; gap:.5rem; }
+.color-option{ position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.color-option input{
+  position:absolute; opacity:0; width:0; height:0; /* ocultar radio nativo */
+}
+.color-swatch{
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid #cbd5e1; box-shadow: inset 0 0 0 2px #fff;
+  display:inline-block; cursor:pointer;
+}
+.color-option input:checked + .color-swatch{ outline:3px solid #0d6efd; border-color:transparent; }
+.color-option input:focus-visible + .color-swatch{ outline:3px solid #94c0ff; }
 
 /* ====== Responsive ====== */
 @media (min-width: 1400px){
