@@ -1,291 +1,362 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Asignación de Tareas</title>
-    <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <!-- Enlace al archivo CSS -->
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Estilos para el Modal de Inicio de Sesión */
-        .modal-login {
-            display: none; /* Oculto por defecto */
-            position: fixed;
-            z-index: 1001; /* Por encima de otros elementos */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5); /* Fondo semi-transparente */
-        }
-        .modal-content-login {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 300px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .modal-content-login h2 { text-align: center; margin-bottom: 20px; }
-        .modal-content-login label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .modal-content-login select,
-        .modal-content-login input[type="password"] {
-            width: 100%; padding: 8px; margin-bottom: 15px;
-            border: 1px solid #ccc; border-radius: 4px;
-        }
-        .modal-content-login button {
-            width: 100%; padding: 10px; background-color: #4CAF50;
-            border: none; color: white; font-size: 16px;
-            border-radius: 4px; cursor: pointer;
-        }
-        .modal-content-login button:hover { background-color: #45a049; }
-        .close-login {
-            color: #aaa; float: right; font-size: 28px;
-            font-weight: bold; cursor: pointer;
-        }
-        .close-login:hover,
-        .close-login:focus { color: black; text-decoration: none; }
+  <meta charset="UTF-8" />
+  <title>Asignación de Tareas</title>
 
-        /* Botones Sesión */
-        .header {
-            display: flex; justify-content: flex-end;
-            padding: 10px 20px; background-color: #f4f4f4;
-        }
-        .login-btn, .logout-btn {
-            padding: 8px 16px; background-color: #008CBA;
-            border: none; color: white; border-radius: 4px;
-            cursor: pointer; margin-left: 10px;
-        }
-        .login-btn:hover, .logout-btn:hover { background-color: #006f98; }
-        .logout-btn { display: none; }
+  <!-- SweetAlert2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
 
-        /* Modal Tarea */
-        .modal {
-            display: none; position: fixed; z-index: 1000;
-            left: 0; top: 0; width: 100%; height: 100%;
-            overflow: auto; background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: #fefefe; margin: 5% auto;
-            padding: 20px; border: 1px solid #888;
-            width: 500px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .modal-content h2 { text-align: center; margin-bottom: 20px; }
-        .modal-content label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .modal-content select,
-        .modal-content input[type="date"],
-        .modal-content textarea {
-            width: 100%; padding: 8px; margin-bottom: 15px;
-            border: 1px solid #ccc; border-radius: 4px;
-        }
-        .modal-content button {
-            width: 100%; padding: 10px; background-color: #4CAF50;
-            border: none; color: white; font-size: 16px;
-            border-radius: 4px; cursor: pointer;
-        }
-        .modal-content button:hover { background-color: #45a049; }
-        .close {
-            color: #aaa; float: right; font-size: 28px;
-            font-weight: bold; cursor: pointer;
-        }
-        .close:hover,
-        .close:focus { color: black; text-decoration: none; }
+  <!-- Tu hoja de estilos opcional -->
+  <link rel="stylesheet" href="styles.css" />
 
-        /* Tabla */
-        table {
-            width: 100%; border-collapse: collapse; margin-top: 20px;
-        }
-        table, th, td { border: 1px solid #ddd; }
-        th, td { padding: 12px; text-align: left; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr.selected { background-color: #d1e7dd; }
+  <style>
+    /* ========== Modal Inicio de Sesión ========== */
+    .modal-login {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    .modal-content-login {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 300px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .modal-content-login h2 { text-align: center; margin-bottom: 20px; }
+    .modal-content-login label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .modal-content-login select,
+    .modal-content-login input[type="password"] {
+      width: 100%; padding: 8px; margin-bottom: 15px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    .modal-content-login button {
+      width: 100%; padding: 10px; background-color: #4CAF50;
+      border: none; color: white; font-size: 16px;
+      border-radius: 4px; cursor: pointer;
+    }
+    .modal-content-login button:hover { background-color: #45a049; }
+    .close-login {
+      color: #aaa; float: right; font-size: 28px;
+      font-weight: bold; cursor: pointer;
+    }
+    .close-login:hover, .close-login:focus { color: black; text-decoration: none; }
 
-        /* Estados */
-        .estado-no-iniciado {
-            background-color: #f8d7da; color: #842029;
-        }
-        .estado-en-progreso {
-            background-color: #fff3cd; color: #664d03;
-        }
-        .estado-revision {
-            background-color: #cfe2ff; color: #084298;
-        }
-        .estado-completado {
-            background-color: #d1e7dd; color: #0f5132;
-        }
+    /* ========== Botones Sesión / Header ========== */
+    .header {
+      display: flex; justify-content: flex-end;
+      padding: 10px 20px; background-color: #f4f4f4;
+      gap: 10px;
+    }
+    .login-btn, .logout-btn {
+      padding: 8px 16px; background-color: #008CBA;
+      border: none; color: white; border-radius: 4px;
+      cursor: pointer;
+    }
+    .login-btn:hover, .logout-btn:hover { background-color: #006f98; }
+    .logout-btn { display: none; }
 
-        /* Otros */
-        .container { padding: 20px; }
-        .table-controls {
-            display: flex; justify-content: space-between; flex-wrap: wrap;
-        }
-        .filters, .actions-buttons {
-            display: flex; align-items: center; flex-wrap: wrap;
-        }
-        .filters > *, .actions-buttons > * { margin: 5px; }
-        .reset-filters-btn, .add-task-btn {
-            padding: 8px 16px; background-color: #6c757d;
-            border: none; color: white; border-radius: 4px;
-            cursor: pointer;
-        }
-        .reset-filters-btn:hover, .add-task-btn:hover {
-            background-color: #5a6268;
-        }
-        .actions-buttons button:disabled {
-            background-color: #adb5bd; cursor: not-allowed;
-        }
+    /* ========== Modal Tarea ========== */
+    .modal {
+      display: none; position: fixed; z-index: 1000;
+      inset: 0; width: 100%; height: 100%;
+      overflow: auto; background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe; margin: 5% auto;
+      padding: 20px; border: 1px solid #888;
+      width: 500px; border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .modal-content h2 { text-align: center; margin-bottom: 20px; }
+    .modal-content label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .modal-content select,
+    .modal-content input[type="date"],
+    .modal-content textarea {
+      width: 100%; padding: 8px; margin-bottom: 15px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    .modal-content button {
+      width: 100%; padding: 10px; background-color: #4CAF50;
+      border: none; color: white; font-size: 16px;
+      border-radius: 4px; cursor: pointer;
+    }
+    .modal-content button:hover { background-color: #45a049; }
+    .close {
+      color: #aaa; float: right; font-size: 28px;
+      font-weight: bold; cursor: pointer;
+    }
+    .close:hover, .close:focus { color: black; text-decoration: none; }
 
-        /* Responsividad */
-        @media (max-width: 600px) {
-            .modal-content-login, .modal-content { width: 90%; }
-            .table-controls { flex-direction: column; align-items: flex-start; }
-            .filters, .actions-buttons {
-                flex-direction: column; align-items: flex-start;
-            }
-        }
-    </style>
+    /* ========== Tablas ========== */
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
+    }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 12px; text-align: left; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    tr.selected { background-color: #d1e7dd; }
+
+    /* ========== Estados ========== */
+    .estado-no-iniciado { background-color: #f8d7da; color: #842029; }
+    .estado-en-progreso { background-color: #fff3cd; color: #664d03; }
+    .estado-revision    { background-color: #cfe2ff; color: #084298; }
+    .estado-completado  { background-color: #d1e7dd; color: #0f5132; }
+
+    /* ========== Contenedores / Controles ========== */
+    .container { padding: 20px; }
+    .table-controls { display: flex; justify-content: space-between; flex-wrap: wrap; }
+    .filters, .actions-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .reset-filters-btn, .add-task-btn {
+      padding: 8px 16px; background-color: #6c757d;
+      border: none; color: white; border-radius: 4px; cursor: pointer;
+    }
+    .reset-filters-btn:hover, .add-task-btn:hover { background-color: #5a6268; }
+    .actions-buttons button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+
+    /* ========== Tabs (FIX DISEÑO) ========== */
+    .tabs{
+      display:flex;
+      gap:8px;
+      border-bottom:1px solid #ddd;
+      margin-top:10px;
+      align-items:flex-end;
+    }
+    .tab-button{
+      appearance:none;
+      -webkit-appearance:none;
+      background:transparent !important;
+      border:none;
+      padding:10px 14px;
+      cursor:pointer;
+      font-weight:600;
+      color:#333;
+      border-bottom:3px solid transparent;
+      border-radius:0;
+      box-shadow:none !important;
+      outline:none;
+    }
+    .tab-button:hover{ color:#008CBA; }
+    .tab-button:focus{
+      outline:2px solid rgba(0,140,186,.25);
+      outline-offset:2px;
+    }
+    .tab-button.active{
+      color:#008CBA;
+      background:transparent !important;
+      border-bottom-color:#008CBA;
+    }
+    .tab-content{ display:none; }
+    .tab-content.active{ display:block; }
+
+    /* ========== Botón peligro ========== */
+    .danger-btn{
+      padding:8px 16px;
+      background:#dc3545;
+      border:none;
+      color:#fff;
+      border-radius:4px;
+      cursor:pointer;
+    }
+    .danger-btn:hover{ background:#bb2d3b; }
+    .danger-btn:disabled{ background:#adb5bd; cursor:not-allowed; }
+
+    /* ========== Responsividad ========== */
+    @media (max-width: 600px) {
+      .modal-content-login, .modal-content { width: 90%; }
+      .table-controls { flex-direction: column; align-items: flex-start; }
+      .filters, .actions-buttons { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
 </head>
 <body>
-    <!-- Menú al inicio -->
-    <div class="header">
-        <button id="openLoginBtn" class="login-btn">Iniciar Sesión</button>
-        <button id="serviciosBtn" class="login-btn" onclick="location.href='servicios/servicios.html'">Servicios</button>
-        <button id="pagosCajasBtn" class="login-btn" onclick="location.href='calculo%20pedidos/registro_pedidos.html'">Pagos de Cajas</button>
-        <button id="pagosPricesmartBtn" class="login-btn" onclick="location.href='calculo%20pedidos/pedido%20pricesmart/registro_pedidos_pricesmart.html'">Pagos Pricesmart</button>
-        <button id="checklistBtn" class="login-btn" onclick="location.href='checklist/checklist.html'">Checklist</button>
-        <button id="calendarBtn" class="login-btn" onclick="location.href='calendario.html'">Agenda</button>
-        <button id="reportesVentasBtn" class="login-btn" onclick="location.href='estadisticas/index.html'">Reportes de Ventas</button>
-        <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
-    </div>
+  <!-- Menú al inicio -->
+  <div class="header">
+    <button id="openLoginBtn" class="login-btn">Iniciar Sesión</button>
+    <button id="serviciosBtn" class="login-btn" onclick="location.href='servicios/servicios.html'">Servicios</button>
+    <button id="pagosCajasBtn" class="login-btn" onclick="location.href='calculo%20pedidos/registro_pedidos.html'">Pagos de Cajas</button>
+    <button id="pagosPricesmartBtn" class="login-btn" onclick="location.href='calculo%20pedidos/pedido%20pricesmart/registro_pedidos_pricesmart.html'">Pagos Pricesmart</button>
+    <button id="checklistBtn" class="login-btn" onclick="location.href='checklist/checklist.html'">Checklist</button>
+    <button id="calendarBtn" class="login-btn" onclick="location.href='calendario.html'">Agenda</button>
+    <button id="reportesVentasBtn" class="login-btn" onclick="location.href='estadisticas/index.html'">Reportes de Ventas</button>
+    <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+  </div>
 
-    <!-- Resumen de tareas pendientes esta semana -->
-    <div id="userStats" class="container">
-        <h2>Resumen de tareas pendientes esta semana</h2>
-        <ul id="userStatsList">
-            <li>JOSE: <span id="pending-JOSE">0</span> tareas</li>
-            <li>MARINA: <span id="pending-MARINA">0</span> tareas</li>
-            <li>JOSEPH: <span id="pending-JOSEPH">0</span> tareas</li>
-            <li>DAVID: <span id="pending-DAVID">0</span> tareas</li>
-        </ul>
-    </div>
+  <!-- Resumen de tareas pendientes esta semana -->
+  <div id="userStats" class="container">
+    <h2>Resumen de tareas pendientes esta semana</h2>
+    <ul id="userStatsList">
+      <li>JOSE: <span id="pending-JOSE">0</span> tareas</li>
+      <li>MARINA: <span id="pending-MARINA">0</span> tareas</li>
+      <li>JOSEPH: <span id="pending-JOSEPH">0</span> tareas</li>
+      <li>DAVID: <span id="pending-DAVID">0</span> tareas</li>
+    </ul>
+  </div>
 
-    <div id="loginModal" class="modal-login">
-        <div class="modal-content-login">
-            <span class="close-login" id="closeLoginBtn">&times;</span>
-            <h2>Iniciar Sesión</h2>
-            <form id="loginForm">
-                <label for="username">Usuario:</label>
-                <select id="username" required>
-                    <option value="">Selecciona tu usuario</option>
-                </select>
-                <label for="password">Contraseña:</label>
-                <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
-                <button type="submit">Ingresar</button>
-            </form>
+  <!-- Modal Login -->
+  <div id="loginModal" class="modal-login">
+    <div class="modal-content-login">
+      <span class="close-login" id="closeLoginBtn">&times;</span>
+      <h2>Iniciar Sesión</h2>
+      <form id="loginForm">
+        <label for="username">Usuario:</label>
+        <select id="username" required>
+          <option value="">Selecciona tu usuario</option>
+        </select>
+        <label for="password">Contraseña:</label>
+        <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+        <button type="submit">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div class="container" id="mainApp">
+    <h1>Asignación de Tareas</h1>
+
+    <div class="table-controls">
+      <div class="filters">
+        <input type="text" id="searchInput" placeholder="Buscar tareas...">
+        <select id="filterTipo">
+          <option value="">Todos los Tipos</option>
+        </select>
+        <select id="filterResponsable">
+          <option value="">Todos los Responsables</option>
+          <option value="JOSE">JOSE</option>
+          <option value="MARINA">MARINA</option>
+          <option value="JOSEPH">JOSEPH</option>
+          <option value="DAVID">DAVID</option>
+        </select>
+        <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
+        <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
+        <!-- Fijo: últimos 15 días -->
+        <label><input type="checkbox" id="filterSemana" checked disabled> Últimos 15 días</label>
+        <select id="sortOrder">
+          <option value="estadoOrden" selected>Ordenar por Estado</option>
+          <option value="fechaEstimadaAsc">Culminación Más Reciente</option>
+          <option value="fechaEstimadaDesc">Culminación Más Antigua</option>
+          <option value="fechaCreacionDesc">Tarea Agregada Más Reciente</option>
+          <option value="fechaCreacionAsc">Tarea Agregada Más Antigua</option>
+        </select>
+        <button id="resetFilters" class="reset-filters-btn">Resetear Filtros</button>
+      </div>
+
+      <div class="actions-buttons">
+        <button id="editarBtn" disabled>Editar</button>
+        <button id="eliminarBtn" disabled>Eliminar</button>
+        <button class="add-task-btn" onclick="abrirModal()">Agregar Tarea</button>
+        <!-- NUEVO: borrar todo -->
+        
+
+        <div id="viewSection">
+          <h3>Vista</h3>
+          <div id="filterEstadoCheckboxes">
+            <label><input type="checkbox" id="filterNoIniciado" checked> No Iniciado</label>
+            <label><input type="checkbox" id="filterEnProgreso" checked> En Progreso</label>
+            <label><input type="checkbox" id="filterRevision" checked> Revisión</label>
+            <label><input type="checkbox" id="filterCompletado" checked> Completado</label>
+          </div>
         </div>
+      </div>
     </div>
 
-    <div class="container" id="mainApp">
-        <h1>Asignación de Tareas</h1>
-        <div class="table-controls">
-            <div class="filters">
-                <input type="text" id="searchInput" placeholder="Buscar tareas...">
-                <select id="filterTipo">
-                    <option value="">Todos los Tipos</option>
-                </select>
-                <select id="filterResponsable">
-                    <option value="">Todos los Responsables</option>
-                    <option value="JOSE">JOSE</option>
-                    <option value="MARINA">MARINA</option>
-                    <option value="JOSEPH">JOSEPH</option>
-                    <option value="DAVID">DAVID</option>
-                </select>
-                <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
-                <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
-                <label><input type="checkbox" id="filterSemana" checked> Semana Actual</label>
-                <select id="sortOrder">
-                    <option value="estadoOrden" selected>Ordenar por Estado</option>
-                    <option value="fechaEstimadaAsc">Culminación Más Reciente</option>
-                    <option value="fechaEstimadaDesc">Culminación Más Antigua</option>
-                    <option value="fechaCreacionDesc">Tarea Agregada Más Reciente</option>
-                    <option value="fechaCreacionAsc">Tarea Agregada Más Antigua</option>
-                </select>
-                <button id="resetFilters" class="reset-filters-btn">Resetear Filtros</button>
-            </div>
-            <div class="actions-buttons">
-                <button id="editarBtn" disabled>Editar</button>
-                <button id="eliminarBtn" disabled>Eliminar</button>
-                <button class="add-task-btn" onclick="abrirModal()">Agregar Tarea</button>
-                <div id="viewSection">
-                    <h3>Vista</h3>
-                    <div id="filterEstadoCheckboxes">
-                        <label><input type="checkbox" id="filterNoIniciado" checked> No Iniciado</label>
-                        <label><input type="checkbox" id="filterEnProgreso" checked> En Progreso</label>
-                        <label><input type="checkbox" id="filterRevision" checked> Revisión</label>
-                        <label><input type="checkbox" id="filterCompletado"> Completado</label>
-                    </div>
-                </div>
-            </div>
+    <!-- Tabs -->
+    <div class="tabs" role="tablist" aria-label="Secciones de tareas">
+      <button class="tab-button active" role="tab" aria-selected="true" aria-controls="tab-recientes" id="tabBtnRecientes" data-tab="tab-recientes">Tareas (últimos 15 días)</button>
+      <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-historial" id="tabBtnHistorial" data-tab="tab-historial">Historial</button>
+    </div>
+
+    <!-- Contenido: Tareas recientes -->
+    <section id="tab-recientes" class="tab-content active" role="tabpanel" aria-labelledby="tabBtnRecientes">
+      <table id="taskTable">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Descripción de la Tarea</th>
+            <th>Responsable</th>
+            <th>Creación</th>
+            <th>Fecha Estimada</th>
+            <th>Fecha de Culminación</th>
+            <th>Estado</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Contenido: Historial -->
+    <section id="tab-historial" class="tab-content" role="tabpanel" aria-labelledby="tabBtnHistorial">
+      <h2>Historial de Tareas (anteriores a 15 días)</h2>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Descripción de la Tarea</th>
+            <th>Responsable</th>
+            <th>Creación</th>
+            <th>Fecha Estimada</th>
+            <th>Fecha de Culminación</th>
+            <th>Estado</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Modal Agregar/Editar -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="cerrarModal()">&times;</span>
+      <h2 id="modalTitle">Agregar Tarea</h2>
+      <form id="taskForm">
+        <label for="tipo">Tipo:</label>
+        <div class="tipo-container">
+          <select id="tipo" required>
+            <option value="">Selecciona un tipo</option>
+          </select>
+          <button type="button" id="addTipoBtn">Agregar Tipo</button>
         </div>
 
-        <table id="taskTable">
-            <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Descripción de la Tarea</th>
-                    <th>Responsable</th>
-                    <th>Creación</th>
-                    <th>Fecha Estimada</th>
-                    <th>Fecha de Culminación</th>
-                    <th>Estado</th>
-                    <th>Notas</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Las tareas se generarán aquí dinámicamente -->
-            </tbody>
-        </table>
-    </div>
+        <label for="descripcion">Descripción de la Tarea:</label>
+        <textarea id="descripcion" required></textarea>
 
-    <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="cerrarModal()">&times;</span>
-            <h2 id="modalTitle">Agregar Tarea</h2>
-            <form id="taskForm">
-                <label for="tipo">Tipo:</label>
-                <div class="tipo-container">
-                    <select id="tipo" required>
-                        <option value="">Selecciona un tipo</option>
-                    </select>
-                    <button type="button" id="addTipoBtn">Agregar Tipo</button>
-                </div>
-                <label for="descripcion">Descripción de la Tarea:</label>
-                <textarea id="descripcion" required></textarea>
-                <label>Responsable:</label>
-                <div id="responsableCheckboxes">
-                    <label><input type="checkbox" name="responsable" value="JOSE"> JOSE</label>
-                    <label><input type="checkbox" name="responsable" value="MARINA"> MARINA</label>
-                    <label><input type="checkbox" name="responsable" value="JOSEPH"> JOSEPH</label>
-                    <label><input type="checkbox" name="responsable" value="DAVID"> DAVID</label>
-                </div>
-                <label for="fechaEstimada">Fecha Estimada de Culminación:</label>
-                <input type="date" id="fechaEstimada" required>
-                <label for="notas">Notas Adicionales:</label>
-                <textarea id="notas"></textarea>
-                <button type="submit">Guardar Tarea</button>
-            </form>
+        <label>Responsable:</label>
+        <div id="responsableCheckboxes">
+          <label><input type="checkbox" name="responsable" value="JOSE"> JOSE</label>
+          <label><input type="checkbox" name="responsable" value="MARINA"> MARINA</label>
+          <label><input type="checkbox" name="responsable" value="JOSEPH"> JOSEPH</label>
+          <label><input type="checkbox" name="responsable" value="DAVID"> DAVID</label>
         </div>
-    </div>
 
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Firebase Config JS -->
-    <script type="module" src="firebase-config.js"></script>
-    <!-- Enlace al archivo JS -->
-    <script type="module" src="script.js"></script>
+        <label for="fechaEstimada">Fecha Estimada de Culminación:</label>
+        <input type="date" id="fechaEstimada" required>
+
+        <label for="notas">Notas Adicionales:</label>
+        <textarea id="notas"></textarea>
+
+        <button type="submit">Guardar Tarea</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Firebase Config -->
+  <script type="module" src="firebase-config.js"></script>
+
+  <!-- Lógica -->
+  <script type="module" src="script.js"></script>
 </body>
 </html>

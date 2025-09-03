@@ -2,7 +2,7 @@
 import { db } from './firebase-config.js';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, getDocs
+  onSnapshot, getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,6 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const estadoCheckboxes = Array.from(document.querySelectorAll('#filterEstadoCheckboxes input[type="checkbox"]'));
   const responsableCheckboxesContainer = document.getElementById('responsableCheckboxes');
 
+  // NUEVO: botón borrar todo
+  const borrarTodoBtn = document.getElementById('borrarTodoBtn');
+
   const userStatsEls = {
     JOSE:   document.getElementById('pending-JOSE'),
     MARINA: document.getElementById('pending-MARINA'),
@@ -126,6 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleLoginUI() {
     openLoginBtn.style.display = usuarioActual ? 'none' : 'inline-block';
     logoutBtn.style.display    = usuarioActual ? 'inline-block' : 'none';
+    // habilita/deshabilita el botón de borrar todo según rol
+    if (borrarTodoBtn) borrarTodoBtn.disabled = !usuarioActual?.isAdmin;
   }
   loginForm?.addEventListener('submit', e => {
     e.preventDefault();
@@ -211,6 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', e => { if (e.target === taskModal) cerrarModal(); });
 
     if (filterSemana) filterSemana.checked = true;
+
+    // NUEVO: borrar todas las tareas
+    borrarTodoBtn?.addEventListener('click', borrarTodasLasTareas);
   }
 
   /* =======================
@@ -475,6 +483,48 @@ document.addEventListener('DOMContentLoaded', () => {
       editarBtn.disabled = true;
       eliminarBtn.disabled = true;
       Swal.fire({ icon:'success', title:'Eliminado', timer:1500, showConfirmButton:false });
+    }
+  }
+
+  /* =======================
+     NUEVO: Borrar TODAS las tareas
+  ======================= */
+  async function borrarTodasLasTareas(){
+    if (!usuarioActual?.isAdmin){
+      return Swal.fire({ icon:'error', title:'Acceso denegado', text:'Solo ADMIN puede eliminar todo.' });
+    }
+
+    const res = await Swal.fire({
+      title: 'Eliminar TODAS las tareas',
+      html: 'Esto borrará <b>todas</b> las tareas (últimos 15 días e historial). Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, borrar todo',
+      cancelButtonText: 'Cancelar'
+    });
+    if (!res.isConfirmed) return;
+
+    try{
+      const snap = await getDocs(collection(db,'tareas'));
+      const docs = snap.docs;
+
+      // Borrado en lotes de 500 (límite Firestore)
+      for (let i = 0; i < docs.length; i += 500){
+        const batch = writeBatch(db);
+        docs.slice(i, i + 500).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+
+      // Limpieza UI
+      selectedTaskId = null;
+      filaSeleccionada?.classList.remove('selected');
+      editarBtn.disabled = true;
+      eliminarBtn.disabled = true;
+
+      Swal.fire({ icon:'success', title:'Tareas eliminadas', timer:1500, showConfirmButton:false });
+    }catch(err){
+      console.error(err);
+      Swal.fire({ icon:'error', title:'Error', text:'No se pudieron eliminar todas las tareas.' });
     }
   }
 });
