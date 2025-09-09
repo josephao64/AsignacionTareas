@@ -74,7 +74,7 @@
       background-color: #fefefe; margin: 5% auto;
       padding: 20px; border: 1px solid #888;
       width: 500px; border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
     .modal-content h2 { text-align: center; margin-bottom: 20px; }
     .modal-content label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -237,8 +237,6 @@
         </select>
         <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
         <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
-        <!-- Fijo: últimos 15 días -->
-        <label><input type="checkbox" id="filterSemana" checked disabled> Últimos 15 días</label>
         <select id="sortOrder">
           <option value="estadoOrden" selected>Ordenar por Estado</option>
           <option value="fechaEstimadaAsc">Culminación Más Reciente</option>
@@ -253,28 +251,17 @@
         <button id="editarBtn" disabled>Editar</button>
         <button id="eliminarBtn" disabled>Eliminar</button>
         <button class="add-task-btn" onclick="abrirModal()">Agregar Tarea</button>
-        <!-- NUEVO: borrar todo -->
-        
-
-        <div id="viewSection">
-          <h3>Vista</h3>
-          <div id="filterEstadoCheckboxes">
-            <label><input type="checkbox" id="filterNoIniciado" checked> No Iniciado</label>
-            <label><input type="checkbox" id="filterEnProgreso" checked> En Progreso</label>
-            <label><input type="checkbox" id="filterRevision" checked> Revisión</label>
-            <label><input type="checkbox" id="filterCompletado" checked> Completado</label>
-          </div>
-        </div>
+        <!-- NUEVO: botón global opcional (si lo agregas en HTML ponle id="borrarTodoBtn") -->
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs" role="tablist" aria-label="Secciones de tareas">
-      <button class="tab-button active" role="tab" aria-selected="true" aria-controls="tab-recientes" id="tabBtnRecientes" data-tab="tab-recientes">Tareas (últimos 15 días)</button>
+      <button class="tab-button active" role="tab" aria-selected="true" aria-controls="tab-recientes" id="tabBtnRecientes" data-tab="tab-recientes">Tareas</button>
       <button class="tab-button" role="tab" aria-selected="false" aria-controls="tab-historial" id="tabBtnHistorial" data-tab="tab-historial">Historial</button>
     </div>
 
-    <!-- Contenido: Tareas recientes -->
+    <!-- Contenido: Tareas activas (todas, sin importar fecha) -->
     <section id="tab-recientes" class="tab-content active" role="tabpanel" aria-labelledby="tabBtnRecientes">
       <table id="taskTable">
         <thead>
@@ -293,9 +280,9 @@
       </table>
     </section>
 
-    <!-- Contenido: Historial -->
+    <!-- Contenido: Historial (Completadas) -->
     <section id="tab-historial" class="tab-content" role="tabpanel" aria-labelledby="tabBtnHistorial">
-      <h2>Historial de Tareas (anteriores a 15 días)</h2>
+      <h2>Historial de Tareas (Completadas)</h2>
       <table id="historyTable">
         <thead>
           <tr>

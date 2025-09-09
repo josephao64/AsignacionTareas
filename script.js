@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterResponsable = document.getElementById('filterResponsable');
   const filterFechaDesde  = document.getElementById('filterFechaDesde');
   const filterFechaHasta  = document.getElementById('filterFechaHasta');
-  const filterSemana  = document.getElementById('filterSemana');
   const sortOrder     = document.getElementById('sortOrder');
   const resetFiltersBtn = document.getElementById('resetFilters');
   const editarBtn     = document.getElementById('editarBtn');
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const estadoCheckboxes = Array.from(document.querySelectorAll('#filterEstadoCheckboxes input[type="checkbox"]'));
   const responsableCheckboxesContainer = document.getElementById('responsableCheckboxes');
 
-  // NUEVO: botón borrar todo
+  // Opcional: botón "borrar todo" si existe en el HTML
   const borrarTodoBtn = document.getElementById('borrarTodoBtn');
 
   const userStatsEls = {
@@ -107,12 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
      UTILIDADES FECHAS
   ======================= */
   function parseYMD(ymd) {
+    if (!ymd) return new Date(0);
     const [y,m,d] = ymd.split('-').map(n => parseInt(n,10));
     return new Date(y, m-1, d);
   }
   function inicioDeHoy() { const dt = new Date(); dt.setHours(0,0,0,0); return dt; }
-  function finDeHoy()    { const dt = new Date(); dt.setHours(23,59,59,999); return dt; }
-  function inicioVentana15() { const dt = inicioDeHoy(); dt.setDate(dt.getDate()-15); return dt; }
 
   /* =======================
      LOGIN
@@ -122,14 +120,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (usuarioActual) {
       Swal.fire({ icon:'success', title:'Bienvenido', text:usuarioActual.username.toUpperCase(), timer:1500, showConfirmButton:false });
     }
-    if (filterSemana) { filterSemana.checked = true; filterSemana.disabled = true; }
-    estadoCheckboxes.forEach(ch => ch.checked = true); // ver todos los estados
+    // Si tienes checkboxes de estados en el HTML, marcarlos
+    estadoCheckboxes.forEach(ch => ch.checked = true);
     toggleLoginUI();
   }
   function toggleLoginUI() {
     openLoginBtn.style.display = usuarioActual ? 'none' : 'inline-block';
     logoutBtn.style.display    = usuarioActual ? 'inline-block' : 'none';
-    // habilita/deshabilita el botón de borrar todo según rol
     if (borrarTodoBtn) borrarTodoBtn.disabled = !usuarioActual?.isAdmin;
   }
   loginForm?.addEventListener('submit', e => {
@@ -215,9 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     taskForm?.addEventListener('submit', submitTarea);
     window.addEventListener('click', e => { if (e.target === taskModal) cerrarModal(); });
 
-    if (filterSemana) filterSemana.checked = true;
-
-    // NUEVO: borrar todas las tareas
+    // Borrar todas (si agregas el botón en el HTML con id="borrarTodoBtn")
     borrarTodoBtn?.addEventListener('click', borrarTodasLasTareas);
   }
 
@@ -297,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
     filterResponsable.value = '';
     filterFechaDesde.value = '';
     filterFechaHasta.value = '';
-    if (filterSemana) { filterSemana.checked = true; filterSemana.disabled = true; }
     sortOrder.value = 'estadoOrden';
     estadoCheckboxes.forEach(ch => ch.checked = true);
     actualizarTabla();
@@ -310,10 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     taskTableBody.innerHTML = '';
     historyTableBody.innerHTML = '';
 
-    const hoyFin = finDeHoy();
-    const ventanaInicio = inicioVentana15();
-
-    // Resumen semanal (pendientes)
+    // Resumen semanal (pendientes dentro de la semana actual)
     const hoy = new Date();
     const dia = hoy.getDay(); // 0 dom, 1 lun ...
     const diffLunes = (dia + 6) % 7;
@@ -323,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(userStatsEls).forEach(user => {
       const count = tareas.filter(t => {
         const fecha = parseYMD(t.fechaEstimada);
-        return t.responsable.includes(user)
+        return t.responsable?.includes(user)
           && (t.estado === 'No Iniciado' || t.estado === 'En Progreso')
           && fecha >= semanaInicio && fecha <= semanaFin;
       }).length;
@@ -332,50 +323,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pasaFiltrosComunes = (t) => {
       if (filterTipo.value && t.tipo !== filterTipo.value) return false;
-      if (filterResponsable.value && !t.responsable.includes(filterResponsable.value)) return false;
+      if (filterResponsable.value && !t.responsable?.includes(filterResponsable.value)) return false;
       if (filterFechaDesde.value && t.fechaEstimada < filterFechaDesde.value) return false;
       if (filterFechaHasta.value && t.fechaEstimada > filterFechaHasta.value) return false;
 
-      const estadosSel = estadoCheckboxes.filter(c => c.checked).map(c => c.nextSibling.textContent.trim());
-      if (estadosSel.length && !estadosSel.includes(t.estado)) return false;
+      // Si existen checkboxes de estado en el HTML (opcionales)
+      if (estadoCheckboxes.length) {
+        const estadosSel = estadoCheckboxes.filter(c => c.checked).map(c => c.nextSibling.textContent.trim());
+        if (estadosSel.length && !estadosSel.includes(t.estado)) return false;
+      }
 
       if (searchInput.value) {
         const term = searchInput.value.toLowerCase();
-        const campos = [t.tipo, t.descripcion, t.responsable.join(', '), t.fechaEstimada, t.estado, t.notas];
+        const campos = [t.tipo, t.descripcion, (t.responsable||[]).join(', '), t.fechaEstimada, t.estado, t.notas];
         if (!campos.some(v => v?.toLowerCase().includes(term))) return false;
       }
       return true;
     };
 
-    let listaVentana = [];
-    let listaHistorial = [];
+    // NUEVO: mostrar SIEMPRE todas las tareas
+    const filtradas = tareas.filter(pasaFiltrosComunes);
 
-    tareas.forEach(t => {
-      const fecha = parseYMD(t.fechaEstimada);
-      if (fecha >= ventanaInicio && fecha <= hoyFin) {
-        if (pasaFiltrosComunes(t)) listaVentana.push(t);
-      } else if (fecha < ventanaInicio) {
-        if (pasaFiltrosComunes(t)) listaHistorial.push(t);
-      }
-      // Futuras (fecha > hoy) no se muestran
-    });
+    // Tareas activas (no completadas) en la pestaña principal
+    let listaActivas = filtradas.filter(t => t.estado !== 'Completado');
+    // Historial: sólo completadas
+    let listaHistorial = filtradas.filter(t => t.estado === 'Completado');
 
+    // Ordenado para ACTIVAS
     switch (sortOrder.value) {
       case 'fechaEstimadaAsc':
-        listaVentana.sort((a,b) => parseYMD(a.fechaEstimada) - parseYMD(b.fechaEstimada)); break;
+        listaActivas.sort((a,b) => parseYMD(a.fechaEstimada) - parseYMD(b.fechaEstimada)); break;
       case 'fechaEstimadaDesc':
-        listaVentana.sort((a,b) => parseYMD(b.fechaEstimada) - parseYMD(a.fechaEstimada)); break;
+        listaActivas.sort((a,b) => parseYMD(b.fechaEstimada) - parseYMD(a.fechaEstimada)); break;
       case 'fechaCreacionAsc':
-        listaVentana.sort((a,b) => new Date(a.fechaCreacion) - new Date(b.fechaCreacion)); break;
+        listaActivas.sort((a,b) => new Date(a.fechaCreacion||0) - new Date(b.fechaCreacion||0)); break;
       case 'fechaCreacionDesc':
-        listaVentana.sort((a,b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion)); break;
+        listaActivas.sort((a,b) => new Date(b.fechaCreacion||0) - new Date(a.fechaCreacion||0)); break;
       default:
-        listaVentana.sort((a,b) => prioridadEstado[a.estado] - prioridadEstado[b.estado]);
+        listaActivas.sort((a,b) => prioridadEstado[a.estado] - prioridadEstado[b.estado]);
     }
-    // Historial: recientes primero por fecha estimada
-    listaHistorial.sort((a,b) => parseYMD(b.fechaEstimada) - parseYMD(a.fechaEstimada));
 
-    listaVentana.forEach(t => taskTableBody.appendChild(crearFilaTarea(t)));
+    // Historial: recientes primero por fecha de culminación; si no hay, por fecha estimada
+    listaHistorial.sort((a,b) => {
+      const fa = a.fechaCulminacion || a.fechaEstimada || '';
+      const fb = b.fechaCulminacion || b.fechaEstimada || '';
+      return parseYMD(fb) - parseYMD(fa);
+    });
+
+    listaActivas.forEach(t => taskTableBody.appendChild(crearFilaTarea(t)));
     listaHistorial.forEach(t => historyTableBody.appendChild(crearFilaTarea(t)));
   }
 
@@ -388,11 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filaSeleccionada?.dataset.id === t.id) tr.classList.add('selected');
 
     tr.innerHTML = `
-      <td>${t.tipo}</td>
-      <td>${t.descripcion}</td>
-      <td>${t.responsable.join(', ')}</td>
+      <td>${t.tipo || ''}</td>
+      <td>${t.descripcion || ''}</td>
+      <td>${(t.responsable||[]).join(', ')}</td>
       <td>${t.fechaCreacion?.split('T')[0] || ''}</td>
-      <td>${t.fechaEstimada}</td>
+      <td>${t.fechaEstimada || ''}</td>
       <td>${t.fechaCulminacion || '-'}</td>
       <td>
         <select>
@@ -487,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* =======================
-     NUEVO: Borrar TODAS las tareas
+     Borrar TODAS las tareas (opcional)
   ======================= */
   async function borrarTodasLasTareas(){
     if (!usuarioActual?.isAdmin){
@@ -496,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const res = await Swal.fire({
       title: 'Eliminar TODAS las tareas',
-      html: 'Esto borrará <b>todas</b> las tareas (últimos 15 días e historial). Esta acción no se puede deshacer.',
+      html: 'Esto borrará <b>todas</b> las tareas. Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Sí, borrar todo',
