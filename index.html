@@ -235,6 +235,17 @@
           <option value="JOSEPH">JOSEPH</option>
           <option value="DAVID">DAVID</option>
         </select>
+
+        <!-- NUEVO: Filtro por Estado con "Todos" -->
+        <div id="filterEstadoCheckboxes" class="estado-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>Estado:</strong>
+          <label><input type="checkbox" id="estadoAll" checked> Todos</label>
+          <label><input type="checkbox" value="No Iniciado" checked> No Iniciado</label>
+          <label><input type="checkbox" value="En Progreso" checked> En Progreso</label>
+          <label><input type="checkbox" value="Revisión" checked> Revisión</label>
+          <label><input type="checkbox" value="Completado" checked> Completado</label>
+        </div>
+
         <input type="date" id="filterFechaDesde" placeholder="Fecha Desde">
         <input type="date" id="filterFechaHasta" placeholder="Fecha Hasta">
         <select id="sortOrder">

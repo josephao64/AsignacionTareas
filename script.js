@@ -66,7 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskForm      = document.getElementById('taskForm');
   const tipoSelect    = document.getElementById('tipo');
   const addTipoBtn    = document.getElementById('addTipoBtn');
-  const estadoCheckboxes = Array.from(document.querySelectorAll('#filterEstadoCheckboxes input[type="checkbox"]'));
+
+  // NUEVO: Filtro por Estado con "Todos"
+  const estadoContainer = document.getElementById('filterEstadoCheckboxes');
+  const estadoAll       = document.getElementById('estadoAll');
+  // Solo estados reales (los que tienen value)
+  const estadoCheckboxes = Array.from(document.querySelectorAll('#filterEstadoCheckboxes input[type="checkbox"][value]'));
+
   const responsableCheckboxesContainer = document.getElementById('responsableCheckboxes');
 
   // Opcional: botón "borrar todo" si existe en el HTML
@@ -95,14 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const prioridadEstado = { "Completado":1, "Revisión":2, "En Progreso":3, "No Iniciado":4 };
 
   /* =======================
-     INIT
-  ======================= */
-  initLogin();
-  cargarTipos();
-  cargarTareas();
-  attachEventListeners();
-
-  /* =======================
      UTILIDADES FECHAS
   ======================= */
   function parseYMD(ymd) {
@@ -113,6 +111,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function inicioDeHoy() { const dt = new Date(); dt.setHours(0,0,0,0); return dt; }
 
   /* =======================
+     CONTROL ESTADOS (Todos/individuales)
+  ======================= */
+  function setAllEstados(checked) {
+    estadoCheckboxes.forEach(ch => ch.checked = checked);
+    if (estadoAll) estadoAll.checked = checked;
+    actualizarTabla();
+  }
+  function syncMasterEstado() {
+    const allOn = estadoCheckboxes.every(ch => ch.checked);
+    if (estadoAll) estadoAll.checked = allOn;
+  }
+
+  /* =======================
+     INIT
+  ======================= */
+  initLogin();
+  cargarTipos();
+  cargarTareas();
+  attachEventListeners();
+
+  /* =======================
      LOGIN
   ======================= */
   function initLogin() {
@@ -120,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (usuarioActual) {
       Swal.fire({ icon:'success', title:'Bienvenido', text:usuarioActual.username.toUpperCase(), timer:1500, showConfirmButton:false });
     }
-    // Si tienes checkboxes de estados en el HTML, marcarlos
-    estadoCheckboxes.forEach(ch => ch.checked = true);
+    // Marcar todos los estados activos al iniciar
+    if (estadoAll) setAllEstados(true);
     toggleLoginUI();
   }
   function toggleLoginUI() {
@@ -204,7 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
     [searchInput, filterTipo, filterResponsable, filterFechaDesde, filterFechaHasta, sortOrder]
       .forEach(el => el?.addEventListener('input', actualizarTabla));
 
-    estadoCheckboxes.forEach(ch => ch.addEventListener('change', actualizarTabla));
+    // Estados: master e individuales
+    estadoAll?.addEventListener('change', () => setAllEstados(estadoAll.checked));
+    estadoCheckboxes.forEach(ch => ch.addEventListener('change', () => {
+      syncMasterEstado();
+      actualizarTabla();
+    }));
+
     resetFiltersBtn?.addEventListener('click', resetFilters);
     editarBtn?.addEventListener('click', () => abrirModal(selectedTaskId));
     eliminarBtn?.addEventListener('click', eliminarTarea);
@@ -293,7 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
     filterFechaDesde.value = '';
     filterFechaHasta.value = '';
     sortOrder.value = 'estadoOrden';
-    estadoCheckboxes.forEach(ch => ch.checked = true);
+    // Activa todos los estados
+    if (estadoAll) setAllEstados(true);
     actualizarTabla();
     Swal.fire({ icon:'info', timer:1200, showConfirmButton:false });
   }
@@ -327,10 +353,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (filterFechaDesde.value && t.fechaEstimada < filterFechaDesde.value) return false;
       if (filterFechaHasta.value && t.fechaEstimada > filterFechaHasta.value) return false;
 
-      // Si existen checkboxes de estado en el HTML (opcionales)
+      // Filtro por estado: usar SOLO los checks con value
       if (estadoCheckboxes.length) {
-        const estadosSel = estadoCheckboxes.filter(c => c.checked).map(c => c.nextSibling.textContent.trim());
-        if (estadosSel.length && !estadosSel.includes(t.estado)) return false;
+        const estadosActivos = estadoCheckboxes.filter(c => c.checked).map(c => c.value);
+        if (estadosActivos.length && !estadosActivos.includes(t.estado)) return false;
       }
 
       if (searchInput.value) {
@@ -341,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     };
 
-    // NUEVO: mostrar SIEMPRE todas las tareas
+    // Mostrar SIEMPRE todas las tareas (según filtros)
     const filtradas = tareas.filter(pasaFiltrosComunes);
 
     // Tareas activas (no completadas) en la pestaña principal
@@ -398,7 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </select>
       </td>
       <td>${t.notas || ''}</td>
-    `;
+    `
+
 
     const claseEstado = {
       "No Iniciado": "estado-no-iniciado",

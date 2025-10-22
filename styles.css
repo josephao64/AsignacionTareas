@@ -108,22 +108,91 @@ h1 {
     color: #00796b;
 }
 
+/* ---------- Filtro de Estado (cuadro de checks MEJORADO) ---------- */
 #filterEstadoCheckboxes {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 10px 15px;
-    border: 2px solid #b2dfdb;
-    border-radius: 12px;
-    background-color: #f0f0f0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #b2dfdb;
+  border-radius: 12px;
+  background-color: #f0f7f7; /* un poco más claro */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
 }
 
+#filterEstadoCheckboxes > strong {
+  grid-column: 1 / -1;           /* Toma todo el ancho en la primera fila */
+  color: #00796b;
+  font-size: 14px;
+  letter-spacing: .3px;
+}
+
+/* Cada opción como "chip" clicable */
 #filterEstadoCheckboxes label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: bold;
-    color: #00796b;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid #b2dfdb;
+  background: #e0f2f1;
+  color: #00695c;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background .2s, border-color .2s, color .2s, transform .05s;
+  white-space: nowrap;
+}
+
+#filterEstadoCheckboxes label:hover {
+  background: #d2eeec;
+  border-color: #8fd0c9;
+}
+
+#filterEstadoCheckboxes label:active {
+  transform: translateY(1px);
+}
+
+/* Checkbox visible pero estilizado y accesible */
+#filterEstadoCheckboxes input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00796b;     /* color del check */
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* Accesibilidad: foco visible al tabular */
+#filterEstadoCheckboxes input[type="checkbox"]:focus-visible {
+  outline: 3px solid rgba(0, 121, 107, .35);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Estado activo (cuando el checkbox está marcado) usando :has() para no tocar el HTML */
+#filterEstadoCheckboxes label:has(input[type="checkbox"]:checked) {
+  background: #00796b;
+  color: #ffffff;
+  border-color: #00796b;
+}
+
+/* “Todos” (id="estadoAll") listo para personalizar si lo deseas */
+#filterEstadoCheckboxes #estadoAll {
+  /* estilos específicos si quieres destacar el master */
+}
+
+/* Responsive: en móviles los chips ocupan toda la fila si hace falta */
+@media (max-width: 600px) {
+  #filterEstadoCheckboxes {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    padding: 10px;
+    gap: 8px 10px;
+  }
+  #filterEstadoCheckboxes label {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
 }
 
 table {
@@ -274,9 +343,9 @@ select[multiple] {
     height: 100px;
 }
 
-/* Estilos para los estados */
+/* Estilos para los estados (filas) */
 .estado-no-iniciado {
-    /* Sin cambios */
+    /* Sin cambios específicos aquí; color por fila si deseas */
 }
 
 .estado-en-progreso {
